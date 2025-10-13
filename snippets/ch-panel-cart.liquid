@@ -1,0 +1,57 @@
+{%- comment -%} Cart panel body (for use inside ch-side-panel) {%- endcomment -%}
+<div class="mc-body" data-mc-list>
+  {% for i in (1..3) %}
+    <div class="mci">
+      <div class="pic skeleton"></div>
+      <div>
+        <div class="skeleton s1"></div>
+        <div class="skeleton s2"></div>
+      </div>
+      <div><div class="skeleton s3"></div></div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="mc-ft">
+  <div class="mc-sub">
+    <span>Subtotal</span>
+    <strong data-mc-subtotal>—</strong>
+  </div>
+  <div class="mc-cta">
+    <a class="btn-view" href="{{ routes.cart_url }}">VIEW CART</a>
+    <a class="btn-checkout" href="/checkout">CHECK OUT</a>
+  </div>
+  <span class="sr-only" aria-live="polite" data-mc-live></span>
+  <div class="note">Taxes & shipping calculated at checkout.</div>
+</div>
+
+<style>
+/* ===== Cart-only styles (scoped) ===== */
+.ch-panel[data-ch-panel="cart"] .mc-body{ display:grid; gap:10px; }
+.ch-panel[data-ch-panel="cart"] .mci{
+  display:grid; grid-template-columns:64px 1fr auto; gap:10px;
+  padding:10px; border:1px solid #e5e7eb; border-radius:12px; background:#fff;
+}
+.ch-panel[data-ch-panel="cart"] .pic{ width:64px; height:64px; object-fit:contain; border-radius:8px; background:#f4f4f4; }
+.ch-panel[data-ch-panel="cart"] .name{ font:700 13px/1.3 var(--font-body, ui-sans-serif); color:#111; text-decoration:none; }
+.ch-panel[data-ch-panel="cart"] .meta{ color:#6b7280; font:600 11px/1.2 var(--font-body, ui-sans-serif); margin-top:2px; }
+.ch-panel[data-ch-panel="cart"] .price{ font:800 13px/1 var(--font-body, ui-sans-serif); text-align:right; white-space:nowrap; }
+.ch-panel[data-ch-panel="cart"] .qty{ display:inline-flex; align-items:center; gap:6px; border:1px solid #e5e7eb; border-radius:8px; padding:6px; margin-top:6px; }
+.ch-panel[data-ch-panel="cart"] .qty button{ width:24px; height:24px; border-radius:6px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; }
+.ch-panel[data-ch-panel="cart"] .qty input{ width:36px; text-align:center; border:0; outline:0; background:transparent; font:700 13px/1 var(--font-body, ui-sans-serif); }
+
+.ch-panel[data-ch-panel="cart"] .mc-ft{ padding:12px 0 16px; border-top:1px solid #e5e7eb; margin-top:auto; background:inherit; }
+.ch-panel[data-ch-panel="cart"] .mc-sub{ display:flex; align-items:center; justify-content:space-between; font-weight:800; margin-bottom:10px; }
+.ch-panel[data-ch-panel="cart"] .mc-cta{ display:flex; gap:10px; }
+.ch-panel[data-ch-panel="cart"] .mc-cta a{ flex:1 1 0; height:42px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; text-decoration:none; font:800 14px/1 var(--font-body, ui-sans-serif); }
+.ch-panel[data-ch-panel="cart"] .mc-cta .btn-view{ background:#fff; border:1px solid #e5e7eb; color:#111; }
+.ch-panel[data-ch-panel="cart"] .mc-cta .btn-checkout{ background:#111; color:#fff; }
+.ch-panel[data-ch-panel="cart"] .note{ color:#6b7280; font:600 11px/1.2 var(--font-body, ui-sans-serif); margin-top:8px; }
+
+/* skeletons */
+.ch-panel[data-ch-panel="cart"] .skeleton{ background:linear-gradient(90deg,#eee,#f7f7f7,#eee); animation:ch-sk 1.2s infinite; }
+.ch-panel[data-ch-panel="cart"] .s1{ height:14px; border-radius:6px; margin-bottom:6px; }
+.ch-panel[data-ch-panel="cart"] .s2{ width:60%; height:12px; border-radius:6px; }
+.ch-panel[data-ch-panel="cart"] .s3{ width:64px; height:14px; border-radius:6px; margin-left:auto; }
+@keyframes ch-sk{ 0%{background-position:-120px 0} 100%{background-position:120px 0} }
+</style>

@@ -1,0 +1,221 @@
+{%- comment -%}
+  Section: main-collection (Dawn OS 2.0) — HARD GRID FIX, TOP FILTERS (unchanged layout, compatible with fixed filters)
+{%- endcomment -%}
+
+{%- paginate collection.products by 20 -%}
+<section id="ch-collection-{{ section.id }}" class="ch-collection" data-section-id="{{ section.id }}">
+  <style>
+    #ch-collection-{{ section.id }}{
+      --gap: 24px;
+      --panel: #ffffff;
+      --ink: #111;
+      --muted: #666;
+      --line: rgba(17,17,17,.10);
+      --radius: 14px;
+      --shadow: 0 10px 30px rgba(17,17,17,.10);
+      --focus: 2px solid rgba(32,94,214,.6);
+      --grid-gap: 16px;
+    }
+    #ch-collection-{{ section.id }} *, #ch-collection-{{ section.id }} *::before, #ch-collection-{{ section.id }} *::after { box-sizing: border-box; }
+
+    /* Header */
+    #ch-collection-{{ section.id }} .ch-header{ margin: 16px auto 8px; }
+    #ch-collection-{{ section.id }} .ch-title{ margin:0 0 8px; font-size: clamp(22px, 2.6vw, 32px); line-height:1.2; color:var(--ink) }
+    #ch-collection-{{ section.id }} .ch-desc{ color:var(--muted) }
+
+    /* Optional light wrapper around the top filters section */
+    #ch-collection-{{ section.id }} .ch-topfilters{ margin: 14px 0 18px; }
+
+    /* HARD GRID — replaces Dawn flex grid to prevent clipping/overlap */
+    #ch-collection-{{ section.id }} #CollectionProductGrid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: var(--grid-gap);
+      min-height: 120px;
+      align-items: stretch;
+    }
+    @media (min-width: 750px){
+      #ch-collection-{{ section.id }} #CollectionProductGrid{ grid-template-columns: repeat(4, minmax(0,1fr)); }
+    }
+    @media (min-width: 1100px){
+      #ch-collection-{{ section.id }} #CollectionProductGrid{ grid-template-columns: repeat(4, minmax(0,1fr)); } /* 4-up desktop */
+    }
+    /* Neutralize theme grid utility side-effects inside our grid */
+    #ch-collection-{{ section.id }} #CollectionProductGrid .grid__item,
+    #ch-collection-{{ section.id }} #CollectionProductGrid [class*="medium-up--"],
+    #ch-collection-{{ section.id }} #CollectionProductGrid [class*="small--"]{
+      all: unset;
+      display:block;
+    }
+    #ch-collection-{{ section.id }} #CollectionProductGrid .ch-cell{ height:100%; min-height:0; }
+    #ch-collection-{{ section.id }} #CollectionProductGrid .chcard{ height:100%; }
+
+    /* Pagination */
+    #ch-collection-{{ section.id }} .pagination{ margin:20px 0 0; display:flex; flex-wrap:wrap; gap:8px; }
+    #ch-collection-{{ section.id }} .pagination a,
+    #ch-collection-{{ section.id }} .pagination span{
+      padding:8px 12px; border:1px solid var(--line); border-radius: 10px; text-decoration:none; color:var(--ink); font-size:14px;
+    }
+    #ch-collection-{{ section.id }} .pagination .current{ background: #f6f6f6; }
+
+    /* Skeleton */
+    #ch-collection-{{ section.id }} .ch-skeleton-grid{
+      display:grid; grid-template-columns: repeat(2, 1fr); gap:var(--grid-gap);
+    }
+    @media (min-width: 750px){
+      #ch-collection-{{ section.id }} .ch-skeleton-grid{ grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (min-width: 1100px){
+      #ch-collection-{{ section.id }} .ch-skeleton-grid{ grid-template-columns: repeat(4, 1fr); }
+    }
+    #ch-collection-{{ section.id }} .ch-skel-card{
+      border:1px solid var(--line); border-radius: 12px; overflow:hidden; background: #fff; padding:10px;
+    }
+    #ch-collection-{{ section.id }} .ch-skel-card .skel-media{
+      height: 160px; border-radius:10px; background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%); background-size:400% 100%;
+      animation: ch-skel 1.1s ease-in-out infinite;
+    }
+    #ch-collection-{{ section.id }} .ch-skel-card .skel-line{
+      height: 12px; margin:10px 6px; border-radius: 8px;
+      background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%); background-size:400% 100%;
+      animation: ch-skel 1.1s ease-in-out infinite;
+    }
+    #ch-collection-{{ section.id }} .ch-skel-card .skel-line.skel-short{ width: 60%; }
+    #ch-collection-{{ section.id }} .ch-skel-card .skel-cta{
+      height:36px; margin:10px 6px 4px; border-radius: 10px;
+      background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%); background-size:400% 100%;
+      animation: ch-skel 1.1s ease-in-out infinite;
+    }
+    @keyframes ch-skel{ 0%{background-position:100% 50%} 100%{background-position:0 50%} }
+    /* === Full-bleed grid (escapes .page-width) === */
+#ch-collection-{{ section.id }}{
+  /* prevents tiny horizontal scrollbars when we bleed */
+  overflow-x: clip;
+}
+
+#ch-collection-{{ section.id }} .ch-grid-wrap{
+  --edge: clamp(10px, 2.2vw, 22px); /* side gutter so content doesn't hug the edge */
+  position: relative;
+  width: 100vw;                 /* span the viewport */
+  left: 50%;                    /* center the 100vw box */
+  right: 50%;
+  margin-left: -50vw;           /* pull it out of .page-width */
+  margin-right: -50vw;
+  padding-inline: var(--edge);  /* nice, responsive side padding */
+}
+
+/* keep pagination visually aligned with the grid padding */
+#ch-collection-{{ section.id }} .pagination{
+  padding-inline: var(--edge);
+}
+
+  </style>
+
+<div class="page-width">
+  {% render 'breadcrumbs', menu: 'main-menu' %}
+  <!-- Title / description -->
+  <header class="ch-header">
+      <h1 class="ch-title">
+        {{ collection.title }}
+        {%- if current_tags -%} – {{ current_tags | join: ', ' }}{%- endif -%}
+      </h1>
+      {%- if collection.description != blank -%}
+        <div class="ch-desc rte">{{ collection.description }}</div>
+      {%- endif -%}
+    </header>
+
+    <!-- TOP FILTERS (no-rail section lives here) -->
+    <div class="ch-topfilters">
+      {% section 'collection-filters' %}
+    </div>
+
+    <!-- Product grid + pagination -->
+    <div class="ch-grid-wrap">
+      <div id="CollectionProductGrid">
+        {%- for product in collection.products -%}
+          <div class="ch-cell">
+            {% render 'product-card', product: product %}
+          </div>
+        {%- else -%}
+          {%- if shop.products_count == 0 -%}
+            {%- for i in (1..10) -%}
+              <div class="ch-cell">
+                <a href="/admin/products" class="product-card" style="display:block;border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff">
+                  <div style="aspect-ratio:1/1;background:#f5f5f5;border-radius:8px;display:flex;align-items:center;justify-content:center">
+                    {%- capture current -%}{% cycle 1,2,3,4,5,6 %}{%- endcapture -%}
+                    {{ 'product-' | append: current | placeholder_svg_tag: 'placeholder-svg' }}
+                  </div>
+                  <div style="margin-top:8px;font-weight:700">{{ 'homepage.onboarding.product_title' | t }}</div>
+                  <div>$19.99</div>
+                </a>
+              </div>
+            {%- endfor -%}
+          {%- else -%}
+            <div class="ch-cell" style="grid-column:1/-1;text-align:center">
+              <p>{{ 'collections.general.no_matches' | t }}</p>
+            </div>
+          {%- endif -%}
+        {%- endfor -%}
+      </div>
+
+      {%- if paginate.pages > 1 -%}
+        <nav class="pagination" role="navigation" aria-label="Pagination">
+          {{ paginate | default_pagination | replace: '&laquo; Previous', '&larr;' | replace: 'Next &raquo;', '&rarr;' }}
+        </nav>
+      {%- endif -%}
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const root  = document.getElementById('ch-collection-{{ section.id }}');
+      const grid  = () => root.querySelector('#CollectionProductGrid');
+
+      const sectionId = root.dataset.sectionId;
+      const withSection = (url) => { const u=new URL(url, window.location.origin); u.searchParams.set('section_id', sectionId); return u; };
+
+      function makeSkeleton(){
+        const cols = (getComputedStyle(grid()).gridTemplateColumns || '').split(' ').length || 4;
+        const n = Math.max(cols * 2, 8);
+        const wrap = document.createElement('div'); wrap.className='ch-skeleton-grid';
+        for(let i=0;i<n;i++){
+          const c = document.createElement('div'); c.className='ch-skel-card';
+          c.innerHTML = '<div class="skel-media"></div><div class="skel-line"></div><div class="skel-line skel-short"></div><div class="skel-cta"></div>';
+          wrap.appendChild(c);
+        }
+        return wrap;
+      }
+
+      async function swapFrom(url){
+        const g = grid();
+        if (g){ g.innerHTML = ''; g.appendChild(makeSkeleton()); }
+        const html = await fetch(withSection(url).toString(), { headers: { 'X-Requested-With':'XMLHttpRequest' }}).then(r=>r.text());
+        const doc  = new DOMParser().parseFromString(html, 'text/html');
+        const freshGrid  = doc.querySelector('#CollectionProductGrid');
+        const freshPag   = doc.querySelector('.pagination');
+        if (freshGrid && g) g.replaceWith(freshGrid);
+        const pagOld = root.querySelector('.pagination');
+        if (pagOld && freshPag) pagOld.replaceWith(freshPag);
+        if (!pagOld && freshPag) root.querySelector('.ch-grid-wrap').appendChild(freshPag);
+        bindPagination();
+      }
+
+      function bindPagination(){
+        const pag = root.querySelector('.pagination');
+        if (!pag) return;
+        pag.addEventListener('click', function(e){
+          const a = e.target.closest('a'); if (!a) return;
+          e.preventDefault();
+          history.pushState({}, '', a.href);
+          swapFrom(a.href);
+        }, { capture:true, once:true });
+      }
+
+      // Keep AJAX pagination working after back/forward
+      window.addEventListener('popstate', function(){ swapFrom(window.location.href); });
+
+      bindPagination();
+    })();
+  </script>
+</section>
+{%- endpaginate -%}

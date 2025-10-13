@@ -1,0 +1,127 @@
+{%- comment -%}
+CH Mega — Brands
+Usage (from header):
+{% render 'ch-mega-brands',
+  root_id: 'ch-header-' | append: section.id,
+  menu_obj: menu_obj,
+  brands_fallback_url: section.settings.brands_fallback_url,
+  brands_list: section.settings.brands_list
+%}
+
+Redesign safely here:
+• Edit the <style> — scoped to #{{ root_id }}.
+• Keep hooks: data-mega="brands", data-br-rail, data-br-*, .brand
+{%- endcomment -%}
+
+{%- assign _rid = root_id | default: 'ch-header' -%}
+
+<style>
+/* ====== BRANDS MEGA — DESIGN SURFACE (scoped) ====== */
+#{{ _rid }} [data-mega="brands"]{
+  --mega-pad: 12px;
+  --mega-minw: 760px;
+  --mega-rail-w: 240px;
+  --mega-gap: 12px;
+  --pcard-thumb: 96px;
+  --mega-radius: 14px;
+  --mega-border: var(--line, #e8e8e8);
+  --mega-shadow: var(--shadow, 0 10px 30px rgba(17,17,17,.12));
+}
+#{{ _rid }} [data-mega="brands"] > .mega{
+  border-radius: var(--mega-radius);
+  border: 1px solid var(--mega-border);
+  padding: var(--mega-pad);
+  box-shadow: var(--mega-shadow);
+  max-width: min(1040px, 88vw);
+}
+#{{ _rid }} [data-mega="brands"] .grid{ display:grid; grid-template-columns: var(--mega-rail-w) 1fr; gap: var(--mega-gap); min-width: var(--mega-minw); }
+#{{ _rid }} [data-mega="brands"] .rail{ border-right:1px solid var(--mega-border); padding-right:12px; max-height:64vh; overflow:auto; }
+#{{ _rid }} [data-mega="brands"] .brand{ display:flex; align-items:center; gap:8px; padding:10px 10px; border-radius:10px; border:1px solid transparent; background:#fff; text-decoration:none; color:var(--ink,#161616); min-height:44px; }
+#{{ _rid }} [data-mega="brands"] .brand:hover{ background:#f5f5f5; }
+#{{ _rid }} [data-mega="brands"] .brand img{ width:22px; height:22px; object-fit:contain; border-radius:6px; background:#f2f2f2; }
+#{{ _rid }} [data-mega="brands"] .titlebar{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+#{{ _rid }} [data-mega="brands"] .chips{ display:flex; gap:8px; flex-wrap:nowrap; overflow:hidden; }
+#{{ _rid }} [data-mega="brands"] .chip{ display:inline-flex; align-items:center; height:30px; padding:0 10px; border-radius:999px; border:1px solid var(--mega-border); background:#f3f4f6; color:#111; font-weight:700; font-size:12px; text-decoration:none; }
+#{{ _rid }} [data-mega="brands"] .cards{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--mega-gap); align-content:start; }
+@media (min-width:1280px){ #{{ _rid }} [data-mega="brands"] .cards{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+#{{ _rid }} [data-mega="brands"] .pcard{
+  position:relative; border:1px solid var(--mega-border); border-radius:12px; background:#fff;
+  display:grid; grid-template-columns:var(--pcard-thumb) 1fr; gap:10px; align-items:center; padding:10px; text-decoration:none; color:inherit; overflow:hidden;
+}
+#{{ _rid }} [data-mega="brands"] .pcard:hover{ box-shadow:0 6px 18px rgba(17,17,17,.08); }
+#{{ _rid }} [data-mega="brands"] .thumb{ width:var(--pcard-thumb); height:var(--pcard-thumb); border-radius:12px; object-fit:cover; background:#f4f4f4; }
+#{{ _rid }} [data-mega="brands"] .badge{ position:absolute; top:6px; right:6px; background:var(--amber,#FFE8B3); color:#B22A25; font:800 11px/1 var(--font-body,inherit); padding:4px 8px; border-radius:6px; border:1px solid var(--amber-border,#F5D58B); }
+#{{ _rid }} [data-mega="brands"] .badge--sold{ background:#e5e7eb; color:#374151; border-color:#e5e7eb; }
+#{{ _rid }} [data-mega="brands"] .pcard__hov{ position:absolute; inset:0; background:rgba(255,255,255,.92); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; opacity:0; pointer-events:none; transition:opacity .18s ease; }
+#{{ _rid }} [data-mega="brands"] .pcard:focus-within .pcard__hov, #{{ _rid }} [data-mega="brands"] .pcard:hover .pcard__hov{ opacity:1; pointer-events:auto; }
+#{{ _rid }} [data-mega="brands"] .pcard__btn{ display:inline-flex; align-items:center; justify-content:center; min-height:32px; padding:0 12px; font-weight:800; border-radius:999px; border:1px solid #111; color:#111; background:#fff; text-decoration:none; }
+#{{ _rid }} [data-mega="brands"] .pcard__btn--ghost{ background:#111; color:#fff; border-color:#111; }
+</style>
+
+<div data-mega="brands" aria-haspopup="true" aria-expanded="false">
+  <a href="{{ brands_fallback_url | default: '/search?type=product' }}">Brands</a>
+  <div class="mega" role="menu" aria-label="Brands">
+    <div class="grid">
+      <!-- Left rail -->
+      <div class="rail">
+        <p class="ps-title" style="margin:0 0 6px 2px;">Hover or focus a brand to preview</p>
+        {%- assign brands_parent_title = 'brands' -%}
+        {%- assign brands_links = '' -%}
+        {%- if menu_obj and menu_obj.links -%}
+          {%- for l in menu_obj.links -%}
+            {%- assign t_norm = l.title | strip | downcase -%}
+            {%- if t_norm == brands_parent_title or t_norm contains 'brand' -%}
+              {%- assign brands_links = l.links -%}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+        <ul class="cats" role="menu" data-br-rail>
+          {%- if brands_links != blank -%}
+            {%- for b in brands_links -%}
+              {%- assign bname = b.title | strip -%}
+              {%- assign bhandle = bname | handleize -%}
+              {%- assign subs = b.links | map: 'title' | join: '||' -%}
+              <li>
+                <a class="brand" role="menuitem" href="{{ b.url | default: '/search?type=product&q=' | append: bname | url_encode }}" data-brand="{{ bname | escape }}" data-brand-subs="{{ subs | escape }}" title="Preview {{ bname }}">
+                  <img src="/cdn/shop/files/{{ bhandle }}.png" alt="{{ bname }} logo" width="22" height="22" loading="lazy" decoding="async" onerror="this.replaceWith((function(){var s=document.createElement('span');s.textContent='{{ bname | escape | truncate: 10, '' }}';s.style.fontWeight='800';return s;})());">
+                  <span>{{ bname }}</span>
+                </a>
+              </li>
+            {%- endfor -%}
+          {%- else -%}
+            {%- assign braw = brands_list | default: "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" | newline_to_br | split: '<br />' -%}
+            {%- for b in braw -%}
+              {%- assign bname = b | strip -%}
+              {%- assign bhandle = bname | handleize -%}
+              <li>
+                <a class="brand" role="menuitem" href="/search?q=vendor:%22{{ bname | escape }}%22&type=product" data-brand="{{ bname | escape }}" data-brand-subs="" title="Preview {{ bname }}">
+                  <img src="/cdn/shop/files/{{ bhandle }}.png" alt="{{ bname }} logo" width="22" height="22" loading="lazy" decoding="async" onerror="this.replaceWith((function(){var s=document.createElement('span');s.textContent='{{ bname | escape | truncate: 10, '' }}';s.style.fontWeight='800';return s;})());">
+                  <span>{{ bname }}</span>
+                </a>
+              </li>
+            {%- endfor -%}
+          {%- endif -%}
+        </ul>
+      </div>
+
+      <!-- Right pane -->
+      <div class="prev" style="padding-top:6px;">
+        <div class="titlebar">
+          <div class="title" data-br-title>Popular from brand</div>
+          <a class="viewall" href="{{ brands_fallback_url | default: '/search?type=product' }}" data-br-viewall>View all</a>
+        </div>
+        <p class="ps-title" style="margin:0 0 6px;" data-br-help>Browse by brand category — hover or focus a chip to preview</p>
+        <div class="chips" data-br-subchips></div>
+
+        <div class="cards" data-br-cards>
+          {% for i in (1..6) %}
+            <div class="pcard" aria-hidden="true">
+              <div class="thumb skeleton" style="width:96px;height:96px;border-radius:12px;"></div>
+              <div class="skeleton" style="height:14px;border-radius:6px;"></div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

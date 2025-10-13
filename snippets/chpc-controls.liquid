@@ -1,0 +1,51 @@
+{% comment %}
+CHPC Controls (arrows + pagination)
+Usage:
+  {% render 'chpc-controls',
+      id: section.id,
+      show_dots: true,
+      show_arrows: true,
+      mobile_hide_arrows: true %}
+{% endcomment %}
+
+{%- assign controls_id = id | default: section.id -%}
+
+{%- if show_dots -%}
+  <div class="chpc__dots"
+       role="tablist"
+       aria-label="Carousel pagination"
+       data-dots></div>
+  <div class="chpc__count"
+       aria-live="polite"
+       data-count></div>
+{%- endif -%}
+
+{%- if show_arrows -%}
+  <div class="chpc__arrows"
+       {% if mobile_hide_arrows %}data-hide-mobile="true"{% endif %}>
+    <button class="chpc__arrow chpc__arrow--prev"
+            type="button"
+            aria-label="Previous page">
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M15 18l-6-6 6-6"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button class="chpc__arrow chpc__arrow--next"
+            type="button"
+            aria-label="Next page">
+      <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M9 6l6 6-6 6"
+              stroke="currentColor"
+              stroke-width="2"
+              fill="none"
+              stroke-linecap="round"
+              stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+{%- endif -%}

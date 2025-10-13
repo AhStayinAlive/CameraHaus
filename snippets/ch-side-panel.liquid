@@ -1,0 +1,288 @@
+{% comment %}
+SLEEK SIDE PANELS (SEARCH / CART / WISHLIST)
+- Drop-in replacement styles + behavior for ch-side-panel + mini cart wiring.
+- Focused on a clean Camerahaus feel: crisp typography, soft shadows, rounded corners, glassy overlay.
+- Includes robust cart rendering using Shopify Cart AJAX API.
+
+INSTALL
+1) Replace your existing 'snippets/ch-side-panel.liquid' content with the <div class="ch-panel ..."> block + <style> below.
+2) Keep your panel bodies (search/wishlist) but you can adopt the sleeker structure/classes.
+3) Add the <script> block ONCE on the page (after panels). This augments your existing controller; if you already render
+   'ch-panels-controller', keep that (this script only handles data + styles and won’t double-open panels).
+
+Notes
+- Honors prefers-reduced-motion.
+- Accessible: aria-live updates, focus trapping (by your controller), button hit-areas ≥ 44px.
+- The cart wiring works out of the box for standard add-to-cart forms. If your theme uses custom endpoints, hook them where noted.
+{% endcomment %}
+
+<!-- ===== GENERIC SIDE PANEL WRAPPER (same Liquid API) ===== -->
+<div class="ch-panel {{ theme | default: 'light' }}{% if is_open %} is-open{% endif %}"
+     id="ch-panel-{{ id }}"
+     aria-hidden="{% if is_open %}false{% else %}true{% endif %}"
+     data-ch-panel="{{ id }}">
+  <div class="ch-panel__ov" data-ch-panel-close></div>
+  <aside class="ch-panel__pn" role="dialog" aria-modal="true" aria-label="{{ aria_label | default: title | default: id }}">
+    <div class="ch-panel__hd">
+      <div class="ch-panel__title">{{ title }}</div>
+      <button type="button" class="btn btn-icon" aria-label="Close" data-ch-panel-close>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3L16.9 4.3z"/></svg>
+      </button>
+    </div>
+    <div class="ch-panel__body">
+      {{ body }}
+    </div>
+  </aside>
+</div>
+
+<style>
+/* ===== Camerahaus Sleek Panel Styles (scoped per instance via ID) ===== */
+#ch-panel-{{ id }}{
+  --bg: #ffffff;
+  --ink: #161616;
+  --muted:#6f6f6f;
+  --line:#e8e8e8;
+  --brand:#E0302A;
+  --radius: 16px;
+  --shadow-lg: 0 24px 60px rgba(17,17,17,.16);
+  --shadow-md: 0 10px 30px rgba(17,17,17,.12);
+  --ease-out: cubic-bezier(.22,1,.36,1);
+  --ease-in: cubic-bezier(.5,0,.7,.2);
+  position:fixed; inset:0; z-index:1400; pointer-events:none; font-family: var(--font-body, ui-sans-serif);
+}
+#ch-panel-{{ id }}.is-open{ pointer-events:auto; }
+#ch-panel-{{ id }} .ch-panel__ov{
+  position:absolute; inset:0; background:rgba(0,0,0,.35);
+  -webkit-backdrop-filter:saturate(120%) blur(6px); backdrop-filter:saturate(120%) blur(6px);
+  opacity:0; transition:opacity .24s var(--ease-out);
+}
+#ch-panel-{{ id }}.is-open .ch-panel__ov{ opacity:1; }
+#ch-panel-{{ id }} .ch-panel__pn{
+  position:absolute; top:0; right:0; height:100%; width:min(520px,94vw);
+  background:var(--bg); color:var(--ink);
+  transform: translateX(104%) scale(.995);
+  transition: transform .44s var(--ease-out), box-shadow .2s ease;
+  display:flex; flex-direction:column; border-left:1px solid var(--line);
+  box-shadow: var(--shadow-md);
+  border-top-left-radius: var(--radius); border-bottom-left-radius: var(--radius);
+}
+#ch-panel-{{ id }}.is-open .ch-panel__pn{ transform: translateX(0) scale(1); box-shadow: var(--shadow-lg); }
+#ch-panel-{{ id }} .ch-panel__pn:focus{ outline:none; }
+#ch-panel-{{ id }} .ch-panel__hd{
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:16px 16px; border-bottom:1px solid var(--line); background:linear-gradient(#fff, #fdfdfd);
+  position:sticky; top:0; z-index:2; border-top-left-radius: var(--radius);
+}
+#ch-panel-{{ id }} .ch-panel__title{ font: 800 15px/1.2 var(--font-body, ui-sans-serif); letter-spacing:.2px; }
+#ch-panel-{{ id }} .ch-panel__body{ padding:14px 16px 18px; display:grid; gap:12px; overflow:auto; min-height:0; }
+#ch-panel-{{ id }} .btn{ background:#111; color:#fff; border:0; height:42px; padding:0 16px; border-radius:999px; font:800 14px/1 var(--font-body, ui-sans-serif); cursor:pointer; }
+#ch-panel-{{ id }} .btn:focus-visible{ outline:0; box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--brand); }
+#ch-panel-{{ id }} .btn.btn-outline{ background:#fff; color:#111; border:1px solid var(--line); }
+#ch-panel-{{ id }} .btn.btn-icon{ background:transparent; color:inherit; height:44px; min-width:44px; padding:0; }
+#ch-panel-{{ id }} .ico{ width:20px; height:20px; fill:currentColor; }
+
+/* Dark header variant */
+#ch-panel-{{ id }}.dark .ch-panel__pn{ background:linear-gradient(180deg, var(--brand) 0%, #c72b26 100%); color:#fff; }
+#ch-panel-{{ id }}.dark .ch-panel__hd{ background:transparent; border-color:rgba(255,255,255,.22); }
+#ch-panel-{{ id }}.dark .btn.btn-outline{ background:transparent; color:#fff; border-color:rgba(255,255,255,.35); }
+
+/* ===== Cart (Camerahaus compact) ===== */
+#ch-panel-{{ id }} [data-mc-list]{ display:grid; gap:10px; }
+#ch-panel-{{ id }} .mci{ display:grid; grid-template-columns:72px 1fr auto; gap:12px; padding:10px; border:1px solid var(--line); border-radius:12px; background:#fff; box-shadow:0 1px 0 rgba(0,0,0,.02); }
+#ch-panel-{{ id }} .mci .pic{ width:72px; height:72px; border-radius:10px; object-fit:cover; background:#f6f6f6; }
+#ch-panel-{{ id }} .mci .name{ font:700 13px/1.35 var(--font-body, ui-sans-serif); color:var(--ink); text-decoration:none; }
+#ch-panel-{{ id }} .mci .meta{ color:#6b7280; font:600 11px/1.2 var(--font-body, ui-sans-serif); margin-top:4px; }
+#ch-panel-{{ id }} .mci .price{ font:800 13px/1 var(--font-body, ui-sans-serif); white-space:nowrap; text-align:right; }
+#ch-panel-{{ id }} .mci .qty{ display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:10px; padding:6px; margin-top:6px; }
+#ch-panel-{{ id }} .mci .qty button{ width:26px; height:26px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer; }
+#ch-panel-{{ id }} .mci .qty input{ width:38px; text-align:center; border:0; outline:0; background:transparent; font:700 13px/1 var(--font-body, ui-sans-serif); }
+#ch-panel-{{ id }} .mc-ft{ padding:14px 0 10px; border-top:1px solid var(--line); margin-top:auto; background:inherit; position:sticky; bottom:0; }
+#ch-panel-{{ id }} .mc-sub{ display:flex; align-items:center; justify-content:space-between; font-weight:800; margin-bottom:10px; }
+#ch-panel-{{ id }} .mc-cta{ display:flex; gap:10px; }
+#ch-panel-{{ id }} .mc-cta a{ flex:1 1 0; height:44px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; text-decoration:none; font:800 14px/1 var(--font-body, ui-sans-serif); }
+#ch-panel-{{ id }} .mc-cta .btn-view{ background:#fff; border:1px solid var(--line); color:#111; }
+#ch-panel-{{ id }} .mc-cta .btn-checkout{ background:#111; color:#fff; }
+#ch-panel-{{ id }} .mc-note{ color:#6b7280; font:600 11px/1.2 var(--font-body, ui-sans-serif); margin-top:8px; }
+
+/* Skeleton shimmer */
+#ch-panel-{{ id }} .skeleton{ background:linear-gradient(90deg,#eee,#f7f7f7,#eee); animation:ch-sk 1.2s infinite; }
+#ch-panel-{{ id }} .s1{ height:14px; border-radius:6px; margin-bottom:6px; }
+#ch-panel-{{ id }} .s2{ width:60%; height:12px; border-radius:6px; }
+#ch-panel-{{ id }} .s3{ width:72px; height:14px; border-radius:6px; margin-left:auto; }
+@keyframes ch-sk{ 0%{background-position:-140px 0} 100%{background-position:140px 0} }
+
+/* Motion reduce */
+@media (prefers-reduced-motion: reduce){
+  #ch-panel-{{ id }} .ch-panel__ov{ transition:none; }
+  #ch-panel-{{ id }} .ch-panel__pn{ transition:none; }
+}
+/* Typography (scoped to this panel instance) */
+#ch-panel-{{ id }}{
+  --font-heading: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+#ch-panel-{{ id }} { 
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased; 
+  text-rendering: optimizeLegibility;
+}
+
+#ch-panel-{{ id }} .ch-panel__title{
+  font-family: var(--font-heading);
+  letter-spacing: -0.01em;
+  font-weight: 700;          /* Space Grotesk weight */
+}
+
+#ch-panel-{{ id }} .ch-panel__body,
+#ch-panel-{{ id }} .mci .name,
+#ch-panel-{{ id }} .mci .meta,
+#ch-panel-{{ id }} .btn{
+  font-family: var(--font-body);
+  font-weight: 500;
+  letter-spacing: 0;         /* Inter is already tight/clean */
+}
+
+#ch-panel-{{ id }} .btn{
+  font-weight: 800;          /* strong CTAs in Inter look great */
+  letter-spacing: .02em;
+}
+
+/* Prices & numeric chips – align digits perfectly */
+#ch-panel-{{ id }} .price,
+#ch-panel-{{ id }} [data-mc-subtotal],
+#ch-panel-{{ id }} [data-price]{
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* Optional helper for small, all-caps labels (e.g., “SUBTOTAL”) */
+#ch-panel-{{ id }} .label--caps{
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-weight: 700;
+  opacity: .9;
+}
+
+</style>
+
+{% comment %}
+======== MINI-CART WIRING (DATA + RENDER) ========
+- Safe to include once per page. If you use multiple panels, this script detects the cart by data-ch-panel="cart".
+{% endcomment %}
+<script>
+(() => {
+  const rootDoc = document;
+  const $$ = (s,sc=rootDoc)=>Array.from(sc.querySelectorAll(s));
+  const $  = (s,sc=rootDoc)=>sc.querySelector(s);
+
+  /* Early exit if no cart panel on page */
+  const cartPanel = $('.ch-panel[data-ch-panel="cart"]');
+  if(!cartPanel) return;
+
+  /* ---------- Utilities ---------- */
+  const locale = {{ request.locale.iso_code | json }} || 'en-PH';
+  const currency = {{ shop.currency | json }} || 'PHP';
+  const nf = new Intl.NumberFormat(locale, { style:'currency', currency });
+  const money = (cents) => nf.format((Number(cents)||0)/100);
+
+  function announce(msg){ const live = $('[data-mc-live]', cartPanel); if(live){ live.textContent=''; requestAnimationFrame(()=> live.textContent = msg); } }
+
+  function setBadge(count){ const el = $('[data-cart-count]'); if(!el) return; el.textContent = String(count||0); const live = $('[data-cart-live]'); if(live) live.textContent = count>0 ? `${count} item${count>1?'s':''} in cart` : 'Cart is empty'; }
+
+  async function fetchCart(){
+    try{ const r = await fetch('/cart.js', { headers:{'Accept':'application/json'}, cache:'no-store' }); return r.ok ? r.json() : null; }
+    catch(_){ return null; }
+  }
+
+  async function changeLine(line, quantity){
+    const fd = new FormData(); fd.append('line', String(line)); fd.append('quantity', String(quantity));
+    const r = await fetch('/cart/change.js', { method:'POST', body:fd, headers:{'Accept':'application/json'} });
+    return r.ok ? r.json() : null;
+  }
+
+  function lineItemTemplate(item, idx){
+    const p = document.createElement('div'); p.className='mci';
+    const url = item.url || (`/products/${(item.handle||'')}`);
+    p.innerHTML = `
+      <img class="pic" src="${(item.image||'').replace(/(\.\w+)(?:\?.*)?$/, '_160x$1')}" alt="${(item.product_title||'').replace(/"/g,'&quot;')}">
+      <div>
+        <a class="name" href="${url}">${item.product_title||''}</a>
+        <div class="meta">${[item.variant_title||'', item.sku||''].filter(Boolean).join(' • ')}</div>
+        <div class="qty">
+          <button type="button" aria-label="Decrease quantity" data-mc-dec="${idx}">−</button>
+          <input type="number" min="0" value="${item.quantity}" data-mc-qty="${idx}">
+          <button type="button" aria-label="Increase quantity" data-mc-inc="${idx}">+</button>
+        </div>
+      </div>
+      <div class="price">
+        <div>${money(item.final_line_price)}</div>
+        <button type="button" class="btn btn-outline" style="height:32px;padding:0 10px;margin-top:8px;" data-mc-rem="${idx}">Remove</button>
+      </div>`;
+    return p;
+  }
+
+  function renderCart(cart){
+    const list = $('[data-mc-list]', cartPanel); if(!list) return;
+    list.innerHTML = '';
+    if(!cart || !Array.isArray(cart.items) || cart.items.length===0){
+      list.innerHTML = `<div class="mc-empty" style="text-align:center;color:#6b7280;padding:24px 8px;">
+        <div style="font-weight:800;margin-bottom:6px;">Your cart is empty</div>
+        <div>Find something you love and add it to your cart.</div>
+      </div>`;
+    }else{
+      cart.items.forEach((it, i)=> list.appendChild(lineItemTemplate(it, i+1)));
+    }
+    const sub = $('[data-mc-subtotal]', cartPanel); if(sub) sub.textContent = money(cart && cart.items_subtotal_price || 0);
+    setBadge(cart ? cart.item_count : 0);
+  }
+
+  /* ---------- Event bindings ---------- */
+  cartPanel.addEventListener('click', async (e)=>{
+    const dec = e.target.closest('[data-mc-dec]');
+    const inc = e.target.closest('[data-mc-inc]');
+    const rem = e.target.closest('[data-mc-rem]');
+    if(dec||inc||rem){ e.preventDefault(); }
+    try{
+      if(dec||inc){
+        const idx = Number((dec||inc).getAttribute('data-mc-dec') || (inc && inc.getAttribute('data-mc-inc')));
+        const input = cartPanel.querySelector(`[data-mc-qty="${idx}"]`);
+        let q = Math.max(0, Number(input.value||0) + (inc?1:-1));
+        const newCart = await changeLine(idx, q); if(newCart){ renderCart(newCart); announce('Cart updated'); }
+      }else if(rem){
+        const idx = Number(rem.getAttribute('data-mc-rem'));
+        const newCart = await changeLine(idx, 0); if(newCart){ renderCart(newCart); announce('Item removed'); }
+      }
+    }catch(_){ announce('Could not update cart'); }
+  });
+
+  cartPanel.addEventListener('change', async (e)=>{
+    const inp = e.target.closest('[data-mc-qty]'); if(!inp) return;
+    const idx = Number(inp.getAttribute('data-mc-qty')); const q = Math.max(0, Number(inp.value||0));
+    const newCart = await changeLine(idx, q); if(newCart){ renderCart(newCart); announce('Quantity changed'); }
+  });
+
+  /* Open-cart hook from your controller’s broadcast */
+  document.addEventListener('ch:panel', (e)=>{
+    const { name, open } = (e && e.detail) || {}; if(name==='cart' && open){ fetchCart().then(renderCart); }
+  }, { passive:true });
+
+  /* Intercept Add-to-Cart to reflect changes immediately and open drawer */
+  document.addEventListener('submit', async (e)=>{
+    const form = e.target;
+    const isATC = form.matches('form[action*="/cart/add"], form[action="/cart/add"]');
+    if(!isATC) return;
+    e.preventDefault();
+    const fd = new FormData(form);
+    try{
+      const r = await fetch('/cart/add.js', { method:'POST', body:fd, headers:{'Accept':'application/json'} });
+      if(!r.ok) throw 0; await r.json();
+      const cart = await fetchCart(); renderCart(cart); setTimeout(()=>{ document.dispatchEvent(new CustomEvent('cart:open')); }, 10);
+      announce('Added to cart');
+    }catch(_){ announce('Could not add to cart'); form.submit && form.submit(); }
+  }, true);
+
+  /* Initial badge sync on page load */
+  fetchCart().then(renderCart);
+})();
+</script>

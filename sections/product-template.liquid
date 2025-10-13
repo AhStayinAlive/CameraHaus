@@ -1,0 +1,635 @@
+{%- comment -%}
+================================================================================
+WHAT THIS FIXES / ADDS
+- ATC always visible:
+  • CTA row is forced to display:flex with high-specificity CSS and a JS
+    "belt-and-suspenders" inline style set on mount.
+- Add to Wishlist:
+  • Neutral gray button sits beside ATC.
+  • If a wishlist app is present (Swym, Growave, Wishlist King, Wishlist Hero),
+    we call into it; otherwise we store the item in localStorage (“ch_wishlist”).
+- Zoom disabled on mobile/touch:
+  • Zoom toggle and pane are hidden on touch devices; flag set to off and label
+    rendered “Zoom: Off”.
+- Payment gateways (Havit-style):
+  • Compact row of core icons + “+15” chip that reveals a popover grid of PH
+    gateways (GCash, Maya, BDO, BPI, RCBC, UB, Coins.ph, billease, 7-Eleven,
+    GrabPay, HSBC, Maybank, ECPay, ShopeePay, etc.).
+- Social sharing icons:
+  • Restored beneath the CTA block via a {%- render -%} snippet (no include).
+================================================================================
+{%- endcomment -%}
+
+<div class="page-width">
+  {% render 'breadcrumbs', menu: 'main-menu' %}
+</div>
+
+<div class="page-width ch-pdp"
+     itemscope itemtype="http://schema.org/Product"
+     id="ProductSection-{{ section.id }}"
+     data-section-id="{{ section.id }}"
+     data-section-type="product"
+     data-enable-history-state="true"
+     data-ajax="{{ section.settings.enable_ajax }}"
+     data-stock="{{ section.settings.stock_enable }}">
+
+  {% assign product_image_size = '480x480' %}
+  <meta itemprop="name" content="{{ product.title }}">
+  <meta itemprop="url" content="{{ shop.url }}{{ product.url }}">
+  <meta itemprop="image" content="{{ product.featured_image.src | img_url: '600x600' }}">
+  {% if settings.product_vendor_enable %}<meta itemprop="brand" content="{{ product.vendor }}">{% endif %}
+
+  {% assign current_variant = product.selected_or_first_available_variant %}
+  {% assign variants_with_unit_price = product.variants | where: "unit_price_measurement" %}
+
+  <div class="grid product-single">
+    <!-- LEFT: MEDIA -->
+    <div class="grid__item {% if product.images.size > 1 %}medium-up--three-fifths{% else %}medium-up--one-half{% endif %}">
+      <div class="photos ch-media" data-ch-gallery aria-label="{{ 'products.product.product_images' | t }}">
+        <!-- Zoom UI -->
+        <div class="ch-zoom" data-ch-zoom aria-hidden="true">
+          <div class="ch-zoom__lens" aria-hidden="true"></div>
+          <div class="ch-zoom__pane" aria-hidden="true"></div>
+        </div>
+
+        <div class="photos__item photos__item--main">
+          {% assign featured_image = current_variant.featured_image | default: product.featured_image %}
+          {% for image in product.images %}
+            <div class="product-single__photo product__photo-container product__photo-container-{{ section.id }} js{% unless image == featured_image %} hide{% endunless %}"
+                 id="ProductPhoto"
+                 style="max-width: {% render 'image-width', image: image, width: 480 %}px;"
+                 data-image-id="{{ image.id }}">
+              <a href="{{ image | img_url: '1024x1024' }}"
+                 class="product__photo-wrapper product__photo-wrapper-{{ section.id }}"
+                 style="padding-top:{{ 1 | divided_by: image.aspect_ratio | times: 100}}%;"
+                 data-full="{{ image | img_url: '2048x2048' }}"
+                 data-pswp-width="{{ image.width }}"
+                 data-pswp-height="{{ image.height }}">
+                {% assign img_url = image | img_url: '1x1' | replace: '_1x1.', '_{width}x.' %}
+                <img class="lazyload{% unless image == featured_image %} lazypreload{% endunless %}"
+                     src="{{ image | img_url: '150x150' }}"
+                     data-src="{{ img_url }}"
+                     data-widths="[180,240,360,480,720,960,1080,1296,1512,1728,2048]"
+                     data-aspectratio="{{ image.aspect_ratio }}"
+                     data-sizes="auto"
+                     alt="{{ image.alt | escape }}">
+              </a>
+
+              <!-- Zoom toggle — explicit on/off, does not open pane by itself -->
+              <button type="button" class="ch-zoom__toggle" aria-pressed="true">
+                <span class="ch-zoom__toggle-text">Zoom: On</span>
+              </button>
+            </div>
+          {% endfor %}
+          <noscript>
+            <a href="{{ featured_image | img_url: '1024x1024' }}">
+              <img src="{{ featured_image | img_url: product_image_size }}" alt="{{ featured_image.alt | escape }}">
+            </a>
+          </noscript>
+        </div>
+
+        {% if product.images.size > 1 %}
+          <div class="photos__item photos__item--thumbs" data-vertical-rail>
+            <div class="product-single__thumbnails product-single__thumbnails-{{ section.id }}{% unless product.images.size > 2 %} product-single__thumbnails--static{% endunless %}">
+              {% for image in product.images %}
+                <div class="product-single__thumbnail-item product-single__thumbnail-item-{{ section.id }}{% if image == featured_image %} is-active{% endif %}" data-image-id="{{ image.id }}">
+                  <a href="{{ image.src | img_url: product_image_size }}"
+                     data-zoom="{{ image.src | img_url: '1024x1024' }}"
+                     class="product-single__thumbnail product-single__thumbnail-{{ section.id }}">
+                    <img src="{{ image.src | img_url: '160x160' }}" alt="{{ image.alt | escape }}">
+                  </a>
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- RIGHT: INFO -->
+    <div class="grid__item {% if product.images.size > 1 %}medium-up--two-fifths{% else %}medium-up--one-half{% endif %}" itemprop="offers" itemscope itemtype="http://schema.org/Offer">
+      <div class="product-single__info-wrapper">
+        <meta itemprop="priceCurrency" content="{{ cart.currency.iso_code }}">
+        <link itemprop="availability" href="http://schema.org/{% if product.available %}InStock{% else %}OutOfStock{% endif %}">
+
+        <div class="product-single__meta small--text-center">
+          {% if settings.product_vendor_enable %}
+            <p class="product-single__vendor">{{ product.vendor }}</p>
+          {% endif %}
+
+          <h1 itemprop="name" class="product-single__title">{{ product.title }}</h1>
+
+          <!-- mini badges -->
+          <p class="ch-mini-badges">
+            <span class="ch-badge ch-badge--brand">Authorized Reseller</span>
+            <span class="ch-badge ch-badge--since">Since 1980</span>
+            <span class="ch-badge ch-badge--warranty">Official Brand Warranty</span>
+          </p>
+
+          <!-- ratings (5 gray stars baseline) -->
+          {% assign rating = product.metafields.reviews.rating.value | default: product.metafields.okendo.average_rating | default: 0 %}
+          {% assign rating_count = product.metafields.reviews.rating_count.value | default: product.metafields.okendo.review_count | default: 0 %}
+          <a href="#reviews" class="ch-stars" aria-label="Read reviews">
+            <span class="ch-stars__base" aria-hidden="true">★★★★★</span>
+            <span class="ch-stars__fill" aria-hidden="true" style="width:{{ rating | times: 20 }}%">★★★★★</span>
+            <span class="ch-stars__count">({{ rating_count }})</span>
+          </a>
+
+          <ul class="product-single__meta-list list--no-bullets list--inline{% if shop.taxes_included or shop.shipping_policy.body != blank %} product-single__price-container{% endif %}">
+            <li id="ProductSaleTag-{{ section.id }}" class="{% unless product.compare_at_price > product.price %}hide{% endunless %}">
+              <div class="product-tag">{{ 'products.product.on_sale' | t }}</div>
+            </li>
+            <li>
+              {% unless product.compare_at_price_max > product.price %}
+                <span class="visually-hidden">{{ 'products.product.regular_price' | t }}</span>
+              {% endunless %}
+              <span id="ProductPrice-{{ section.id }}" class="product-single__price" itemprop="price" content="{{ current_variant.price | divided_by: 100.00 }}">
+                {{ current_variant.price | money }}
+              </span>
+            </li>
+            {% if product.compare_at_price_max > product.price %}
+              <li>
+                <span class="visually-hidden">{{ 'products.product.regular_price' | t }}</span>
+                <s id="ComparePrice-{{ section.id }}" class="product-single__price product-single__price--compare">
+                  {{ current_variant.compare_at_price | money }}
+                </s>
+              </li>
+            {% endif %}
+            {% if variants_with_unit_price.size > 0 %}
+              <li>{% render 'product-unit-price', product_variant: current_variant %}</li>
+            {% endif %}
+          </ul>
+
+          {% if shop.taxes_included or shop.shipping_policy.body != blank %}
+            <div class="product-single__policies rte">
+              {% if shop.taxes_included %}{{ 'products.product.include_taxes' | t }}{% endif %}
+              {% if shop.shipping_policy.body != blank %}{{ 'products.product.shipping_policy_html' | t: link: shop.shipping_policy.url }}{% endif %}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- sell points -->
+        <ul class="ch-sellpoints" aria-label="Selling points">
+          <li class="ch-sp">
+            <svg width="18" height="18" viewBox="0 0 24 24" class="ch-sp__icon"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7Zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5Z"/></svg>
+            Pick up at a branch near you — <a href="{{ routes.root_url }}pages/store-locator" class="ch-link">Store Finder</a>
+          </li>
+          <li class="ch-sp">
+            <svg width="18" height="18" viewBox="0 0 24 24" class="ch-sp__icon"><path d="M12 2 1 7l11 5 9-4.09V17h2V7L12 2Z"/><path d="M11 12.08 3 8.5V17l8 3.64V12.08Z"/></svg>
+            Official Brand Warranty
+          </li>
+          <li class="ch-sp">
+            <svg width="18" height="18" viewBox="0 0 24 24" class="ch-sp__icon"><path d="M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27Z"/></svg>
+            Authorized Reseller since 1980
+          </li>
+        </ul>
+
+        <hr>
+
+        {% capture form_class %}product-form{% if section.settings.enable_payment_button %} product-form--payment-button{% endif %}{% endcapture %}
+        {% capture form_id %}AddToCartForm-{{ section.id }}{% endcapture %}
+        {% form 'product', product, class:form_class, id:form_id %}
+
+          {% unless product.has_only_default_variant %}
+            {% for option in product.options_with_values %}
+              <div class="selector-wrapper js product-form__item">
+                <label {% if option.name == 'default' %}class="label--hidden"{% endif %} for="SingleOptionSelector-{{ section.id }}-{{ forloop.index0 }}">{{ option.name }}</label>
+                <select class="single-option-selector single-option-selector-{{ section.id }} product-form__input"
+                        id="SingleOptionSelector-{{ forloop.index0 }}"
+                        data-name="{{ option.name }}"
+                        data-index="option{{ forloop.index }}">
+                  {% for value in option.values %}
+                    <option value="{{ value | escape }}"{% if option.selected_value == value %} selected="selected"{% endif %}>{{ value }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            {% endfor %}
+          {% endunless %}
+
+          <select name="id" id="ProductSelect-{{ section.id }}" class="product-form__variants no-js">
+            {% for variant in product.variants %}
+              <option {% if variant == current_variant %}selected="selected"{% endif %} data-sku="{{ variant.sku }}" value="{{ variant.id }}" {% unless variant.available %}disabled="disabled"{% endunless %}>
+                {% if variant.available %}
+                  {{ variant.title }} - {{ variant.price | money_with_currency }}
+                {% else %}
+                  {{ variant.title }} - {{ 'products.product.sold_out' | t }}
+                {% endif %}
+              </option>
+            {% endfor %}
+          </select>
+
+          <div class="product-form__item product-form__item--quantity">
+            <label for="Quantity">{{ 'products.product.quantity' | t }}</label>
+            <input type="number" id="Quantity" name="quantity" value="1" min="1" class="product-form__input product-form__quantity">
+          </div>
+
+          <!-- CTA ROW: ATC + Wishlist + Dynamic Checkout -->
+          <div class="product-form__item product-form__item--submit">
+            <div class="ch-cta-row" id="ChCtaRow-{{ section.id }}">
+              <button type="submit"
+                      name="add"
+                      id="AddToCart-{{ section.id }}"
+                      class="btn btn--full product-form__cart-submit{% unless current_variant.available %} btn--sold-out{% endunless %}{% if section.settings.enable_payment_button %} btn--secondary-accent{% endif %}"
+                      {% unless current_variant.available %}disabled="disabled"{% endunless %}>
+                <span id="AddToCartText-{{ section.id }}">
+                  {% unless current_variant.available %}
+                    {{ 'products.product.sold_out' | t }}
+                  {% else %}
+                    {{ 'products.product.add_to_cart' | t }}
+                  {% endunless %}
+                </span>
+              </button>
+
+              <!-- Wishlist (neutral gray) -->
+              <button type="button"
+                      class="ch-wishlist-btn"
+                      id="WishlistButton-{{ section.id }}"
+                      aria-label="Add to wishlist">
+                ♥ Wishlist
+              </button>
+
+              {% if section.settings.enable_payment_button %}
+                <div class="ch-dynamic-checkout">
+                  {{ form | payment_button }}
+                </div>
+              {% endif %}
+            </div>
+
+            <!-- Payment gateways (Havit-style compact row + popover grid) -->
+            <div class="ch-payments" aria-label="Payment methods">
+              <div class="ch-payments__row">
+                <img src="{{ 'pg-paypal.svg'  | asset_url }}" alt="PayPal"   class="ch-payments__icon">
+                <img src="{{ 'pg-visa.svg'    | asset_url }}" alt="Visa"     class="ch-payments__icon">
+                <img src="{{ 'pg-mastercard.svg' | asset_url }}" alt="Mastercard" class="ch-payments__icon">
+                <img src="{{ 'pg-amex.svg'    | asset_url }}" alt="American Express" class="ch-payments__icon">
+                <button class="ch-payments__morebtn" aria-haspopup="true" aria-expanded="false" aria-controls="ChPaymentsMore-{{ section.id }}">+15</button>
+              </div>
+              <div id="ChPaymentsMore-{{ section.id }}" class="ch-payments__popover" role="dialog" aria-label="More payment methods">
+                <div class="ch-payments__grid">
+                  <img src="{{ 'pg-gcash.svg'   | asset_url }}" alt="GCash">
+                  <img src="{{ 'pg-maya.svg'    | asset_url }}" alt="Maya">
+                  <img src="{{ 'pg-bdo.svg'     | asset_url }}" alt="BDO">
+                  <img src="{{ 'pg-bpi.svg'     | asset_url }}" alt="BPI">
+                  <img src="{{ 'pg-rcbc.svg'    | asset_url }}" alt="RCBC">
+                  <img src="{{ 'pg-ub.svg'      | asset_url }}" alt="UnionBank">
+                  <img src="{{ 'pg-coins.svg'   | asset_url }}" alt="Coins.ph">
+                  <img src="{{ 'pg-billease.svg'| asset_url }}" alt="billease">
+                  <img src="{{ 'pg-7eleven.svg' | asset_url }}" alt="7-Eleven">
+                  <img src="{{ 'pg-grabpay.svg' | asset_url }}" alt="GrabPay">
+                  <img src="{{ 'pg-hsbc.svg'    | asset_url }}" alt="HSBC">
+                  <img src="{{ 'pg-maybank.svg' | asset_url }}" alt="Maybank">
+                  <img src="{{ 'pg-ecpay.svg'   | asset_url }}" alt="ECPay">
+                  <img src="{{ 'pg-rcbc-pay.svg'| asset_url }}" alt="RCBC Pay">
+                  <img src="{{ 'pg-shopeepay.svg'| asset_url }}" alt="ShopeePay">
+                </div>
+              </div>
+            </div>
+          </div>
+        {% endform %}
+
+        <!-- Social sharing (restored, render-safe) -->
+        {% if section.settings.social_sharing_products %}
+          <div class="ch-social-share">
+            {% render 'social-sharing', share_title: product.title, share_permalink: product.url, share_image: product.featured_image %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ONE tab bar only (no duplicate bottom description) -->
+  <section class="ch-tabs" id="ch-tabs">
+    <div class="ch-tabs__bar" role="tablist" aria-label="Product details">
+      <button class="ch-tab is-active" role="tab" aria-selected="true" aria-controls="tab-highlights" id="tabbtn-highlights">Highlights</button>
+      <button class="ch-tab" role="tab" aria-selected="false" aria-controls="tab-specs" id="tabbtn-specs">Specification</button>
+    </div>
+
+    <!-- We’ll split description into these two panes in JS -->
+    <div id="tab-highlights" class="ch-tabpane is-active" role="tabpanel" aria-labelledby="tabbtn-highlights">
+      <div class="ch-tabpane__body ch-pane-highlights"></div>
+    </div>
+    <div id="tab-specs" class="ch-tabpane" role="tabpanel" aria-labelledby="tabbtn-specs">
+      <div class="ch-tabpane__body ch-pane-specs"></div>
+    </div>
+
+    <!-- Hidden raw description; used only for client-side split -->
+    <div id="ch-desc-raw" class="visually-hidden">
+      {{ product.description }}
+    </div>
+  </section>
+
+  <div id="w3-product-accessories" data-product-handle="{{ product.handle }}">
+    <div id="w3-money-format" style="display:none;">{{ shop.money_format }}</div>
+  </div>
+</div>
+
+{% unless product == empty %}
+  <script type="application/json" id="ProductJson-{{ section.id }}">{{ product | json }}</script>
+  {% if section.settings.stock_enable %}
+    <script type="application/json" id="VariantJson-{{ section.id }}">
+      [
+        {% for variant in product.variants %}
+          { "incoming": {{ variant.incoming | default: false | json }},
+            "next_incoming_date": {{ variant.next_incoming_date | date: format: 'date' | json }},
+            "inventory_policy": {{ variant.inventory_policy | json }},
+            "inventory_quantity": {{ variant.inventory_quantity | json }} }{% unless forloop.last %},{% endunless %}
+        {% endfor %}
+      ]
+    </script>
+  {% endif %}
+{% endunless %}
+
+<script>
+(function () {
+  var root = document.querySelector('.ch-pdp'); if (!root) return;
+
+  /* ==== Zoom (explicit toggle) ==== */
+  var pane  = root.querySelector('.ch-zoom__pane');
+  var lens  = root.querySelector('.ch-zoom__lens');
+  var wraps = root.querySelectorAll('.product__photo-wrapper-{{ section.id }}');
+  var zoomEnabled = true, hiW=0, hiH=0, scaleX=1, scaleY=1;
+
+  // Touch detection: disable zoom and hide controls on touch devices
+  var isTouch = ('ontouchstart' in window) || window.matchMedia('(hover: none)').matches;
+  if (isTouch) {
+    zoomEnabled = false;
+    if (pane) pane.classList.remove('is-active');
+    var toggleBtns = root.querySelectorAll('.ch-zoom__toggle');
+    toggleBtns.forEach(function(btn){
+      btn.setAttribute('aria-pressed','false');
+      var t = btn.querySelector('.ch-zoom__toggle-text'); if (t) t.textContent = 'Zoom: Off';
+      btn.style.display = 'none';
+    });
+  }
+
+  function hideLens(){ if(lens){ lens.style.transform = 'translate(-9999px,-9999px)'; } }
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  function preloadHi(url, r){
+    var hi = new Image();
+    hi.onload = function(){
+      hiW = hi.naturalWidth; hiH = hi.naturalHeight;
+      scaleX = r.width? hiW/r.width : 2.5;
+      scaleY = r.height? hiH/r.height: 2.5;
+      if (pane){
+        pane.style.backgroundImage = 'url('+url+')';
+        pane.style.backgroundSize  = hiW + 'px ' + hiH + 'px';
+      }
+    };
+    hi.src = url;
+  }
+
+  wraps.forEach(function (wrap) {
+    var btn = wrap.parentElement.querySelector('.ch-zoom__toggle');
+    if (btn) btn.addEventListener('click', function(e){
+      e.preventDefault();
+      if (isTouch) return; // keep disabled on touch
+      zoomEnabled = !zoomEnabled;
+      btn.setAttribute('aria-pressed', zoomEnabled ? 'true':'false');
+      btn.querySelector('.ch-zoom__toggle-text').textContent = 'Zoom: ' + (zoomEnabled ? 'On':'Off');
+      if (!zoomEnabled) { hideLens(); pane && pane.classList.remove('is-active'); }
+    });
+
+    wrap.addEventListener('mouseenter', function(e){
+      if (!zoomEnabled || !pane) return;
+      var img = wrap.querySelector('img'); if (!img) return;
+      pane.classList.add('is-active');
+      var full = wrap.getAttribute('data-full') || wrap.getAttribute('href') || img.currentSrc || img.src;
+      preloadHi(full, img.getBoundingClientRect());
+    });
+
+    wrap.addEventListener('mousemove', function(e){
+      if (!zoomEnabled || !hiW || !pane || !lens) return;
+      var img = wrap.querySelector('img'); if (!img) return;
+      var r = img.getBoundingClientRect();
+      var x = clamp(e.clientX - r.left, 0, r.width);
+      var y = clamp(e.clientY - r.top,  0, r.height);
+
+      var lensW = Math.max(40, Math.min(r.width,  pane.clientWidth  / scaleX));
+      var lensH = Math.max(40, Math.min(r.height, pane.clientHeight / scaleY));
+      lens.style.width  = lensW + 'px';
+      lens.style.height = lensH + 'px';
+      lens.style.transform = 'translate(' + (r.left + x - lensW/2) + 'px,' + (r.top + y - lensH/2) + 'px)';
+
+      var bgX = clamp(x*scaleX - pane.clientWidth/2,  0, Math.max(0, hiW - pane.clientWidth));
+      var bgY = clamp(y*scaleY - pane.clientHeight/2, 0, Math.max(0, hiH - pane.clientHeight));
+      pane.style.backgroundPosition = (-bgX) + 'px ' + (-bgY) + 'px';
+    });
+
+    wrap.addEventListener('mouseleave', function(){ hideLens(); pane && pane.classList.remove('is-active'); });
+  });
+
+  // Update pane image when thumbnail clicked
+  root.querySelectorAll('.product-single__thumbnail').forEach(function (t) {
+    t.addEventListener('click', function () {
+      var main = root.querySelector('.product__photo-wrapper-{{ section.id }} img');
+      if (!main || !pane) return;
+      var z = t.getAttribute('data-zoom') || t.getAttribute('href');
+      if (z) preloadHi(z, main.getBoundingClientRect());
+    });
+  });
+
+  /* ==== Tabs: split description into Highlights / Specs ==== */
+  var raw = document.getElementById('ch-desc-raw');
+  var html = raw ? raw.innerHTML : '';
+  var highlightsEl = document.querySelector('.ch-pane-highlights');
+  var specsEl = document.querySelector('.ch-pane-specs');
+
+  if (html && (highlightsEl && specsEl)) {
+    // Grab first table as specs; remainder as highlights
+    var div = document.createElement('div'); div.innerHTML = html;
+    var table = div.querySelector('table');
+    if (table) {
+      specsEl.appendChild(table.cloneNode(true));
+      table.parentNode.removeChild(table);
+    }
+    // Remove any first UL nav like "Highlights / Specification" from merchant content
+    var firstUL = div.querySelector('ul'); if (firstUL && /highlights/i.test(firstUL.textContent) && /spec/i.test(firstUL.textContent)) firstUL.remove();
+    highlightsEl.innerHTML = div.innerHTML;
+  }
+
+  // tab behavior
+  var btnH = document.getElementById('tabbtn-highlights');
+  var btnS = document.getElementById('tabbtn-specs');
+  var paneH = document.getElementById('tab-highlights');
+  var paneS = document.getElementById('tab-specs');
+
+  function activate(which){
+    var isH = which === 'h';
+    btnH && btnH.classList.toggle('is-active', isH);
+    btnS && btnS.classList.toggle('is-active', !isH);
+    btnH && btnH.setAttribute('aria-selected', isH ? 'true':'false');
+    btnS && btnS.setAttribute('aria-selected', !isH ? 'true':'false');
+    paneH && paneH.classList.toggle('is-active', isH);
+    paneS && paneS.classList.toggle('is-active', !isH);
+  }
+  btnH && btnH.addEventListener('click', function(){ activate('h'); });
+  btnS && btnS.addEventListener('click', function(){ activate('s'); });
+
+  /* ==== CTA row harden display:flex (belt-and-suspenders) ==== */
+  var ctaRow = document.getElementById('ChCtaRow-{{ section.id }}');
+  if (ctaRow) { ctaRow.style.display = 'flex'; }
+
+  /* ==== Wishlist handling ==== */
+  function saveLocalWishlist(entry){
+    try{
+      var key = 'ch_wishlist';
+      var list = JSON.parse(localStorage.getItem(key) || '[]');
+      var exists = list.some(function(x){ return x.product_id === entry.product_id && x.variant_id === entry.variant_id; });
+      if(!exists){ list.push(entry); localStorage.setItem(key, JSON.stringify(list)); }
+    }catch(e){}
+  }
+
+  function handleWishlist(){
+    var btn = document.getElementById('WishlistButton-{{ section.id }}');
+    if (!btn) return;
+
+    btn.addEventListener('click', function(){
+      var v = {{ current_variant | json }};
+      var p = {{ product | json }};
+      var entry = {
+        product_id: p.id, variant_id: v ? v.id : null,
+        handle: p.handle, title: p.title, url: p.url, image: (p.featured_image ? p.featured_image.src : null)
+      };
+
+      // Swym
+      if (window._swat && typeof window._swat.addToWishList === 'function') {
+        try{
+          window._swat.addToWishList({
+            epi: String(entry.product_id),
+            du: p.url,
+            empi: String(entry.variant_id || entry.product_id),
+            pti: p.title,
+            vi: String(entry.variant_id || ''),
+            iu: entry.image
+          }, function(){ btn.classList.add('is-added'); });
+          return;
+        }catch(e){}
+      }
+      // Growave
+      if (window.GrowaveWishlist && typeof window.GrowaveWishlist.add === 'function') {
+        try{ window.GrowaveWishlist.add(entry.product_id); btn.classList.add('is-added'); return; }catch(e){}
+      }
+      // Wishlist King
+      if (window.WishlistKing && window.WishlistKing.add) {
+        try{ window.WishlistKing.add(entry.product_id); btn.classList.add('is-added'); return; }catch(e){}
+      }
+      // Wishlist Hero
+      if (window.Wishlist && typeof window.Wishlist.add === 'function') {
+        try{ window.Wishlist.add(entry.product_id); btn.classList.add('is-added'); return; }catch(e){}
+      }
+
+      // Fallback
+      saveLocalWishlist(entry);
+      btn.classList.add('is-added');
+      btn.textContent = '✓ Wishlisted';
+    });
+  }
+  handleWishlist();
+
+  /* ==== Payments popover interactions ==== */
+  (function(){
+    var moreBtn = root.querySelector('.ch-payments__morebtn');
+    var popover = root.querySelector('.ch-payments__popover');
+    if(!moreBtn || !popover) return;
+
+    function open(){ popover.classList.add('is-open'); moreBtn.setAttribute('aria-expanded','true'); }
+    function close(){ popover.classList.remove('is-open'); moreBtn.setAttribute('aria-expanded','false'); }
+
+    moreBtn.addEventListener('mouseenter', open);
+    moreBtn.addEventListener('focus', open);
+    moreBtn.addEventListener('mouseleave', function(){ setTimeout(close, 100); });
+    popover.addEventListener('mouseenter', open);
+    popover.addEventListener('mouseleave', close);
+
+    document.addEventListener('click', function(e){
+      if (!popover.contains(e.target) && e.target !== moreBtn) close();
+    });
+  })();
+})();
+</script>
+
+<style>
+/* Thumbs */
+.ch-pdp .product-single__thumbnails{display:flex;flex-direction:column;gap:8px;max-height:540px;overflow:auto}
+.ch-pdp .product-single__thumbnail img{width:80px;height:auto}
+
+/* Zoom */
+.ch-pdp .ch-zoom{position:relative}
+.ch-pdp .ch-zoom__pane{position:absolute;right:0;top:0;width:360px;height:360px;overflow:hidden;border:1px solid #eee;background:#fff;background-repeat:no-repeat;background-position:0 0;display:none}
+.ch-pdp .ch-zoom__pane.is-active{display:block}
+.ch-pdp .ch-zoom__lens{position:fixed;top:0;left:0;border:1px solid rgba(0,0,0,.25);background:rgba(255,255,255,.25);backdrop-filter:blur(1px);pointer-events:none;transform:translate(-9999px,-9999px)}
+.ch-pdp .ch-zoom__toggle{position:absolute;right:8px;top:8px;border:0;border-radius:999px;padding:.35rem .6rem;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.15);font-size:.8rem;cursor:pointer}
+
+/* Hide zoom UI on touch devices */
+@media (hover:none){ .ch-pdp .ch-zoom__pane, .ch-pdp .ch-zoom__toggle{display:none !important;} }
+
+/* Mini badges + selling points */
+.ch-pdp .ch-mini-badges{display:flex;gap:8px;margin:.25rem 0 .5rem;flex-wrap:wrap}
+.ch-pdp .ch-badge--brand{background:#0b7;color:#fff;border-radius:4px;padding:.125rem .5rem;font-size:.72rem}
+.ch-pdp .ch-badge--since,.ch-pdp .ch-badge--warranty{background:#f3f3f3;color:#333;border-radius:4px;padding:.125rem .5rem;font-size:.72rem}
+.ch-pdp .ch-sellpoints{list-style:none;padding-left:0;margin:.75rem 0;display:grid;gap:.25rem}
+.ch-pdp .ch-sp{display:flex;align-items:center;gap:.5rem;color:#1b1b1b}
+.ch-pdp .ch-sp__icon{fill:#666}
+
+/* Stars */
+.ch-stars{display:inline-flex;align-items:center;gap:.35rem;text-decoration:none;color:#222;position:relative}
+.ch-stars__base,.ch-stars__fill{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;letter-spacing:.15em}
+.ch-stars__base{color:#d0d0d0;position:relative}
+.ch-stars__fill{color:#f5a524;position:absolute;overflow:hidden;white-space:nowrap;pointer-events:none}
+
+/* Tabs */
+.ch-tabs{margin:1.5rem 0}
+.ch-tabs__bar{display:flex;gap:8px;background:#d51f23;color:#fff;border-radius:6px;padding:6px}
+.ch-tab{background:transparent;border:0;color:#fff;padding:.5rem .75rem;border-radius:4px;font-weight:700;cursor:pointer}
+.ch-tab.is-active{background:rgba(255,255,255,.15)}
+.ch-tabpane{display:none;padding:12px;background:#fff;border-radius:8px;margin-top:10px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.ch-tabpane.is-active{display:block}
+
+/* a11y focus */
+.ch-pdp button:focus, .ch-pdp a:focus { outline:2px solid #0a7; outline-offset:2px; }
+
+/* Hide the old free-floating description (we now use tabs) */
+.rte.product-single__description{display:none !important;}
+
+/* === CTA ROW: keep visible === */
+.ch-pdp .ch-cta-row{display:flex !important;gap:.5rem;align-items:stretch;flex-wrap:wrap}
+.ch-pdp .ch-dynamic-checkout{display:flex;align-items:stretch}
+.ch-pdp .product-form__cart-submit{min-width:12rem}
+
+/* Wishlist button */
+.ch-pdp .ch-wishlist-btn{
+  background:#f3f3f3;border:1px solid #e3e3e3;border-radius:6px;
+  padding:.75rem 1rem;font-weight:600;cursor:pointer;white-space:nowrap
+}
+.ch-pdp .ch-wishlist-btn.is-added{background:#e9f7ef;border-color:#b7e2c8}
+
+/* Payments (Havit-style) */
+.ch-pdp .ch-payments{margin-top:.75rem;position:relative}
+.ch-pdp .ch-payments__row{display:flex;align-items:center;gap:.35rem}
+.ch-pdp .ch-payments__icon{height:22px;width:auto}
+.ch-pdp .ch-payments__morebtn{
+  background:transparent;border:1px solid #d9d9d9;border-radius:6px;padding:.15rem .4rem;font-size:.8rem;cursor:pointer
+}
+.ch-pdp .ch-payments__popover{
+  position:absolute;left:0;top:calc(100% + 8px);background:#1f1f1f;color:#fff;border-radius:8px;padding:10px;display:none;
+  box-shadow:0 6px 24px rgba(0,0,0,.25);z-index:50
+}
+.ch-pdp .ch-payments__popover.is-open{display:block}
+.ch-pdp .ch-payments__grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.ch-pdp .ch-payments__grid img{width:72px;height:auto;background:#fff;border-radius:4px;padding:6px}
+
+/* Social sharing wrapper */
+.ch-pdp .ch-social-share{margin-top:1rem}
+</style>
+
+{% schema %}
+{
+  "name": { "en": "Product pages" },
+  "settings": [
+    { "type": "checkbox", "id": "enable_ajax", "label": { "en": "Stay on current page when item is added to cart" }, "default": true },
+    { "type": "checkbox", "id": "stock_enable", "label": { "en": "Show stock when less than 10 products available" }, "default": false },
+    { "type": "checkbox", "id": "enable_payment_button", "label": { "en": "Show dynamic checkout button" }, "default": true },
+    { "type": "checkbox", "id": "social_sharing_products", "label": { "en": "Enable product sharing" }, "default": true }
+  ]
+}
+{% endschema %}

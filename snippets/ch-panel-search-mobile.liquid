@@ -1,0 +1,289 @@
+{%- comment -%}
+snippets/ch-panel-search-mobile.liquid
+Mobile search panel body — self-contained predictive
+
+Changes in this version:
+• Text-only Quick search links (Havit-style) so products sit higher.
+• Enter key submits to /search?q=... and stores recent queries.
+• Safer fetchSuggest() with graceful fallback if endpoint fails.
+• Same scoped styles; no dependencies on global scripts.
+
+Usage:
+  {% capture body %}{% render 'ch-panel-search-mobile', section: section %}{% endcapture %}
+  {% render 'ch-side-panel', id: 'search', title: 'SEARCH OUR SITE', body: body %}
+{%- endcomment -%}
+
+<style>
+/* ===== Scoped styles (search panel only) ===== */
+.ch-panel[data-ch-panel="search"] .sh-row{ padding:10px 14px; display:grid; gap:10px; }
+.ch-panel[data-ch-panel="search"] .sh-inp{
+  height:46px; background:#fff; border:1px solid var(--line,#e8e8e8); border-radius:12px;
+  display:flex; align-items:center; gap:8px; padding:0 12px;
+  box-shadow: inset 0 0 0 1px transparent;
+}
+.ch-panel[data-ch-panel="search"] .sh-inp:focus-within{ border-color:var(--brand,#E0302A); box-shadow: inset 0 0 0 1px var(--brand,#E0302A); }
+.ch-panel[data-ch-panel="search"] .sh-inp input{
+  width:100%; border:0; outline:0; background:transparent; color:var(--ink,#161616);
+  font:600 16px/1.25 var(--font-body,inherit);
+}
+.ch-panel[data-ch-panel="search"] .sh-inp .btn{ min-width:auto; min-height:auto; background:transparent; border:0; padding:0; color:#6b7280; }
+.ch-panel[data-ch-panel="search"] .ico{ width:20px; height:20px; }
+
+.ch-panel[data-ch-panel="search"] .sh-live{ position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden; }
+.ch-panel[data-ch-panel="search"] .sh-sec{ padding:8px 14px; }
+.ch-panel[data-ch-panel="search"] .sh-sec__title{ margin:0 0 8px; font:800 12px/1 var(--font-body,inherit); color:#666; letter-spacing:.02em; }
+
+/* Text-only quick links */
+.ch-panel[data-ch-panel="search"] .qs-inline{ font:600 14px/1.55 var(--font-body,inherit); color:var(--ink,#161616); }
+.ch-panel[data-ch-panel="search"] .qs-inline a{ color:inherit; text-decoration:none; opacity:.92; }
+.ch-panel[data-ch-panel="search"] .qs-inline a:hover{ color:var(--brand,#E0302A); opacity:1; }
+.ch-panel[data-ch-panel="search"] .qs-inline .sep{ opacity:.35; padding:0 6px; }
+
+.ch-panel[data-ch-panel="search"] .chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.ch-panel[data-ch-panel="search"] .chip{
+  display:inline-flex; align-items:center; height:32px; padding:0 12px; border-radius:999px;
+  border:1px solid var(--chip-bd,#E5E7EB); background:var(--chip-bg,#fff); color:var(--chip-txt,#111);
+  text-decoration:none; font-weight:700; font-size:12px; max-width:100%;
+}
+.ch-panel[data-ch-panel="search"] .chip:hover{ background:var(--chip-bg-hover,#FFF4F3); border-color:var(--brand,#E0302A); }
+
+.ch-panel[data-ch-panel="search"] .lst{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.ch-panel[data-ch-panel="search"] .srow{
+  display:grid; grid-template-columns:20px 1fr; align-items:center; gap:8px; padding:10px;
+  border:1px solid var(--line,#e8e8e8); border-radius:12px; background:#fff; cursor:pointer;
+}
+.ch-panel[data-ch-panel="search"] .srow svg{ width:16px; height:16px; color:#6b7280; }
+
+.ch-panel[data-ch-panel="search"] .it{
+  display:grid; grid-template-columns:56px 1fr auto; gap:10px; align-items:center; padding:10px;
+  border-radius:12px; border:1px solid var(--line,#e8e8e8); background:#fff; position:relative;
+}
+.ch-panel[data-ch-panel="search"] .mthumb{ width:56px; height:56px; object-fit:contain; border-radius:8px; background:#f4f4f4; }
+.ch-panel[data-ch-panel="search"] .mtitle{ font:700 13px/1.3 var(--font-body,inherit); color:var(--ink,#161616); }
+.ch-panel[data-ch-panel="search"] .mprice{ font:800 13px/1 var(--font-body,inherit); color:#111; white-space:nowrap; }
+.ch-panel[data-ch-panel="search"] .price-was{ color:#8b8b8b; text-decoration:line-through; margin-left:6px; font-weight:700; }
+
+.ch-panel[data-ch-panel="search"] .sh-ft{ padding:10px 14px 18px; border-top:1px solid var(--line,#e8e8e8); margin-top:auto; text-align:center; }
+.ch-panel[data-ch-panel="search"] .cta-all--mobile{
+  display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 14px; border-radius:999px;
+  background:#111; color:#fff; text-decoration:none; font-weight:800;
+}
+
+/* lightweight skeleton */
+.ch-panel[data-ch-panel="search"] .skeleton{ background:linear-gradient(90deg,#eee,#f7f7f7,#eee); animation:ch-sh 1.2s infinite; }
+@keyframes ch-sh{ 0%{background-position:-120px 0} 100%{background-position:120px 0} }
+/* ===== Havit-style mobile rows ========================================== */
+.ch-panel[data-ch-panel="search"] .it{
+  border:1px solid #E5E7EB; background:#fff; border-radius:12px;
+  grid-template-columns:64px 1fr auto; padding:10px; gap:10px;
+}
+.ch-panel[data-ch-panel="search"] .mthumb{
+  width:64px;height:64px;border-radius:10px;background:#fff; border:1px solid #F1F5F9; object-fit:contain;
+}
+.ch-panel[data-ch-panel="search"] .mtitle{ font:600 13px/1.35 var(--font-body); color:#111; }
+.ch-panel[data-ch-panel="search"] .mprice{ font:800 13px/1 var(--font-body); color:var(--brand); }
+.ch-panel[data-ch-panel="search"] .price-was{ color:#6B7280; text-decoration:line-through; margin-left:6px; }
+
+</style>
+
+<div class="sh-row">
+  <div class="sh-inp">
+    <input type="search" placeholder="Search products & brands" autocomplete="off"
+           aria-controls="m-list-{{ section.id }}" aria-expanded="false" data-ms-input>
+    <button class="btn" type="button" aria-label="Clear" data-ms-clear style="display:none;">
+      <svg class="ico" viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3L16.9 4.3z"/></svg>
+    </button>
+    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8L20 21.5 21.5 20l-6-6zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>
+  </div>
+  <span class="sh-live" aria-live="polite" data-ms-live></span>
+</div>
+
+<!-- Text-only Quick search -->
+<div class="sh-sec">
+  <p class="sh-sec__title">Quick search</p>
+  <div class="qs-inline">
+    <a href="/search?q=Instant">Instant</a><span class="sep">·</span>
+    <a href="/search?q=Mirrorless">Mirrorless</a><span class="sep">·</span>
+    <a href="/search?q=Film">Film</a><span class="sep">·</span>
+    <a href="/search?q=Action">Action</a><span class="sep">·</span>
+    <a href="/search?q=Lens">Lens</a><span class="sep">·</span>
+    <a href="/search?q=Drones">Drones</a><span class="sep">·</span>
+    <a href="/search?q=360">360</a><span class="sep">·</span>
+    <a href="/search?q=Gimbals">Gimbals</a>
+  </div>
+</div>
+
+<div class="sh-sec">
+  <p class="sh-sec__title">Brands</p>
+  <div class="chips" data-ms-brands></div>
+</div>
+
+<div class="sh-sec">
+  <p class="sh-sec__title">Suggestions</p>
+  <ul id="m-list-{{ section.id }}" class="lst" role="listbox" aria-label="Search results" data-ms-list></ul>
+</div>
+
+<div class="sh-ft">
+  <a class="cta-all--mobile" href="/search?q=" data-ms-viewall>View all results</a>
+</div>
+
+<script>
+/* ===== Scoped controller (search panel only) ===== */
+(() => {
+  const shell = document.querySelector('.ch-panel[data-ch-panel="search"]');
+  if (!shell) return;
+
+  const input   = shell.querySelector('[data-ms-input]');
+  const list    = shell.querySelector('[data-ms-list]');
+  const chipsB  = shell.querySelector('[data-ms-brands]');
+  const live    = shell.querySelector('[data-ms-live]');
+  const clear   = shell.querySelector('[data-ms-clear]');
+  const viewAll = shell.querySelector('[data-ms-viewall]');
+
+  let ctl = null, debounce = null;
+
+  /* helpers */
+  const nf = new Intl.NumberFormat({{ request.locale.iso_code | json }} || 'en-PH',
+    { style:'currency', currency: {{ shop.currency | json }} || 'PHP' });
+  const money = c => nf.format((Number(c)||0)/100);
+  const esc   = s => (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const widthSwap = (u,w)=> u&&u.indexOf('{width}')>-1 ? u.replace('{width}', String(w))
+                       : (u||'').replace(/(\.(?:jpe?g|png|webp|gif))(?:\?.*)?$/i, `_${w}x$1`);
+  const srcset = (u)=> `${widthSwap(u,112)} 112w, ${widthSwap(u,224)} 224w, ${widthSwap(u,336)} 336w`;
+
+  /* Brands chips from settings */
+  function paintBrands(){
+    if (!chipsB) return; chipsB.innerHTML='';
+    ({{ section.settings.brands_list | default: "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" | json }}||'')
+      .split('\n').map(s=>s.trim()).filter(Boolean).slice(0,10)
+      .forEach(b => {
+        const a = document.createElement('a');
+        a.className = 'chip';
+        a.href = `/search?type=product&q=${encodeURIComponent('vendor:"'+b+'"')}`;
+        a.innerHTML = `<span>${esc(b)}</span>`;
+        chipsB.appendChild(a);
+      });
+  }
+  paintBrands();
+
+  /* skeleton rows while fetching */
+  function skeleton(){
+    if (!list) return;
+    list.innerHTML = '';
+    for (let i=0;i<{{ section.settings.search_limit_products | default: 6 }}; i++){
+      const li = document.createElement('li');
+      li.className = 'it';
+      li.innerHTML = `
+        <div class="mthumb skeleton" style="width:56px;height:56px;border-radius:8px;"></div>
+        <div>
+          <div class="skeleton" style="height:14px;border-radius:6px;margin-bottom:6px;"></div>
+          <div class="skeleton" style="width:64px;height:12px;border-radius:6px;"></div>
+        </div>
+        <div class="skeleton" style="width:64px;height:14px;border-radius:6px;"></div>`;
+      list.appendChild(li);
+    }
+    live && (live.textContent = 'Loading…');
+  }
+
+  /* Safer fetch with fallback */
+  function fetchSuggest(q){
+    if (ctl) ctl.abort();
+    ctl = new AbortController();
+    return fetch(
+      `/search/suggest.json?q=${encodeURIComponent(q)}&resources[type]=product,query&resources[limit]={{ section.settings.search_limit_products | default: 6 }}`,
+      { signal: ctl.signal, headers:{'Accept':'application/json'}, cache:'no-store' }
+    ).then(r => r.ok ? r.json() : null)
+     .catch(()=>null)
+     .then(js => js || { resources: { results: { products: [], queries: [] } } });
+  }
+
+  function render(js, q){
+    if (!list) return;
+    list.innerHTML = '';
+    const res   = js && js.resources && js.resources.results ? js.resources.results : {};
+    const prods = Array.isArray(res.products) ? res.products : [];
+    const sugs  = Array.isArray(res.queries)  ? res.queries  : [];
+
+    /* text suggestions first */
+    sugs.slice(0,6).forEach(s => {
+      const t = String(s.title || s.text || '');
+      const li = document.createElement('li');
+      li.className = 'srow';
+      const safeQ = (q||'').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const marked = q ? esc(t).replace(new RegExp('(' + safeQ + ')','ig'), '<mark>$1</mark>') : esc(t);
+      li.innerHTML = `<svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8L20 21.5 21.5 20l-6-6zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg><div>${marked}</div>`;
+      li.addEventListener('click', () => { window.location.href = `/search?q=${encodeURIComponent(t)}`; });
+      list.appendChild(li);
+    });
+
+    /* product rows */
+    prods.forEach(p => {
+      const u   = (p && ((p.image&&(p.image.url||p.image))||(p.featured_image&&p.featured_image.url))) || '';
+      const now = (p.price||p.price_min||0), was=(p.compare_at_price||0);
+      const li  = document.createElement('li');
+      li.className = 'it';
+      li.innerHTML = `
+        <a href="${p.url||'#'}" aria-label="${esc(p.title||'')}"
+           style="position:absolute;inset:0;border-radius:12px;"></a>
+        <img class="mthumb" src="${widthSwap(u,168)}" srcset="${srcset(u)}" sizes="56px"
+             alt="${esc(p.title||'')}" width="56" height="56" loading="lazy" decoding="async">
+        <div><div class="mtitle">${esc(p.title||'')}</div></div>
+        <div class="mprice">${money(now)}${was>now?` <span class="price-was">${money(was)}</span>`:''}</div>`;
+      list.appendChild(li);
+    });
+
+    live && (live.textContent = (sugs.length + prods.length) + ' results');
+  }
+
+  function showPrefill(){
+    if (list) list.innerHTML = '';
+    live && (live.textContent = '');
+  }
+
+  /* wire input */
+  input && input.addEventListener('focus', () => {
+    if (!input.value.trim()) showPrefill();
+  });
+
+  input && input.addEventListener('input', () => {
+    const q = input.value.trim();
+    clear && (clear.style.display = q ? 'inline-flex' : 'none');
+    viewAll && (viewAll.href = `/search?q=${encodeURIComponent(q)}`);
+    clearTimeout(debounce);
+    debounce = setTimeout(() => {
+      if (!q || q.length < {{ section.settings.search_min_chars | default: 2 }}) { showPrefill(); return; }
+      skeleton();
+      fetchSuggest(q).then(js => render(js, q));
+    }, 180);
+  });
+
+  /* Enter submits to /search and saves recent query */
+  input && input.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const q = (input.value || '').trim();
+      if (!q) return;
+      try{
+        const key = 'ch_recent_queries';
+        const cap = {{ section.settings.recent_max | default: 6 }};
+        const arr = (JSON.parse(localStorage.getItem(key) || '[]') || []).filter(x=>x!==q);
+        arr.unshift(q);
+        localStorage.setItem(key, JSON.stringify(arr.slice(0, cap)));
+      }catch(_){}
+      window.location.href = `/search?q=${encodeURIComponent(q)}`;
+    }
+  });
+
+  clear && clear.addEventListener('click', () => {
+    input.value=''; input.focus(); clear.style.display='none'; showPrefill();
+  });
+
+  /* focus input when panel opens */
+  document.addEventListener('ch:panel', (e)=>{
+    const d = e && e.detail;
+    if (d && d.name === 'search' && d.open) {
+      setTimeout(()=> input && input.focus(), 50);
+    }
+  });
+})();
+</script>

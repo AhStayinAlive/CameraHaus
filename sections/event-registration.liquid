@@ -1,0 +1,403 @@
+{% comment %}
+  Camerahaus Photofestival — Registration (Lite, CH-styled)
+  • Matches CH product card visuals: colors, radius, shadows, buttons, inputs.
+  • Individuals: productized pass, per-attendee fields, validation, multi-add lines.
+  • Company/School: contact form (or optional Google Form embed toggle).
+{% endcomment %}
+
+<section id="photofest-{{ section.id }}" class="chpf container" aria-label="Photofestival Registration">
+  <style>
+    /* ===== Design tokens (match your product card) ===== */
+    #photofest-{{ section.id }}{
+      --ch-red:#E0302A;            /* primary red */
+      --txt:#111827;               /* ink */
+      --muted:#6B7280;             /* muted text */
+      --panel:#F7F7F8;             /* panel bg like product card */
+      --line:#E5E7EB;              /* borders */
+      --white:#fff;
+      --r:14px;                    /* same radius */
+      --shadow:0 6px 20px rgba(17,17,17,.06);
+    }
+    #photofest-{{ section.id }} .wrap{max-width:1000px;margin:0 auto;padding:16px 0 24px;}
+    #photofest-{{ section.id }} .hero{
+      background:var(--panel); border-radius:var(--r); box-shadow:var(--shadow);
+      padding:20px 18px; margin-bottom:14px;
+    }
+    #photofest-{{ section.id }} .hero h1{margin:0 0 4px; color:var(--txt); font-size:26px; line-height:1.25;}
+    #photofest-{{ section.id }} .hero p{margin:0; color:var(--muted);}
+
+    /* Segmented tabs (CH look) */
+    #photofest-{{ section.id }} .tabs{
+      border-radius:999px; background:var(--ch-red); padding:4px; display:flex; gap:6px;
+      box-shadow:var(--shadow); margin: 0 0 14px;
+    }
+    #photofest-{{ section.id }} .tabbtn{
+      flex:1; border:0; cursor:pointer; border-radius:999px; font-weight:800;
+      background:transparent; color:#fff; min-height:40px;
+    }
+    #photofest-{{ section.id }} .tabbtn[aria-selected="false"]{
+      background:var(--white); color:var(--txt);
+    }
+
+    /* Panels */
+    #photofest-{{ section.id }} .panel{display:none;}
+    #photofest-{{ section.id }} .panel.active{display:block;}
+    #photofest-{{ section.id }} .card{
+      background:var(--white); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow);
+      padding:16px;
+    }
+    #photofest-{{ section.id }} .grid{display:grid; gap:12px;}
+    @media(min-width:740px){ #photofest-{{ section.id }} .grid.two{ grid-template-columns:1fr 1fr; } }
+
+    /* Inputs & labels (match store style) */
+    #photofest-{{ section.id }} label{font-weight:700; color:var(--txt); font-size:13px; display:block; margin:8px 0 6px;}
+    #photofest-{{ section.id }} input[type="text"],
+    #photofest-{{ section.id }} input[type="email"],
+    #photofest-{{ section.id }} input[type="tel"],
+    #photofest-{{ section.id }} input[type="number"],
+    #photofest-{{ section.id }} select{
+      width:100%; border:1px solid var(--line); border-radius:12px; background:#fff; color:var(--txt);
+      padding:12px 12px; outline:none;
+    }
+    #photofest-{{ section.id }} input:focus, #photofest-{{ section.id }} select:focus{
+      box-shadow:0 0 0 3px rgba(224,48,42,.15); border-color:#f3b1ad;
+    }
+    #photofest-{{ section.id }} .help{font-size:12px; color:var(--muted); margin-top:4px;}
+    #photofest-{{ section.id }} .error{display:none; color:#B91C1C; font-size:12px; margin-top:6px;}
+
+    /* Price row */
+    #photofest-{{ section.id }} .price{font-weight:900; color:var(--ch-red); font-size:18px;}
+
+    /* Buttons (reuse CH button look) */
+    #photofest-{{ section.id }} .chbtn{
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      font-weight:800; border-radius:999px; border:1px solid transparent; min-height:44px;
+      padding:10px 14px; text-decoration:none; white-space:nowrap; cursor:pointer;
+    }
+    #photofest-{{ section.id }} .chbtn--primary{ background:var(--ch-red); color:#fff; }
+    #photofest-{{ section.id }} .chbtn--primary:hover{ filter:brightness(.96); }
+    #photofest-{{ section.id }} .chbtn[disabled]{ opacity:.55; cursor:not-allowed; }
+
+    /* Attendee cards */
+    #photofest-{{ section.id }} .attendee{
+      border:1px solid var(--line); border-radius:12px; padding:12px; background:#fff;
+    }
+    #photofest-{{ section.id }} .attendee__title{font-weight:800; margin:0 0 8px; color:var(--txt);}
+
+    /* Toast */
+    #photofest-{{ section.id }} .toast{
+      position:fixed; left:50%; transform:translateX(-50%); bottom:24px; background:#111; color:#fff;
+      padding:10px 14px; border-radius:999px; display:none; z-index:30;
+    }
+
+    /* Empty state */
+    #photofest-{{ section.id }} .empty{
+      text-align:center; color:var(--muted);
+    }
+  </style>
+
+  <div class="wrap">
+    <div class="hero" role="banner">
+      <h1>{{ section.settings.heading | escape }}</h1>
+      {% if section.settings.subheading != blank %}<p>{{ section.settings.subheading | escape }}</p>{% endif %}
+    </div>
+
+    <div class="tabs" role="tablist" aria-label="Registration type">
+      <button class="tabbtn" role="tab" aria-selected="true" aria-controls="indiv-{{ section.id }}" id="tab-indiv-{{ section.id }}">Individuals</button>
+      {% if section.settings.show_company %}
+        <button class="tabbtn" role="tab" aria-selected="false" aria-controls="corp-{{ section.id }}" id="tab-corp-{{ section.id }}">Company/School</button>
+      {% endif %}
+    </div>
+
+    <!-- Individuals -->
+    <div id="indiv-{{ section.id }}" class="panel active" role="tabpanel" aria-labelledby="tab-indiv-{{ section.id }}">
+      <div class="card">
+        {% assign pf_product = section.settings.pass_product %}
+        {% if pf_product %}
+          <div class="grid two">
+            <div>
+              <h3 style="margin:0 0 8px; color:var(--txt);">{{ pf_product.title }}</h3>
+              <div class="price" id="pfest-price-{{ section.id }}"></div>
+
+              {% if pf_product.has_only_default_variant == false %}
+                {% for opt in pf_product.options_with_values %}
+                  <label for="opt-{{ forloop.index0 }}-{{ section.id }}">{{ opt.name }}</label>
+                  <select id="opt-{{ forloop.index0 }}-{{ section.id }}" class="pfest-opt" aria-label="{{ opt.name }}">
+                    {% for val in opt.values %}
+                      <option value="{{ val | escape }}">{{ val }}</option>
+                    {% endfor %}
+                  </select>
+                {% endfor %}
+              {% endif %}
+
+              <label for="pfest-qty-{{ section.id }}">Quantity</label>
+              <input id="pfest-qty-{{ section.id }}" type="number" min="1" step="1" value="1" inputmode="numeric" aria-describedby="qty-help-{{ section.id }}">
+              <div id="qty-help-{{ section.id }}" class="help">We’ll collect attendee details for each pass.</div>
+
+              <div id="pfest-errors-{{ section.id }}" class="error" aria-live="polite"></div>
+
+              <div style="margin-top:8px;">
+                <label class="help" style="margin:0 0 6px; font-weight:700; color:var(--txt);">Consent</label>
+                <div style="display:flex; gap:10px; align-items:flex-start;">
+                  <input id="pfest-consent-{{ section.id }}" type="checkbox" aria-describedby="consent-note-{{ section.id }}" style="margin-top:4px;">
+                  <label for="pfest-consent-{{ section.id }}" style="margin:0; font-weight:600;">I agree to the event terms and the Privacy Policy.</label>
+                </div>
+                <div id="consent-note-{{ section.id }}" class="help">We collect name, email, and mobile to confirm your registration and for on-site verification.</div>
+              </div>
+
+              <div style="margin-top:12px;">
+                <button id="pfest-add-{{ section.id }}" class="chbtn chbtn--primary" type="button">Add to cart</button>
+              </div>
+            </div>
+
+            <div>
+              <h4 style="margin:0 0 8px; color:var(--txt);">Attendee details</h4>
+              <div id="pfest-attendees-{{ section.id }}" class="grid"></div>
+            </div>
+          </div>
+
+          <script type="application/json" id="pfest-product-json-{{ section.id }}">
+            {{ pf_product | json }}
+          </script>
+        {% else %}
+          <div class="empty">
+            <p><strong>Select a Pass product</strong> in the section settings to enable registration.</p>
+          </div>
+        {% endif %}
+
+        {% if section.blocks.size > 0 %}
+          <div style="margin-top:14px; border-top:1px solid var(--line); padding-top:12px;">
+            {% for b in section.blocks %}
+              {% if b.type == 'faq' %}
+                <details class="card" style="padding:12px; margin-top:10px;">
+                  <summary><strong>{{ b.settings.q | escape }}</strong></summary>
+                  <div class="help" style="margin-top:8px;">{{ b.settings.a }}</div>
+                </details>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if section.settings.show_company %}
+    <!-- Company/School -->
+    <div id="corp-{{ section.id }}" class="panel" role="tabpanel" aria-labelledby="tab-corp-{{ section.id }}">
+      <div class="card">
+        <h3 style="margin-top:0; color:var(--txt);">Company/School Registration</h3>
+        <p class="help">Request an invoice or bulk registration. We’ll reply with next steps.</p>
+
+        {% if section.settings.use_gform and section.settings.gform_url != blank %}
+          <iframe
+            src="{{ section.settings.gform_url }}"
+            width="100%" height="900"
+            style="border:0;border-radius:12px;background:#fff" loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            aria-label="Company/School Registration Form"></iframe>
+          <p class="help" style="margin-top:8px;">Submissions go to Google Sheets. CSV available anytime.</p>
+        {% else %}
+          {%- form 'contact' -%}
+            <input type="hidden" name="contact[Photofestival Topic]" value="Company/School Registration">
+            <div class="grid two">
+              <div>
+                <label for="c-name-{{ section.id }}">Contact person</label>
+                <input id="c-name-{{ section.id }}" type="text" name="contact[Contact Person]" required>
+              </div>
+              <div>
+                <label for="c-email-{{ section.id }}">Email</label>
+                <input id="c-email-{{ section.id }}" type="email" name="contact[email]" required>
+              </div>
+              <div>
+                <label for="c-mobile-{{ section.id }}">Mobile</label>
+                <input id="c-mobile-{{ section.id }}" type="tel" name="contact[Mobile]" placeholder="+63 9XXXXXXXXX" required>
+              </div>
+              <div>
+                <label for="c-company-{{ section.id }}">Company/School</label>
+                <input id="c-company-{{ section.id }}" type="text" name="contact[Company/School]" required>
+              </div>
+              <div>
+                <label for="c-qty-{{ section.id }}"># of passes</label>
+                <input id="c-qty-{{ section.id }}" type="number" min="1" step="1" value="10" name="contact[Estimated Passes]" required>
+              </div>
+              <div>
+                <label for="c-notes-{{ section.id }}">Notes</label>
+                <input id="c-notes-{{ section.id }}" type="text" name="contact[Notes]" placeholder="Invoice details, TIN, preferred payment, etc.">
+              </div>
+            </div>
+            <div style="margin-top:12px;">
+              <button class="chbtn chbtn--primary" type="submit">Send request</button>
+            </div>
+          {%- endform -%}
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="toast" id="pfest-toast-{{ section.id }}">Added to cart</div>
+
+  <script>
+    (function(){
+      const root = document.getElementById('photofest-{{ section.id }}');
+      if(!root) return;
+
+      // Tabs
+      const tabs = root.querySelectorAll('.tabbtn');
+      tabs.forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          tabs.forEach(b=>b.setAttribute('aria-selected','false'));
+          btn.setAttribute('aria-selected','true');
+          root.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+          document.getElementById(btn.getAttribute('aria-controls')).classList.add('active');
+        });
+      });
+
+      // Product logic
+      const productEl    = document.getElementById('pfest-product-json-{{ section.id }}');
+      const priceEl      = document.getElementById('pfest-price-{{ section.id }}');
+      const qtyEl        = document.getElementById('pfest-qty-{{ section.id }}');
+      const addBtn       = document.getElementById('pfest-add-{{ section.id }}');
+      const attendees    = document.getElementById('pfest-attendees-{{ section.id }}');
+      const errEl        = document.getElementById('pfest-errors-{{ section.id }}');
+      const consentEl    = document.getElementById('pfest-consent-{{ section.id }}');
+      const toast        = document.getElementById('pfest-toast-{{ section.id }}');
+      const optEls       = Array.from(root.querySelectorAll('.pfest-opt'));
+      if(!productEl || !priceEl) return;
+
+      const product = JSON.parse(productEl.textContent);
+
+      function formatMoney(cents){
+        try { return Shopify.formatMoney(cents); }
+        catch(e){ return '₱' + (cents/100).toLocaleString(); }
+      }
+
+      function getVariant(){
+        if(product.has_only_default_variant) return product.variants[0];
+        const chosen = optEls.map(s => s.value);
+        return product.variants.find(v => v.options.every((val,i)=> String(val)===String(chosen[i])));
+      }
+
+      function updatePrice(){
+        const v = getVariant();
+        if(!v){ priceEl.textContent = 'Unavailable'; return; }
+        priceEl.textContent = v.available ? formatMoney(v.price) : 'Sold out';
+      }
+
+      function rebuildAttendees(){
+        const n = Math.max(1, parseInt(qtyEl.value||'1',10));
+        attendees.innerHTML = '';
+        for(let i=1;i<=n;i++){
+          const wrap = document.createElement('div');
+          wrap.className = 'attendee';
+          wrap.innerHTML = `
+            <div class="attendee__title">Attendee ${i}</div>
+            <label for="name-${i}-{{ section.id }}">Full name</label>
+            <input id="name-${i}-{{ section.id }}" type="text" autocomplete="name" required>
+            <label for="email-${i}-{{ section.id }}">Email</label>
+            <input id="email-${i}-{{ section.id }}" type="email" autocomplete="email" required>
+            <label for="mobile-${i}-{{ section.id }}">Mobile</label>
+            <input id="mobile-${i}-{{ section.id }}" type="tel" placeholder="+63 9XXXXXXXXX" required>
+          `;
+          attendees.appendChild(wrap);
+        }
+      }
+
+      function showErr(msg){ errEl.textContent = msg; errEl.style.display='block'; return false; }
+
+      function validate(){
+        errEl.style.display='none'; errEl.textContent='';
+        const v = getVariant();
+        if(!v) return showErr('Please choose a valid variant.');
+        if(!v.available) return showErr('Selected variant is sold out.');
+        const n = Math.max(1, parseInt(qtyEl.value||'1',10));
+        const mob = /^(09\\d{9}|(\\+?63)9\\d{9})$/;
+        for(let i=1;i<=n;i++){
+          const name = root.querySelector(`#name-${i}-{{ section.id }}`);
+          const email = root.querySelector(`#email-${i}-{{ section.id }}`);
+          const mobile = root.querySelector(`#mobile-${i}-{{ section.id }}`);
+          if(!name.value.trim()) return showErr(\`Attendee \${i}: name is required.\`);
+          if(!/^\\S+@\\S+\\.\\S+$/.test(email.value.trim())) return showErr(\`Attendee \${i}: enter a valid email.\`);
+          if(!mob.test(mobile.value.trim())) return showErr(\`Attendee \${i}: enter a valid PH mobile.\`);
+        }
+        if(!consentEl.checked) return showErr('Please accept the event terms and Privacy Policy.');
+        return true;
+      }
+
+      async function addToCart(){
+        if(!validate()) return;
+        const v = getVariant();
+        const n = Math.max(1, parseInt(qtyEl.value||'1',10));
+        addBtn.disabled = true; addBtn.textContent = 'Adding…';
+
+        for(let i=1;i<=n;i++){
+          const name = root.querySelector(`#name-${i}-{{ section.id }}`).value.trim();
+          const email = root.querySelector(`#email-${i}-{{ section.id }}`).value.trim();
+          const mobile = root.querySelector(`#mobile-${i}-{{ section.id }}`).value.trim();
+
+          const resp = await fetch('/cart/add.js', {
+            method:'POST',
+            headers:{'Content-Type':'application/json','Accept':'application/json'},
+            body: JSON.stringify({
+              id: v.id, quantity: 1,
+              properties: {
+                "Event": "{{ section.settings.event_label | escape }}",
+                "Attendee Name": name,
+                "Attendee Email": email,
+                "Attendee Mobile": mobile,
+                "Consent": "Yes"
+              }
+            })
+          });
+          if(!resp.ok){
+            const info = await resp.json().catch(()=>({}));
+            showErr(info.description || info.message || 'Could not add to cart.');
+            addBtn.disabled=false; addBtn.textContent='Add to cart';
+            return;
+          }
+
+          // Optional GA4 push
+          try{
+            window.dataLayer = window.dataLayer || [];
+            window.dataLayer.push({ event:'add_to_cart', ecommerce:{ items:[{ item_id:String(v.id), item_name:product.title, item_variant:v.title, price:(v.price/100), quantity:1 }] } });
+          }catch(e){}
+        }
+
+        toast.style.display='block';
+        setTimeout(()=>{ toast.style.display='none'; window.location.href='/cart'; }, 600);
+      }
+
+      // Init
+      const opts = Array.from(root.querySelectorAll('.pfest-opt'));
+      opts.forEach(s=> s.addEventListener('change', updatePrice));
+      qtyEl && qtyEl.addEventListener('input', rebuildAttendees);
+      addBtn && addBtn.addEventListener('click', addToCart);
+      updatePrice(); rebuildAttendees();
+    })();
+  </script>
+</section>
+
+{% schema %}
+{
+  "name": "Event Registration",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Camerahaus Photofestival Registration" },
+    { "type": "text", "id": "subheading", "label": "Subheading", "default": "Shoot. Learn. Level Up. Secure your pass below." },
+    { "type": "text", "id": "event_label", "label": "Event label (saved in properties)", "default": "Camerahaus Photofestival 2025" },
+    { "type": "product", "id": "pass_product", "label": "Pass product (with variants)" },
+    { "type": "checkbox", "id": "show_company", "label": "Show Company/School tab", "default": true },
+    { "type": "checkbox", "id": "use_gform", "label": "Company tab: Use Google Form embed (writes to Sheets)", "default": false },
+    { "type": "text", "id": "gform_url", "label": "Google Form embed URL (…/viewform?embedded=true)", "default": "https://example.com/forms/photofest-embed" }
+  ],
+  "blocks": [
+    {
+      "type": "faq",
+      "name": "FAQ",
+      "settings": [
+        { "type": "text", "id": "q", "label": "Question", "default": "Can I transfer my pass?" },
+        { "type": "richtext", "id": "a", "label": "Answer", "default": "<p>Yes. Contact us at least 48 hours before Day 1 to reassign your pass.</p>" }
+      ]
+    }
+  ],
+  "presets": [{ "name": "Photofestival Registration (Lite, CH-styled)" }]
+}
+{% endschema %}

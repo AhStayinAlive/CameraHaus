@@ -1,0 +1,265 @@
+{% comment %}
+Camerahaus — Store Locator (no app, PH-only)
+- Leaflet + OpenStreetMap (no paid keys)
+- Faster boot: PH-bounded map, lazy init, optional one-time geocoding w/ cache
+- After first run, set AUTOGEOCODE = false for instant loads
+{% endcomment %}
+
+<section id="ch-store-locator" class="chsl container">
+  <div class="chsl__controls">
+    <input id="chsl-search" type="search" placeholder="Search city, store or address…" aria-label="Search stores" />
+    <button id="chsl-geolocate" type="button">Use my location</button>
+    <button id="chsl-resolve" type="button" hidden>Resolve remaining</button>
+    <span id="chsl-status" aria-live="polite"></span>
+  </div>
+
+  <div class="chsl__layout">
+    <aside class="chsl__list" id="chsl-list" aria-label="Store results"></aside>
+    <div class="chsl__map" id="chsl-map" role="region" aria-label="Map of store locations"></div>
+  </div>
+</section>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<style>
+  .chsl { --gap: 16px; padding: 8px var(--gap); }
+  .chsl__controls { display:flex; gap:8px; align-items:center; margin-bottom: var(--gap); flex-wrap:wrap; }
+  .chsl__controls input { flex:1 1 280px; padding:10px 12px; border:1px solid #ddd; border-radius:8px; }
+  .chsl__controls button { padding:10px 12px; border:1px solid #ddd; background:#fff; border-radius:8px; cursor:pointer; }
+  .chsl__layout { display:grid; grid-template-columns: 360px 1fr; gap: var(--gap); }
+  .chsl__list { max-height: 70vh; overflow:auto; border:1px solid #eee; border-radius:12px; padding:8px; background:#fff; }
+  .chsl__card { padding:10px 8px; border-bottom:1px solid #f0f0f0; cursor:pointer; }
+  .chsl__card:last-child { border-bottom:none; }
+  .chsl__title { font-weight:600; margin:2px 0 4px; }
+  .chsl__meta { font-size:13px; color:#666; line-height:1.4; white-space:pre-line; }
+  .chsl__distance { font-size:12px; color:#2563eb; }
+  .chsl__map { height: 70vh; min-height: 360px; border:1px solid #eee; border-radius:12px; overflow:hidden; }
+  @media (max-width: 900px){
+    .chsl__layout { grid-template-columns: 1fr; }
+    .chsl__list { max-height: 40vh; }
+    .chsl__map { height: 50vh; }
+  }
+</style>
+
+<script>
+(function(){
+  /* ======= CONFIG ======= */
+  const AUTOGEOCODE = false;          // 1st run: true (fills coords + caches). After caching, set to false.
+  const MAX_GEOCODE_PER_LOAD = 6;     // Resolve only a few per load to keep TTFB snappy.
+  const PH_BOUNDS = [[4.3,116.0],[21.3,127.3]]; // SW / NE
+  const INITIAL_VIEW = [12.8797, 121.7740];     // PH center
+
+  // (Optional) Faster tiles (MapTiler). Put your key below to use; else OSM tiles are used.
+  const MAPTILER_KEY = "";            // e.g., "YOUR_MAPTILER_KEY"
+  /* ====================== */
+
+  // ---- Your stores (add lat/lng later; they're cached if geocoded once) ----
+const inlineStores = [
+  { title:"CameraHaus Ayala Malls Manila Bay", address:"4F, Bay Area Bldg, Macapagal Blvd., Tambo, Parañaque City, Philippines", phone:"SmartCel: (0998) 9690980 · Tel: (02) 7943-0196", hours:"Mon–Wed 10:00–21:00\nThu–Sun 10:00–22:00", city:"Parañaque", lat:14.5233, lng:120.9884 },
+  { title:"CameraHaus Plus SM North EDSA", address:"5F, Cyberzone Annex, SM City North EDSA, Quezon City, Philippines", phone:"Tel/Fax: (02) 8332-8927 · Mobile: (0998) 969-0655", hours:"Daily 10:00–22:00", city:"Quezon City", lat:14.657027, lng:121.030479 },
+  { title:"CameraHaus Plus Megamall", address:"4F, Building B, Cyberzone, SM Megamall, Mandaluyong City, Philippines", phone:"Tel/Fax: (02) 8635-6039 · Mobile: (0998) 969-0652", hours:"Daily 10:00–22:00", city:"Mandaluyong", lat:14.585735, lng:121.057037 },
+  { title:"CameraHaus Plus SM Mall of Asia", address:"2F, Cyberzone, SM Mall of Asia, Pasay City, Philippines", phone:"Tel/Fax: (02) 8889-0795 · Mobile: (0998) 969-0656", hours:"Mon–Fri 11:00–21:00\nSat–Sun 10:00–22:00", city:"Pasay", lat:14.535067, lng:120.982155 },
+  { title:"CameraHaus Glorietta 2", address:"3F, Ayala Center, Makati City, Philippines", phone:"Tel/Fax: (02) 7625-3756 · Mobile: (0998) 969-0654", hours:"Mon–Thu 10:00–21:00\nSat–Sun 10:00–22:00", city:"Makati", lat:14.550664, lng:121.021833 },
+  { title:"CameraHaus Plus SM Aura", address:"4F, SM Aura Premier, BGC, Taguig, Philippines", phone:"Tel/Fax: (02) 8847-9676 · Mobile: (0998) 969-0651", hours:"Daily 10:00–22:00", city:"Taguig", lat:14.546748, lng:121.05455 },
+  { title:"CameraHaus Robinsons Place Ermita", address:"3F, Pedro Gil Wing, Robinsons Place Manila, Ermita, Manila, Philippines", phone:"Tel/Fax: (02) 8732-0126 · Mobile: (0998) 969-0646", hours:"Daily 10:00–22:00", city:"Manila", lat:14.57604, lng:120.984186 },
+  { title:"CameraHaus SM Baguio", address:"3F, SM City Baguio, Baguio City, Philippines", phone:"Mobile: (0998) 969-0648", hours:"Mon–Thu 10:00–21:00\nFri–Sun 10:00–22:00", city:"Baguio", lat:16.408887, lng:120.596625 },
+  { title:"CameraHaus SM Iloilo", address:"3F, SM City Iloilo, Iloilo City, Philippines", phone:"Tel/Fax: (033) 320-3631 · Mobile: (0998) 969-0974", hours:"Daily 10:00–22:00", city:"Iloilo", lat:10.714054, lng:122.550585 },
+  { title:"CameraHaus SM Cebu", address:"UGF, SM City Cebu, Cebu City, Philippines", phone:"Tel/Fax: (032) 239-5878 · Mobile: (0998) 969-0973", hours:"Daily 10:00–21:00", city:"Cebu City", lat:10.312338, lng:123.920024 },
+  { title:"CameraHaus SM Davao", address:"G/F, SM City Davao, Davao City, Philippines", phone:"Tel/Fax: (082) 297-8460 · Mobile: (0933) 147-9365", hours:"Daily 10:00–20:00", city:"Davao", lat:7.0499, lng:125.5880 },
+  { title:"CameraHaus Abreeza Davao", address:"3F, Abreeza Mall, Davao City, Philippines", phone:"Tel/Fax: (082) 321-4298 · Mobile: (0933) 518-8378", hours:"", city:"Davao", lat:7.091444, lng:125.610942 },
+  { title:"CameraHaus Gensan", address:"IL148, G/F Veranza Mall, General Santos City, Philippines", phone:"Tel/Fax: (085) 815-4438 · Mobile: (0946) 268-2940", hours:"Daily 10:00–21:00", city:"General Santos", lat:6.1165, lng:125.18796 },
+  { title:"CameraHaus Butuan", address:"VCDU Bldg, J.C. Aquino Ave. cor Elloso St, Brgy Imadejas, Butuan City, Philippines", phone:"Tel/Fax: (083) 552-6588 · Mobile: (0998) 866-6399", hours:"Daily 10:00–21:00", city:"Butuan", lat:8.942967, lng:125.519723 },
+  { title:"Camerahaus Cagayan de Oro", address:"3F, SM CDO Downtown Premier, Cagayan de Oro City, Philippines", phone:"Mobile: 0906 383 0283 / 0968 855 9855", hours:"Daily 10:00–21:00", city:"Cagayan de Oro", lat:8.484514, lng:124.654351 },
+  { title:"Fujifilm Concept Store — Ayala Malls Manila Bay", address:"4F, Bay Area Bldg, Macapagal Blvd., Tambo, Parañaque City, Philippines", phone:"SmartCel: (0998) 9690980 · Tel: (02) 7943-0196", hours:"Mon–Wed 10:00–21:00\nThu–Sun 10:00–22:00", city:"Parañaque", lat:14.5233, lng:120.9884 },
+  { title:"Canon — SM Megamall", address:"4F, Canon Image Square, Cyberzone, Bldg B, SM Megamall, Mandaluyong City, Philippines", phone:"Tel/Fax: (02) 8681-4468 · Mobile: (0998) 969-0653", hours:"Daily 10:00–22:00", city:"Mandaluyong", lat:14.585735, lng:121.057037 }
+];
+
+
+  // Optional Metaobjects override (if you later add metaobject "store"):
+  const metaStores = [
+    {% assign entries = shop.metaobjects['store'].values %}
+    {% for s in entries %}
+      { title: {{ s.title | json }}, address: {{ s.address | json }}, phone: {{ s.phone | json }},
+        hours: {{ s.hours | json }}, city: {{ s.city | json }}, lat: {{ s.lat | json }}, lng: {{ s.lng | json }} }
+      {% unless forloop.last %},{% endunless %}
+    {% endfor %}
+  ];
+  const stores = (metaStores && metaStores.length) ? metaStores : inlineStores;
+
+  const els = {
+    list: document.getElementById('chsl-list'),
+    map: document.getElementById('chsl-map'),
+    search: document.getElementById('chsl-search'),
+    geoBtn: document.getElementById('chsl-geolocate'),
+    resolveBtn: document.getElementById('chsl-resolve'),
+    status: document.getElementById('chsl-status')
+  };
+
+  // -------- lazy boot (faster first paint) ----------
+  const boot = () => {
+    if (boot._ran) return; boot._ran = true;
+    initLocator();
+  };
+  if ('IntersectionObserver' in window){
+    const io = new IntersectionObserver(e=>{ if (e[0].isIntersecting){ io.disconnect(); boot(); } }, {rootMargin:'200px'});
+    io.observe(document.getElementById('ch-store-locator'));
+  } else { boot(); }
+
+  // -------------- core -----------------
+  function renderList(items){
+    els.list.innerHTML = items.map(s => `
+      <div class="chsl__card" data-id="${s._idx}">
+        <div class="chsl__title">${s.title||'Store'}</div>
+        <div class="chsl__meta">${s.address||''}</div>
+        ${s._distanceKm!=null ? `<div class="chsl__distance">${s._distanceKm.toFixed(1)} km away</div>`:''}
+        ${s.phone ? `<div class="chsl__meta">${s.phone}</div>`:''}
+        ${s.hours ? `<div class="chsl__meta">${s.hours}</div>`:''}
+      </div>`).join('');
+  }
+  function filterByText(q, base){
+    if (!q) return base.slice();
+    q = q.toLowerCase();
+    return base.filter(s =>
+      (s.title||'').toLowerCase().includes(q) ||
+      (s.address||'').toLowerCase().includes(q) ||
+      (s.city||'').toLowerCase().includes(q)
+    );
+  }
+  function distKm(a, b){
+    const toRad = d => d*Math.PI/180, R=6371;
+    const dLat = toRad(b.lat-a.lat), dLng = toRad(b.lng-a.lng);
+    const lat1 = toRad(a.lat), lat2 = toRad(b.lat);
+    const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLng/2)**2;
+    return 2*R*Math.asin(Math.sqrt(h));
+  }
+
+  async function initLocator(){
+    // map
+    const map = L.map(els.map, { scrollWheelZoom:true, preferCanvas:true, maxBounds: PH_BOUNDS, maxBoundsViscosity: 0.7 });
+    if (MAPTILER_KEY){
+      L.tileLayer(`https://api.maptiler.com/maps/streets/{z}/{x}/{y}.png?key=${MAPTILER_KEY}`, { maxZoom: 20, attribution: '&copy; MapTiler & OpenStreetMap contributors' }).addTo(map);
+    } else {
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+    }
+    map.setView(INITIAL_VIEW, 5);
+
+    const markers = [];
+    const group = L.featureGroup().addTo(map);
+    function popupContent(s){
+      const q = encodeURIComponent((s.address||'') || (s.lat+','+s.lng));
+      return `
+        <div style="min-width:220px">
+          <div style="font-weight:600;margin-bottom:4px">${s.title||'Store'}</div>
+          <div style="font-size:13px;line-height:1.35;white-space:pre-line">${s.address||''}</div>
+          ${s.phone ? `<div style="font-size:13px;margin-top:4px">${s.phone}</div>`:''}
+          ${s.hours ? `<div style="font-size:12px;color:#666;margin-top:6px;white-space:pre-line">${s.hours}</div>`:''}
+          <div style="margin-top:8px"><a target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${q}">Directions</a></div>
+        </div>`;
+    }
+    function addMarker(s){
+      const m = L.marker([s.lat, s.lng]).bindPopup(popupContent(s));
+      m.addTo(group); markers.push(m);
+    }
+
+    // index stores
+    stores.forEach((s,i)=> s._idx = i);
+
+    // ----- fast path: have coords -----
+    const withCoords = stores.filter(s => s.lat && s.lng);
+    if (withCoords.length){
+      withCoords.forEach(addMarker);
+      try { map.fitBounds(group.getBounds().pad(0.2)); } catch(_){ map.setView(INITIAL_VIEW, 5); }
+      renderList(stores);
+    } else {
+      els.list.innerHTML = '<div class="chsl__card">Stores are listed, but coordinates could not be resolved yet.</div>';
+    }
+
+    // ----- optional: one-time geocoding (limited per load) -----
+    const needGeo = stores.filter(s => !(s.lat && s.lng) && s.address);
+    if (AUTOGEOCODE && needGeo.length){
+      els.status.textContent = `Resolving ${Math.min(MAX_GEOCODE_PER_LOAD, needGeo.length)} of ${needGeo.length} addresses…`;
+      const toDoNow = needGeo.slice(0, MAX_GEOCODE_PER_LOAD);
+      for (const s of toDoNow){
+        const g = await geocodeCached(s.address + ' Philippines');
+        if (g){ s.lat = g.lat; s.lng = g.lng; addMarker(s); }
+        await sleep(1100); // be polite to free API
+      }
+      els.status.textContent = '';
+      renderList(stores);
+      if (group.getLayers().length){ try { map.fitBounds(group.getBounds().pad(0.2)); } catch(_){ } }
+      if (needGeo.length > MAX_GEOCODE_PER_LOAD){
+        els.resolveBtn.hidden = false;
+        els.resolveBtn.onclick = async ()=>{
+          els.resolveBtn.disabled = true;
+          for (const s of needGeo.slice(MAX_GEOCODE_PER_LOAD)){
+            const g = await geocodeCached(s.address + ' Philippines');
+            if (g){ s.lat = g.lat; s.lng = g.lng; addMarker(s); renderList(stores); }
+            await sleep(1100);
+          }
+          els.resolveBtn.hidden = true;
+        };
+      }
+      // Dev helper: dump array w/ coords to console so you can paste back into code
+      console.log('%cCopy this array and replace inlineStores in your section:', 'color:#2563eb;font-weight:bold');
+      console.log(JSON.stringify(stores, null, 2));
+    }
+
+    // interactions
+    els.list.addEventListener('click', (e)=>{
+      const card = e.target.closest('.chsl__card'); if (!card) return;
+      const s = stores[+card.dataset.id]; if (!(s && s.lat && s.lng)) return;
+      map.setView([s.lat, s.lng], 16, {animate:true});
+      const marker = markers.find(m => {
+        const p = m.getLatLng();
+        return Math.abs(p.lat - s.lat) < 1e-6 && Math.abs(p.lng - s.lng) < 1e-6;
+      });
+      marker && marker.openPopup();
+    });
+
+    let lastText = '';
+    els.search.addEventListener('input', ()=>{
+      lastText = els.search.value.trim();
+      renderList(filterByText(lastText, stores).map(s => { const cp=Object.assign({},s); delete cp._distanceKm; return cp; }));
+    });
+
+    els.geoBtn.addEventListener('click', ()=>{
+      if (!navigator.geolocation){ els.status.textContent = 'Geolocation not supported.'; return; }
+      els.status.textContent = 'Locating…';
+      navigator.geolocation.getCurrentPosition((pos)=>{
+        els.status.textContent = '';
+        const me = {lat: pos.coords.latitude, lng: pos.coords.longitude};
+        const filtered = filterByText(lastText, stores).map(s => {
+          if (s.lat && s.lng) s._distanceKm = distKm(me, {lat:s.lat, lng:s.lng});
+          return s;
+        }).sort((a,b)=> (a._distanceKm||1e9)-(b._distanceKm||1e9));
+        renderList(filtered);
+        const you = L.circleMarker([me.lat, me.lng], {radius:6}).addTo(map).bindTooltip('You are here');
+        if (group.getLayers().length){
+          map.fitBounds(L.featureGroup([you, group]).getBounds().pad(0.2));
+        } else {
+          map.setView([me.lat, me.lng], 12);
+        }
+      }, ()=>{ els.status.textContent = 'Could not get your location.'; }, {enableHighAccuracy:true, timeout:10000});
+    });
+  }
+
+  // ---- helpers ----
+  const GEO_CACHE_NS = 'chsl_geo_';
+  const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
+  function fromCache(key){ try{ return JSON.parse(localStorage.getItem(GEO_CACHE_NS+key)); }catch(_){ return null; } }
+  function toCache(key,val){ try{ localStorage.setItem(GEO_CACHE_NS+key, JSON.stringify(val)); }catch(_){ } }
+  async function geocodeCached(addr){
+    const key = addr.trim();
+    const hit = fromCache(key); if (hit) return hit;
+    const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(addr);
+    try{
+      const res = await fetch(url, {headers:{'Accept':'application/json'}});
+      if (!res.ok) return null;
+      const j = await res.json();
+      if (j && j[0]){ const out = {lat: +j[0].lat, lng: +j[0].lon}; toCache(key,out); return out; }
+    }catch(_){ return null; }
+    return null;
+  }
+})();
+</script>

@@ -1,0 +1,240 @@
+{%- liquid
+  # ---------- INPUT ----------
+  # Expect: product is passed in via render 'quick-view', product: product
+
+  assign p = product
+  assign v = p.selected_or_first_available_variant
+
+  # Flags (safe for output later)
+  assign has_variants = false
+  if p.variants.size > 1
+    assign has_variants = true
+  endif
+
+  assign has_options = false
+  if p.options_with_values.size > 1
+    assign has_options = true
+  else
+    if p.options_with_values.size == 1 and p.options_with_values[0].values.size > 1
+      assign has_options = true
+    endif
+  endif
+
+  # Compare-at for current variant
+  assign compare_val = 0
+  if v and v.compare_at_price and v.compare_at_price > v.price
+    assign compare_val = v.compare_at_price
+  endif
+-%}
+
+<div class="qv" data-qv-root data-product-id="{{ p.id }}">
+  <style>
+    .qv{--brand:#E0302A}
+    .qv *{box-sizing:border-box}
+    .qv__wrap{display:grid;grid-template-columns:1fr 1fr;gap:16px;min-width:min(92vw,860px)}
+    @media (max-width: 720px){ .qv__wrap{grid-template-columns:1fr} }
+    .qv__media{border:1px solid #e5e7eb;border-radius:12px;background:#f7f7f8;overflow:hidden}
+    .qv__media img{width:100%;height:auto;display:block}
+    .qv__title{margin:0 0 6px;font:800 18px/1.25 var(--font-body,inherit)}
+    .qv__vendor{color:#6b7280;font-weight:700;margin-bottom:8px}
+    .qv__price{display:flex;align-items:baseline;gap:8px;margin:8px 0 12px}
+    .qv__now{color:var(--brand);font:800 18px/1 var(--font-body,inherit);white-space:nowrap}
+    .qv__cmp{color:#6b7280;text-decoration:line-through;white-space:nowrap}
+    .qv__opts{display:grid;gap:10px;margin:12px 0}
+    .qv__opt{display:grid;gap:8px}
+    .qv__opt legend{font:800 12px/1 var(--font-body,inherit);color:#374151}
+    .qv__vals{display:flex;flex-wrap:wrap;gap:8px}
+    .qv__val{position:relative}
+    .qv__val input{position:absolute;inset:0;opacity:0}
+    .qv__btn{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:36px;padding:0 10px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;font-weight:800}
+    .qv__val input:checked + .qv__btn{border-color:var(--brand);box-shadow:0 0 0 1.5px var(--brand)}
+    .qv__val input:disabled + .qv__btn{opacity:.45;cursor:not-allowed}
+    .qv__atc{display:flex;gap:10px;align-items:center;margin-top:12px}
+    .qv__submit{flex:1 1 auto;height:44px;border-radius:999px;border:1px solid var(--brand);background:var(--brand);color:#fff;font:800 14px/1 var(--font-body,inherit);cursor:pointer}
+    .qv__submit[disabled]{opacity:.6;cursor:not-allowed}
+    .qv__qty{display:inline-flex;align-items:center;gap:6px;border:1px solid #e5e7eb;border-radius:10px;padding:6px;background:#fff}
+    .qv__qty input{width:46px;text-align:center;border:0;outline:0;background:transparent;font:700 14px/1 var(--font-body,inherit)}
+    .qv__qty button{width:28px;height:28px;border-radius:8px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
+    .qv__note{color:#6b7280;font:600 11px/1.2 var(--font-body,inherit);margin-top:8px}
+  </style>
+
+  <div class="qv__wrap">
+    <div class="qv__media">
+      {% if p.featured_media %}
+        <img
+          src="{{ p.featured_media | image_url: width: 900 }}"
+          srcset="{{ p.featured_media | image_url: width: 540 }} 540w, {{ p.featured_media | image_url: width: 720 }} 720w, {{ p.featured_media | image_url: width: 900 }} 900w, {{ p.featured_media | image_url: width: 1200 }} 1200w"
+          sizes="(min-width:860px) 420px, 86vw"
+          alt="{{ p.title | escape }}"
+          loading="lazy"
+          data-qv-img
+        >
+      {% else %}
+        {{ 'image' | placeholder_svg_tag }}
+      {% endif %}
+    </div>
+
+    <div>
+      <div class="qv__vendor">{{ p.vendor }}</div>
+      <h2 class="qv__title">{{ p.title }}</h2>
+
+      <div class="qv__price" data-qv-price>
+        <span class="qv__now">{{ v.price | money }}</span>
+        {% if compare_val > 0 %}<s class="qv__cmp">{{ compare_val | money }}</s>{% endif %}
+      </div>
+
+      {% if has_options %}
+        <form class="qv__opts" data-qv-form-options>
+          {% for opt in p.options_with_values %}
+            <fieldset class="qv__opt" data-opt-index="{{ forloop.index0 }}">
+              <legend>{{ opt.name }}</legend>
+              <div class="qv__vals">
+                {% for val in opt.values %}
+                  {%- comment -%} Find a variant id that matches this option value (first available or any) {%- endcomment -%}
+                  {%- assign match_id = blank -%}
+                  {%- assign match_available = false -%}
+                  {%- for var in p.variants -%}
+                    {%- if var.options[forloop.parent.index0] == val -%}
+                      {%- if match_id == blank -%}
+                        {%- assign match_id = var.id -%}
+                        {%- assign match_available = var.available -%}
+                      {%- endif -%}
+                      {%- if var.available and match_available == false -%}
+                        {%- assign match_id = var.id -%}
+                        {%- assign match_available = true -%}
+                      {%- endif -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+
+                  {%- assign is_checked = false -%}
+                  {%- if v.options[forloop.parent.index0] == val -%}
+                    {%- assign is_checked = true -%}
+                  {%- endif -%}
+
+                  <label class="qv__val">
+                    <input
+                      type="radio"
+                      name="opt-{{ opt.position }}"
+                      value="{{ val | escape }}"
+                      {% if is_checked %}checked{% endif %}
+                      {% unless match_available %}disabled{% endunless %}
+                      data-variant-id="{{ match_id }}"
+                    >
+                    <span class="qv__btn">{{ val }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </fieldset>
+          {% endfor %}
+        </form>
+      {% endif %}
+
+      <form method="post" action="/cart/add" class="qv__atc" data-qv-atc>
+        <div class="qv__qty" role="group" aria-label="Quantity">
+          <button type="button" data-qv-dec aria-label="Decrease">−</button>
+          <input type="number" name="quantity" value="1" min="1" step="1" inputmode="numeric" data-qv-qty>
+          <button type="button" data-qv-inc aria-label="Increase">+</button>
+        </div>
+
+        <input type="hidden" name="id" value="{{ v.id }}" data-qv-id>
+        <button type="submit" class="qv__submit" {% unless v.available %}disabled{% endunless %}>
+          {% if v.available %}Add to cart{% else %}Sold out{% endif %}
+        </button>
+      </form>
+
+      <div class="qv__note">Taxes & shipping calculated at checkout.</div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const root = document.currentScript.closest('[data-qv-root]');
+      if(!root) return;
+
+      const priceWrap = root.querySelector('[data-qv-price]');
+      const idInput   = root.querySelector('[data-qv-id]');
+      const imgEl     = root.querySelector('[data-qv-img]');
+      const formOpts  = root.querySelector('[data-qv-form-options]');
+      const formATC   = root.querySelector('[data-qv-atc]');
+      const qtyInput  = root.querySelector('[data-qv-qty]');
+      const decBtn    = root.querySelector('[data-qv-dec]');
+      const incBtn    = root.querySelector('[data-qv-inc]');
+
+      // Helpers
+      function money(cents){
+        try{
+          return new Intl.NumberFormat({{ request.locale.iso_code | json }} || 'en-PH', {
+            style:'currency',
+            currency: {{ shop.currency | json }} || 'PHP'
+          }).format((Number(cents) || 0) / 100);
+        }catch(_){
+          return (Number(cents) || 0) / 100;
+        }
+      }
+
+      // When an option changes, pick the associated variant id and refresh price/image.
+      formOpts && formOpts.addEventListener('change', (e)=>{
+        const r = e.target.closest('input[type="radio"][data-variant-id]');
+        if(!r) return;
+        const vid = r.getAttribute('data-variant-id');
+        if(vid) {
+          if(idInput) idInput.value = vid;
+
+          // Fetch variant JSON to update price/compare/img
+          fetch(`/variants/${vid}.json`, { headers:{'Accept':'application/json'}, cache:'no-store' })
+            .then(r=>r.ok?r.json():null)
+            .then(js=>{
+              if(!js || !js.variant) return;
+              const v = js.variant;
+
+              // Price
+              if(priceWrap){
+                priceWrap.innerHTML =
+                  `<span class="qv__now">${money(v.price)}</span>` +
+                  (v.compare_at_price && v.compare_at_price > v.price ? ` <s class="qv__cmp">${money(v.compare_at_price)}</s>` : '');
+              }
+
+              // Main image (if variant has one)
+              if(imgEl && v.featured_image && v.featured_image.src){
+                const u = v.featured_image.src.replace(/(\.(jpe?g|png|webp))(?:\?.*)?$/i, '_900x$1');
+                imgEl.src = u;
+              }
+
+              // Button state
+              const submit = root.querySelector('.qv__submit');
+              if(submit){
+                submit.disabled = !v.available;
+                submit.textContent = v.available ? 'Add to cart' : 'Sold out';
+              }
+            })
+            .catch(()=>{});
+        }
+      });
+
+      // Qty controls
+      const clamp = (n)=> Math.max(1, parseInt(String(n).replace(/[^\d]/g,''),10)||1);
+      decBtn && decBtn.addEventListener('click', ()=>{ qtyInput.value = clamp(qtyInput.value-1); });
+      incBtn && incBtn.addEventListener('click', ()=>{ qtyInput.value = clamp(qtyInput.value+1); });
+
+      // Ajax Add to Cart → open your header mini cart
+      formATC && formATC.addEventListener('submit', (e)=>{
+        e.preventDefault();
+        const fd = new FormData(formATC);
+        fetch('/cart/add.js', { method:'POST', body:fd, headers:{'Accept':'application/json'} })
+          .then(r=>r.json())
+          .then(_=>{
+            // Update cart bubble (best-effort)
+            fetch('/cart.js', { headers:{'Accept':'application/json'}, cache:'no-store' })
+              .then(r=>r.json()).then(cart=>{
+                const bubble = document.querySelector('[data-cart-count]');
+                if(bubble) bubble.textContent = (cart && typeof cart.item_count==='number') ? cart.item_count : bubble.textContent;
+              }).catch(()=>{});
+            // Fire common events your header listens to
+            document.dispatchEvent(new Event('ajaxcart:open'));
+            document.dispatchEvent(new Event('open-mini-cart'));
+          })
+          .catch(()=>{ /* swallow */ });
+      }, { passive:false });
+    })();
+  </script>
+</div>
