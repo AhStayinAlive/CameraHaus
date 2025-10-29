@@ -1,671 +1,403 @@
 {% comment %}
-CH Product Carousel — mobile full-bleed, modular controls (snippet), no billboard/selling points.
-Desktop/tablet: contained width, ghost arrows outside.
-Mobile: NO arrows, full-bleed viewport, tight dots, hidden rail.
+productcarousel — Havit-like tabs, persistent; red circular carousel arrows.
+Mobile tabs show chevrons only when overflowing.
 {% endcomment %}
 
 {% liquid
-  assign cfg_source           = section.settings.source | default: 'collection'
-  assign cfg_max              = section.settings.max_items | default: 12
-  assign cfg_items_desktop    = section.settings.items_per_view_desktop | default: 5
-  assign cfg_items_tablet     = section.settings.items_per_view_tablet | default: 3
-  assign cfg_items_mobile     = section.settings.items_per_view_mobile | default: 4
-  assign cfg_loop             = section.settings.enable_loop
-  assign cfg_autoplay         = section.settings.enable_autoplay
-  assign cfg_autoplay_ms      = section.settings.autoplay_ms | default: 5000
-  assign cfg_show_arrows      = section.settings.show_arrows
-  assign cfg_show_dots        = section.settings.show_dots
-  assign cfg_card_ratio       = section.settings.card_ratio | default: 'square'
-  assign cfg_img_fit          = section.settings.image_fit | default: 'contain'
-  assign cfg_heading          = section.settings.heading
-  assign cfg_subheading       = section.settings.subheading
-  assign cfg_view_all         = section.settings.view_all
+  assign pad_top    = section.settings.padding_top | default: 12
+  assign pad_bottom = section.settings.padding_bottom | default: 16
 
-  assign hero_enabled         = section.settings.show_hero_header
-  assign hide_hdr_when_hero   = section.settings.hide_regular_header_when_hero
-  assign hero_style           = section.settings.hero_style | default: 'seamless'
-  assign hero_seamless        = false
-  if hero_style == 'seamless' 
-    assign hero_seamless = true
-  endif
-  assign hero_bleed           = section.settings.hero_bleed_height | default: 48
-  assign hero_gap             = section.settings.hero_bottom_gap | default: 6
-  assign hero_cta_style       = section.settings.hero_cta_style | default: 'link'
-  assign show_view_all_in_hero= section.settings.show_view_all_in_hero
+  assign per_d = section.settings.items_per_view_desktop | default: 5
+  assign per_t = section.settings.items_per_view_tablet  | default: 3
+  assign per_m = section.settings.items_per_view_mobile  | default: 4
 
-  assign header_hidden = false
-  if hero_enabled and hide_hdr_when_hero
-    assign header_hidden = true
-  endif
+  assign card_ratio = section.settings.card_ratio | default: 'square'
+  assign fit        = section.settings.image_fit  | default: 'contain'
 
-  assign has_titles = false
-  if cfg_heading != blank or cfg_subheading != blank or cfg_view_all != blank
-    assign has_titles = true
-  endif
+  assign mobile_bleed_px   = section.settings.mobile_bleed_px | default: 0
+  assign mobile_full_bleed = section.settings.mobile_full_bleed
+  assign mobile_gutter     = section.settings.mobile_side_gutter | default: 16
+  assign show_outline      = section.settings.show_card_outline
 
-  assign handles = '' | split: ''
-  if cfg_source == 'collection' and section.settings.collection != blank
-    assign src_collection = collections[section.settings.collection]
-    if src_collection != blank
-      assign list = src_collection.products
-      case section.settings.collection_sort
-        when 'price-asc'  then assign list = list | sort: 'price'
-        when 'price-desc' then assign list = list | sort: 'price' | reverse
-        when 'title-asc'  then assign list = list | sort: 'title'
-        when 'title-desc' then assign list = list | sort: 'title' | reverse
-        when 'date-desc'  then assign list = list | sort: 'published_at' | reverse
-        when 'date-asc'   then assign list = list | sort: 'published_at'
-      endcase
-      assign handles = list | map: 'handle' | slice: 0, cfg_max
-    endif
-  elsif cfg_source == 'manual' and section.settings.products != blank
-    assign handles = section.settings.products | map: 'handle' | slice: 0, cfg_max
-  endif
+  assign autoplay   = section.settings.enable_autoplay
+  assign autoplayMs = section.settings.autoplay_ms | default: 5000
+  assign loop_pages = section.settings.enable_loop
 
-  assign total_items = handles.size
-  assign heading_id  = 'chpc-heading-' | append: section.id
+  assign show_arrows = section.settings.show_arrows
+  assign show_dots   = section.settings.show_dots
+
+  assign heading    = section.settings.heading    | default: 'Featured Products'
+  assign sub        = section.settings.subheading | default: blank
+  assign brand_red  = '#E0302A'
 %}
 
-<section
-  id="chpc-{{ section.id }}"
-  class="chpc chpc--compact{% if hero_enabled and hero_seamless %} chpc--hero-seamless{% endif %}"
-  role="region"
-  aria-roledescription="carousel"
-  aria-labelledby="{{ heading_id }}"
-  data-per-desktop="{{ cfg_items_desktop }}"
-  data-per-tablet="{{ cfg_items_tablet }}"
-  data-per-mobile="{{ cfg_items_mobile }}"
-  data-loop="{{ cfg_loop }}"
-  data-autoplay="{{ cfg_autoplay }}"
-  data-autoplay-ms="{{ cfg_autoplay_ms }}"
-  data-show-arrows="{{ cfg_show_arrows }}"
-  data-show-dots="{{ cfg_show_dots }}"
-  data-card-ratio="{{ cfg_card_ratio }}"
-  data-fit="{{ cfg_img_fit }}"
-  style="--heading-color: {{ section.settings.heading_text_color | default: '#111111' }};
-         --subheading-color: {{ section.settings.subheading_text_color | default: '#5A5F6A' }};"
->
-  <div class="chpc__inner page-width">
+<section id="chpc-{{ section.id }}"
+  class="chpc chpc--compact{% if mobile_full_bleed %} chpc--bleed-mobile{% endif %}{% if show_outline %} chpc--outlined{% endif %}"
+  style="--pad-top:{{ pad_top }}px;--pad-bottom:{{ pad_bottom }}px;--mobile-bleed:{{ mobile_bleed_px }}px;--mobile-gutter:{{ mobile_gutter }}px;--brand:{{ brand_red }};"
+  data-per-desktop="{{ per_d }}" data-per-tablet="{{ per_t }}" data-per-mobile="{{ per_m }}"
+  data-card-ratio="{{ card_ratio }}" data-fit="{{ fit }}"
+  data-loop="{{ loop_pages }}" data-autoplay="{{ autoplay }}" data-autoplay-ms="{{ autoplayMs }}"
+  data-show-arrows="{{ show_arrows }}" data-show-dots="{{ show_dots }}">
 
-    {% if hero_enabled %}
-      {% liquid
-        assign hero_kicker = section.settings.hero_kicker
-        assign hero_heading = section.settings.hero_heading
-        assign hero_sub = section.settings.hero_subheading
-        assign hero_cta_label = section.settings.hero_cta_label
-        assign hero_cta_link = section.settings.hero_cta_link
-        assign hero_start = section.settings.hero_bg_start | default: '#fff1f0'
-        assign hero_end = section.settings.hero_bg_end | default: '#ffe0dd'
-        assign hero_angle = section.settings.hero_bg_angle | default: 30
-        assign hero_text = section.settings.hero_text_color | default: '#E0302A'
-      %}
-      <div class="chpc__hero chpc__hero--thin{% if hero_seamless %} chpc__hero--seamless{% endif %}{% if hero_cta_style == 'link' %} chpc__hero--linkcta{% endif %}"
-           style="--hero-start: {{ hero_start }}; --hero-end: {{ hero_end }}; --hero-angle: {{ hero_angle }}deg; --hero-text: {{ hero_text }}; --hero-bleed: {{ hero_bleed }}px; --hero-gap: {{ hero_gap }}px;"
-           aria-label="Section header">
-        <div class="chpc__hero-copy">
-          {% if hero_kicker != blank %}<p class="chpc__hero-kicker">{{ hero_kicker | escape }}</p>{% endif %}
-          {% if hero_heading != blank %}<h2 class="chpc__hero-title">{{ hero_heading | escape }}</h2>{% endif %}
-          {% if hero_sub != blank %}<p class="chpc__hero-sub">{{ hero_sub | escape }}</p>{% endif %}
-          {% if hero_cta_label != blank and hero_cta_link != blank %}
-            <a class="chpc__hero-cta" href="{{ hero_cta_link }}">{{ hero_cta_label | escape }}</a>
-          {% endif %}
-          {% if show_view_all_in_hero and cfg_view_all != blank %}
-            <a class="chpc__hero-viewall" href="{{ cfg_view_all }}">View all{% if cfg_heading != blank %} {{ cfg_heading | escape }}{% endif %} →</a>
-          {% endif %}
-        </div>
+  <div class="page-width">
+    <!-- Heading + tabs -->
+    <header class="chpc__header chpc__header--havit">
+      <div class="chpc__titles">
+        <h2 class="pcar__heading">{{ section.settings.heading | default: 'Best Sellers' }}</h2>
+        {%- if sub != blank -%}<p class="chpc__sub">{{ sub | escape }}</p>{%- endif -%}
       </div>
-    {% endif %}
 
-    {% if header_hidden == false and has_titles %}
-      <header class="chpc__header">
-        <div class="chpc__titles">
-          {% if cfg_heading != blank %}
-            <h2 id="{{ heading_id }}" class="chpc__heading">
-              {{ cfg_heading | escape }}
-              {% if section.settings.show_item_count and total_items > 0 %}
-                <span class="chpc__meta">· {{ total_items }} item{% if total_items != 1 %}s{% endif %}</span>
-              {% endif %}
-            </h2>
-          {% endif %}
-          {% if cfg_subheading != blank %}<p class="chpc__subheading">{{ cfg_subheading | escape }}</p>{% endif %}
-        </div>
-        {% if cfg_view_all != blank %}
-          <a class="chpc__viewall" href="{{ cfg_view_all }}">
-            <span>View all{% if cfg_heading != blank %} {{ cfg_heading | escape }}{% endif %}</span>
-            <svg class="chpc__viewall-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M7 17l5-5-5-5M12 12h5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </a>
-        {% endif %}
-      </header>
-    {% endif %}
+      {%- if section.blocks.size > 0 -%}
+      <nav class="chpc__tabs" data-tabs aria-label="{{ heading | escape }}">
+        <button class="chpc__tabs-nudge chpc__tabs-nudge--prev" type="button" data-tab-prev aria-label="Scroll tabs left">‹</button>
 
+        <ul class="chpc__tablist" role="tablist" data-tablist>
+          {%- for block in section.blocks -%}
+            {%- assign bs = block.settings -%}
+            {%- assign handle = bs.collection.handle | default: bs.collection -%}
+            {%- assign cobj = blank -%}
+            {%- if handle != blank -%}{%- assign cobj = collections[handle] -%}{%- endif -%}
+            {%- assign lbl = bs.tab_label -%}
+            {%- if lbl == blank and cobj != blank -%}{%- assign lbl = cobj.title -%}{%- endif -%}
+            {%- if lbl == blank -%}{%- assign lbl = 'Tab ' | append: forloop.index -%}{%- endif -%}
+            <li role="presentation">
+              <button class="chpc__tab{% if forloop.first %} is-active{% endif %}"
+                      type="button" role="tab"
+                      aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                      data-tab="{{ block.id }}">{{ lbl | escape }}</button>
+            </li>
+          {%- endfor -%}
+        </ul>
+
+        <button class="chpc__tabs-nudge chpc__tabs-nudge--next" type="button" data-tab-next aria-label="Scroll tabs right">›</button>
+      </nav>
+      {%- endif -%}
+    </header>
+
+    <!-- Viewport -->
     <div class="chpc__viewport" data-viewport>
-      <div class="chpc__track" tabindex="0" aria-label="Product slides" id="chpc-track-{{ section.id }}" data-track>
-        {% if handles.size > 0 %}
-          {% for handle in handles %}
-            {% assign product = all_products[handle] %}
-            {% if product == blank %}{% continue %}{% endif %}
-            <article class="chpc__slide" data-slide="{{ forloop.index }}" data-position="{{ forloop.index0 }}" data-product-id="{{ product.id }}">
-              <div class="chpc__card chpc--proxy">
-                {% render 'product-card', product: product %}
-              </div>
-            </article>
-          {% endfor %}
-        {% endif %}
+      <div class="chpc__track" id="chpc-track-{{ section.id }}" tabindex="0" aria-label="Product slides" data-track>
+        {%- comment -%} initial slides from first tab (no all_products, use limit) {%- endcomment -%}
+        {%- if section.blocks.size > 0 -%}
+          {%- assign ibs = section.blocks.first.settings -%}
+          {%- assign icol_handle = ibs.collection.handle | default: ibs.collection -%}
+          {%- if icol_handle != blank -%}
+            {%- assign icol = collections[icol_handle] -%}
+            {%- if icol != blank -%}
+              {%- assign list = icol.products -%}
+              {%- case ibs.collection_sort -%}
+                {%- when 'price-asc'  -%}{%- assign list = list | sort: 'price' -%}
+                {%- when 'price-desc' -%}{%- assign list = list | sort: 'price' | reverse -%}
+                {%- when 'title-asc'  -%}{%- assign list = list | sort: 'title' -%}
+                {%- when 'title-desc' -%}{%- assign list = list | sort: 'title' | reverse -%}
+                {%- when 'date-desc'  -%}{%- assign list = list | sort: 'published_at' | reverse -%}
+                {%- when 'date-asc'   -%}{%- assign list = list | sort: 'published_at' -%}
+              {%- endcase -%}
+              {%- for product in list limit: section.settings.max_items -%}
+                {%- if product == blank -%}{% continue %}{%- endif -%}
+                <article class="chpc__slide" data-slide="{{ forloop.index }}" data-position="{{ forloop.index0 }}" data-product-id="{{ product.id }}">
+                  <div class="chpc__card chpc--proxy">{% render 'product-card', product: product %}</div>
+                </article>
+              {%- endfor -%}
+            {%- endif -%}
+          {%- elsif ibs.products != blank -%}
+            {%- for product in ibs.products limit: section.settings.max_items -%}
+              {%- if product == blank -%}{% continue %}{%- endif -%}
+              <article class="chpc__slide" data-slide="{{ forloop.index }}" data-position="{{ forloop.index0 }}" data-product-id="{{ product.id }}">
+                <div class="chpc__card chpc--proxy">{% render 'product-card', product: product %}</div>
+              </article>
+            {%- endfor -%}
+          {%- endif -%}
+        {%- endif -%}
       </div>
 
       {% render 'chpc-controls',
         id: section.id,
-        show_dots: cfg_show_dots,
-        show_arrows: cfg_show_arrows,
+        show_dots: show_dots,
+        show_arrows: show_arrows,
         mobile_hide_arrows: true %}
     </div>
 
     <div class="chpc__toast" role="status" aria-live="polite" aria-atomic="true" data-toast></div>
   </div>
 
+  {%- comment -%} templates per tab (no all_products, use limit) {%- endcomment -%}
+  {%- for block in section.blocks -%}
+    {%- assign bs = block.settings -%}
+    {%- assign handle2 = bs.collection.handle | default: bs.collection -%}
+    <template id="tpl-{{ block.id }}">
+      {%- if handle2 != blank -%}
+        {%- assign cc = collections[handle2] -%}
+        {%- if cc != blank -%}
+          {%- assign list2 = cc.products -%}
+          {%- case bs.collection_sort -%}
+            {%- when 'price-asc'  -%}{%- assign list2 = list2 | sort: 'price' -%}
+            {%- when 'price-desc' -%}{%- assign list2 = list2 | sort: 'price' | reverse -%}
+            {%- when 'title-asc'  -%}{%- assign list2 = list2 | sort: 'title' -%}
+            {%- when 'title-desc' -%}{%- assign list2 = list2 | sort: 'title' | reverse -%}
+            {%- when 'date-desc'  -%}{%- assign list2 = list2 | sort: 'published_at' | reverse -%}
+            {%- when 'date-asc'   -%}{%- assign list2 = list2 | sort: 'published_at' -%}
+          {%- endcase -%}
+          {%- for product in list2 limit: section.settings.max_items -%}
+            {%- if product == blank -%}{% continue %}{%- endif -%}
+            <article class="chpc__slide" data-slide="{{ forloop.index }}" data-position="{{ forloop.index0 }}" data-product-id="{{ product.id }}">
+              <div class="chpc__card chpc--proxy">{% render 'product-card', product: product %}</div>
+            </article>
+          {%- endfor -%}
+        {%- endif -%}
+      {%- elsif bs.products != blank -%}
+        {%- for product in bs.products limit: section.settings.max_items -%}
+          {%- if product == blank -%}{% continue %}{%- endif -%}
+          <article class="chpc__slide" data-slide="{{ forloop.index }}" data-position="{{ forloop.index0 }}" data-product-id="{{ product.id }}">
+            <div class="chpc__card chpc--proxy">{% render 'product-card', product: product %}</div>
+          </article>
+        {%- endfor -%}
+      {%- endif -%}
+    </template>
+  {%- endfor -%}
+
 <style>
-  :root{
-    --chpc-red:#E0302A; --chpc-text:#111; --chpc-muted:#5A5F6A; --chpc-bg:#fff; --chpc-panel:#F7F7F8;
-    --chpc-card-radius:14px; --chpc-gap:14px; --chpc-gap-mobile:12px; --chpc-shadow:0 6px 20px rgba(17,17,17,.06);
-    --chpc-focus:0 0 0 3px rgba(224,48,42,.35);
-  }
-
-  /* Base */
-  #chpc-{{ section.id }}.chpc{
-    color:var(--chpc-text);
-    --chpc-items-desktop:{{ cfg_items_desktop }};
-    --chpc-items-tablet:{{ cfg_items_tablet }};
-    --chpc-items-mobile:{{ cfg_items_mobile }};
-    --chpc-card-ratio:1;
-  }
-  #chpc-{{ section.id }}[data-card-ratio="square"]{ --chpc-card-ratio:1; }
-  #chpc-{{ section.id }}[data-card-ratio="4:3"]{ --chpc-card-ratio:1.3333333333; }
-  #chpc-{{ section.id }}[data-card-ratio="3:4"]{ --chpc-card-ratio:.75; }
-
-  /* Contained width */
-  #chpc-{{ section.id }} .page-width{ max-width:1440px; margin:0 auto; padding:0 28px; position:relative; overflow:visible; }
-
-  /* ===== Header ===== */
-  #chpc-{{ section.id }} .chpc__hero{
-    --hero-start:#fff1f0; --hero-end:#ffe0dd; --hero-angle:30deg; --hero-text:#E0302A;
-    background: linear-gradient(var(--hero-angle), var(--hero-start), var(--hero-end));
-    color: var(--hero-text);
-    border-radius:12px; margin: 8px 0 var(--hero-gap, 6px);
-    overflow:hidden; box-shadow: 0 6px 20px rgba(17,17,17,.06); padding: 8px 12px;
-  }
-  #chpc-{{ section.id }}.chpc--hero-seamless .chpc__hero{ box-shadow:none; }
-  #chpc-{{ section.id }}.chpc--hero-seamless .chpc__hero::after{
-    content:""; position:absolute; left:0; right:0; bottom: calc(-1 * var(--hero-bleed, 48px));
-    height: var(--hero-bleed, 48px); background: linear-gradient(to bottom, rgba(255,255,255,0), var(--chpc-bg)); pointer-events:none;
-  }
-  #chpc-{{ section.id }} .chpc__hero-copy{ display:flex; flex-direction:column; gap:2px; }
-  #chpc-{{ section.id }} .chpc__hero-kicker{ margin:0; font-size:11px; letter-spacing:.09em; text-transform:uppercase; opacity:.95; }
-  #chpc-{{ section.id }} .chpc__hero-title{ margin:0; font-size:18px; line-height:1.25; font-weight:800; }
-  #chpc-{{ section.id }} .chpc__hero-sub{ margin:2px 0 0; font-size:13px; line-height:1.35; opacity:.95; }
-
-  #chpc-{{ section.id }} .chpc__heading{ color: var(--heading-color); font-size:22px; line-height:1.25; margin:0; }
-  #chpc-{{ section.id }} .chpc__meta{ font-weight:600; color:var(--chpc-muted); font-size:.9rem; }
-  #chpc-{{ section.id }} .chpc__subheading{ margin:4px 0 0; color: var(--subheading-color); }
-
-  #chpc-{{ section.id }} .chpc__header{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; margin:10px 0 12px; }
-  #chpc-{{ section.id }} .chpc__viewall{ display:inline-flex; align-items:center; gap:8px; color:var(--chpc-red); text-decoration:none; font-weight:600; padding:6px 8px; border-radius:999px; }
-  #chpc-{{ section.id }} .chpc__viewall:focus-visible{ outline:none; box-shadow:var(--chpc-focus); }
-
-  /* ===== Viewport ===== */
-  #chpc-{{ section.id }} .chpc__viewport{ position:relative; overflow:visible; padding-bottom: 10px; }
-
-  /* Mobile full-bleed viewport */
+  #chpc-{{ section.id }}{ --tab-fade: 18px; padding-top:var(--pad-top); padding-bottom:var(--pad-bottom); }
+  #chpc-{{ section.id }} .page-width{ max-width:1440px; margin:0 auto; padding:0 28px; position:relative; }
+  #chpc-{{ section.id }} .chpc__heading{ font-family:var(--font-sans); font-weight:600; letter-spacing:-0.01em; line-height:1.15; margin:0 0 2px; font-size:clamp(22px,3.2vw + 4px,28px); color:#111; }
+  #chpc-{{ section.id }} .chpc__sub{ margin:0; color:#6B7280; font-size:.95rem; }
+  #chpc-{{ section.id }} .chpc__header--havit{ display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin:0 0 10px; flex-wrap:wrap; }
+  #chpc-{{ section.id }} .chpc__tabs{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; column-gap:6px; position:relative; margin-left:auto; max-width:100%; }
+  #chpc-{{ section.id }} .chpc__tablist{ display:flex; gap:clamp(24px, 5vw, 44px); overflow:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:0 2px; list-style:none; margin:0; scroll-snap-type:x proximity; scroll-behavior:smooth; overscroll-behavior-inline:contain; }
+  #chpc-{{ section.id }} .chpc__tablist::-webkit-scrollbar{ display:none; }
+  #chpc-{{ section.id }} .chpc__tablist > li{ list-style:none; scroll-snap-align:start; }
+  #chpc-{{ section.id }} .chpc__tab{ background:transparent; border:0; padding:6px 0 8px; cursor:pointer; font-family:var(--font-sans); font-weight:500; color:#6B7280; white-space:nowrap; transition:color .18s ease; }
+  #chpc-{{ section.id }} .chpc__tab.is-active{ color:var(--brand); }
+  #chpc-{{ section.id }} .chpc__tabs-nudge{ border:0; background:none; padding:0 6px; font:700 18px/1 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:#6B7280; cursor:pointer; opacity:0; transform:translateY(2px); transition:opacity .22s ease, transform .22s ease, color .18s ease; pointer-events:none; user-select:none; min-width:28px; }
+  #chpc-{{ section.id }} .chpc__tabs[data-overflow="true"] .chpc__tabs-nudge{ opacity:.95; transform:translateY(0); pointer-events:auto; }
+  #chpc-{{ section.id }} .chpc__tabs-nudge.is-disabled{ opacity:.25; pointer-events:none; }
+  @media (min-width:740px){ #chpc-{{ section.id }} .chpc__tabs-nudge{ display:none !important; } }
   @media (max-width:739.98px){
-    #chpc-{{ section.id }} .chpc__viewport{
-      width: 100vw; position: relative; left: 50%; right: 50%;
-      margin-left: -50vw; margin-right: -50vw;
+    #chpc-{{ section.id }} .chpc__tablist{
+      padding-left: var(--tab-fade); padding-right: var(--tab-fade); scroll-padding-inline: var(--tab-fade);
+      -webkit-mask-image: linear-gradient(to right, transparent 0, black var(--tab-fade), black calc(100% - var(--tab-fade)), transparent 100%);
+              mask-image: linear-gradient(to right, transparent 0, black var(--tab-fade), black calc(100% - var(--tab-fade)), transparent 100%);
     }
   }
-
-  /* Scroll shadows */
-  #chpc-{{ section.id }} .chpc__viewport::before,
-  #chpc-{{ section.id }} .chpc__viewport::after{
-    content:""; position:absolute; top:0; bottom:22px; width:24px; pointer-events:none; opacity:1; transition:opacity .2s ease;
-  }
-  #chpc-{{ section.id }} .chpc__viewport::before{ left:0; background:linear-gradient(90deg, var(--chpc-bg), rgba(255,255,255,0)); }
-  #chpc-{{ section.id }} .chpc__viewport::after{ right:0; background:linear-gradient(270deg, var(--chpc-bg), rgba(255,255,255,0)); }
-  #chpc-{{ section.id }}[data-at-start="true"] .chpc__viewport::before{ opacity:0; }
-  #chpc-{{ section.id }}[data-at-end="true"] .chpc__viewport::after{ opacity:0; }
-
-  /* Track */
-  #chpc-{{ section.id }} .chpc__track{
-    position:relative; z-index:1; display:flex; gap:var(--chpc-gap);
-    overflow-x:auto; -webkit-overflow-scrolling:touch;
-    padding:6px 6px 8px 6px; align-items:stretch;
-    scroll-snap-type:x mandatory; scroll-padding-left: 6px; scroll-padding-right: 6px;
-
-    /* Hide the horizontal rail */
-    scrollbar-width: none !important;
-    -ms-overflow-style: none !important;
-  }
-  #chpc-{{ section.id }} .chpc__track::-webkit-scrollbar{ display:none !important; height:0 !important; width:0 !important; }
-
-  #chpc-{{ section.id }} .chpc__slide{
-    min-width:0;
-    flex:0 0 calc((100% - (var(--chpc-gap) * (var(--chpc-items) - 1))) / var(--chpc-items));
-    scroll-snap-align:start; height:auto; display:flex;
-  }
-  #chpc-{{ section.id }}.chpc--equalized .chpc__slide{ height:var(--chpc-eq-h); }
-
-  @media (min-width:1100px){ #chpc-{{ section.id }}{ --chpc-items:var(--chpc-items-desktop); } }
-  @media (min-width:740px) and (max-width:1099.98px){ #chpc-{{ section.id }}{ --chpc-items:var(--chpc-items-tablet); } }
+  #chpc-{{ section.id }} .chpc__viewport{ position:relative; overflow:visible; padding-bottom:28px; }
+  #chpc-{{ section.id }} .chpc__track{ position:relative; display:flex; gap:14px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:6px 6px 8px 6px; align-items:stretch; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  #chpc-{{ section.id }} .chpc__track::-webkit-scrollbar{ display:none; }
+  #chpc-{{ section.id }} .chpc__slide{ min-width:0; flex:0 0 calc((100% - (14px * (var(--chpc-items) - 1))) / var(--chpc-items)); scroll-snap-align:start; display:flex; }
+  @media (min-width:1100px){ #chpc-{{ section.id }}{ --chpc-items: {{ per_d }}; } }
+  @media (min-width:740px) and (max-width:1099.98px){ #chpc-{{ section.id }}{ --chpc-items: {{ per_t }}; } }
   @media (max-width:739.98px){
-    #chpc-{{ section.id }}{ --chpc-items:var(--chpc-items-mobile); }
-    #chpc-{{ section.id }} .chpc__track{
-      display:grid; grid-auto-flow:column; grid-auto-columns:100vw;
-      column-gap: var(--chpc-gap-mobile); row-gap: 0;
-      padding: 6px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
-      scroll-padding-left: max(12px, env(safe-area-inset-left));
-      scroll-padding-right: max(12px, env(safe-area-inset-right));
-      align-items:stretch;
+    #chpc-{{ section.id }} .page-width{ padding-left:16px; padding-right:16px; }
+    #chpc-{{ section.id }}{ --chpc-items: {{ per_m }}; }
+    #chpc-{{ section.id }} .chpc__track{ display:grid; grid-auto-flow:column;
+      grid-auto-columns: calc(100vw - (max(var(--mobile-gutter), env(safe-area-inset-left)) + max(var(--mobile-gutter), env(safe-area-inset-right)) ));
+      column-gap:12px; padding:6px max(var(--mobile-gutter), env(safe-area-inset-right)) 8px max(var(--mobile-gutter), env(safe-area-inset-left));
     }
-    #chpc-{{ section.id }} .chpc__page{
-      width:100%; display:grid; grid-template-columns: repeat(2, minmax(0,1fr));
-      gap: var(--chpc-gap-mobile); padding: 0 2px; scroll-snap-align:start; align-items:stretch; overflow:visible;
-    }
+    #chpc-{{ section.id }} .chpc__page{ width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; scroll-snap-align:start; align-items:stretch; }
   }
-
-  /* Prevent vertical clipping */
-  #chpc-{{ section.id }} .chpc__track{ overflow-y: visible; }
-  #chpc-{{ section.id }} .chpc__slide{ height: auto !important; }
-  #chpc-{{ section.id }} .chpc__page{ align-items: start; }
-  #chpc-{{ section.id }}.chpc--equalized .chpc__slide{ height: auto !important; }
-  #chpc-{{ section.id }} .chpc__viewport,
-  #chpc-{{ section.id }} .chpc__track{ overflow-y: visible !important; max-height: none !important; }
-
-  /* ===== Pagination: tight dots + short pill ===== */
-  #chpc-{{ section.id }}{
-    --ctrl-bottom: 4px;
-    --dot-size: 4px;
-    --pill-l: 14px;
-    --arrow-tap: 40px;
-    --edge-outside: 24px;
-  }
-  #chpc-{{ section.id }} .chpc__dots{
-    position:absolute; left:50%; transform:translateX(-50%);
-    bottom: var(--ctrl-bottom);
-    display:flex; align-items:center; gap:0; margin:0;
-  }
-  #chpc-{{ section.id }} .chpc__dot{
-    position:relative; width:10px; height:10px; margin:0 1px; border:0; background:transparent; cursor:pointer;
-  }
-  #chpc-{{ section.id }} .chpc__dot::after{
-    content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:var(--dot-size); height:var(--dot-size); border-radius:9999px; background:#9b9b9b;
-    transition: width .18s ease, background-color .18s ease, opacity .18s ease;
-  }
-  #chpc-{{ section.id }} .chpc__dot::before{ content:""; position:absolute; inset:-18px; }
-  #chpc-{{ section.id }} .chpc__dot[aria-current="true"]::after{ width: var(--pill-l); height: var(--dot-size); border-radius:9999px; background:#222; }
-  #chpc-{{ section.id }} .chpc__dot:focus-visible{ outline:none; box-shadow: var(--chpc-focus); border-radius:8px; }
-
-  /* Fraction: hidden on mobile */
-  #chpc-{{ section.id }} .chpc__count{
-    position:absolute; right:12px; bottom:8px; font-size:12px; color:var(--chpc-muted);
-    background:rgba(255,255,255,.85); backdrop-filter:saturate(1.2) blur(2px);
-    padding:2px 6px; border-radius:999px;
-  }
-  @media (max-width:739.98px){ #chpc-{{ section.id }} .chpc__count{ display:none !important; } }
-
-  /* ===== Arrows: ghost style (desktop/tablet only) ===== */
-  #chpc-{{ section.id }} .chpc__arrows{ position:relative; }
-  #chpc-{{ section.id }} .chpc__arrow{
-    position:absolute; z-index:10; cursor:pointer;
-    width:38px; height:38px; min-width:38px; min-height:38px;
-    display:grid; place-items:center;
-    background: transparent; color: var(--chpc-red);
-    border:1.5px solid var(--chpc-red); border-radius:9999px; box-shadow:none;
-    transition: background .15s ease, color .15s ease, transform .08s ease;
-  }
-  #chpc-{{ section.id }} .chpc__arrow:hover{ background: var(--chpc-red); color:#fff; }
-  #chpc-{{ section.id }} .chpc__arrow:active{ transform: scale(.96); }
+  #chpc-{{ section.id }} .chpc__arrows{ position:absolute; inset:0; pointer-events:none; }
+  #chpc-{{ section.id }} .chpc__arrow{ position:absolute; top:50%; transform:translateY(-50%); pointer-events:auto; width:38px; height:38px; min-width:38px; min-height:38px; display:grid; place-items:center; background:transparent; color:var(--brand); border:1.5px solid var(--brand); border-radius:9999px; box-shadow:none; transition: background .15s ease, color .15s ease, transform .08s ease; cursor:pointer; }
+  #chpc-{{ section.id }} .chpc__arrow:hover{ background:var(--brand); color:#fff; }
+  #chpc-{{ section.id }} .chpc__arrow:active{ transform:translateY(-50%) scale(.96); }
   #chpc-{{ section.id }} .chpc__arrow[disabled]{ opacity:.35; filter:grayscale(1); pointer-events:none; }
+  #chpc-{{ section.id }} .chpc__arrow--prev{ left: -24px; }
+  #chpc-{{ section.id }} .chpc__arrow--next{ right: -24px; }
+  @media (max-width:739.98px){ #chpc-{{ section.id }} .chpc__arrows[data-hide-mobile="true"]{ display:none !important; } }
+  #chpc-{{ section.id }}.chpc--outlined .chpc--proxy .ch-card,
+  #chpc-{{ section.id }}.chpc--outlined .chpc--proxy .chcard{ background:#fff; border-radius:12px; box-shadow:0 6px 20px rgba(17,17,17,.06); outline:1px solid rgba(17,17,17,.06); }
 
-  @media (min-width:740px){
-    #chpc-{{ section.id }} .chpc__arrows{ position:absolute; inset:0; pointer-events:none; }
-    #chpc-{{ section.id }} .chpc__arrow{ top:50%; transform:translateY(-50%); pointer-events:auto; }
-    #chpc-{{ section.id }} .chpc__arrow--prev{ left: calc(-1 * var(--edge-outside)); }
-    #chpc-{{ section.id }} .chpc__arrow--next{ right: calc(-1 * var(--edge-outside)); }
-  }
-  /* hide snippet arrows on mobile when rendered with data-hide-mobile */
-  @media (max-width:739.98px){
-    #chpc-{{ section.id }} .chpc__arrows[data-hide-mobile="true"]{ display:none !important; }
-  }
+  /* === FINAL, SINGLE SOURCE OF TRUTH ===
+     Product carousel heading must match "Shop by Category" */
+  #chpc-{{ section.id }} h2.pcar__heading{
+    /* neutralize any theme h2 defaults that might leak in */
+    all: unset;
+    display: block;
 
-  /* Reduced motion */
-  @media (prefers-reduced-motion: reduce){
-    #chpc-{{ section.id }} .chpc__track{ scroll-behavior: auto; }
-    #chpc-{{ section.id }} .chpc__dot::after{ transition: none; }
+    /* desired heading recipe */
+    font-family: var(--font-heading-family, var(--font-sans)) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    line-height: 1.15 !important;
+    font-size: clamp(24px, 3vw + 8px, 32px) !important;
+    color: var(--heading-color, #111827) !important;
+    margin: 0 0 8px !important;
+
+    /* Inter variable font hygiene */
+    font-optical-sizing: auto !important;
+    font-synthesis-weight: none !important;
+    font-variation-settings: "wght" 700 !important;
+    text-transform: none !important;
   }
 </style>
 
 <script>
 (function(){
-  var root  = document.getElementById("chpc-{{ section.id }}");
-  if (!root) return;
+  var root = document.getElementById("chpc-{{ section.id }}");
+  if(!root){ return; }
 
-  var track     = root.querySelector("[data-track]");
-  var dotsWrap  = root.querySelector("[data-dots]");
-  var countEl   = root.querySelector("[data-count]");
-  var btnPrev   = root.querySelector(".chpc__arrow--prev");
-  var btnNext   = root.querySelector(".chpc__arrow--next");
+  var track   = root.querySelector("[data-track]");
+  var tabs    = root.querySelector("[data-tabs]");
+  var tablist = root.querySelector("[data-tablist]");
+  var btnPrev = root.querySelector("[data-tab-prev]");
+  var btnNext = root.querySelector("[data-tab-next]");
 
-  var loop       = root.dataset.loop === "true";
-  var autoplay   = root.dataset.autoplay === "true";
-  var autoplayMs = parseInt(root.dataset.autoplayMs || "5000", 10);
-  var MOBILE_PAGE_SIZE = 2;
-  var MAX_DOTS   = 7;
+  function setActiveTab(btn){
+    tablist.querySelectorAll(".chpc__tab").forEach(function(b){
+      var active = (b === btn);
+      b.classList.toggle("is-active", active);
+      b.setAttribute("aria-selected", active ? "true" : "false");
+    });
+  }
+
+  function loadTab(blockId){
+    var tpl = document.getElementById("tpl-" + blockId);
+    if(!tpl){ console.warn("[chpc] Missing template for", blockId); return; }
+    track.innerHTML = tpl.innerHTML;
+    rebuildPager();
+  }
+
+  function hasOverflow(el){ return el && el.scrollWidth > el.clientWidth + 1; }
+
+  function updateTabOverflow(){
+    if(!tabs || !tablist) return;
+    var overflow = hasOverflow(tablist);
+    tabs.setAttribute("data-overflow", overflow ? "true" : "false");
+    var max = Math.max(0, tablist.scrollWidth - tablist.clientWidth);
+    var L = Math.max(0, Math.min(tablist.scrollLeft, max));
+    if(btnPrev){ btnPrev.classList.toggle("is-disabled", L <= 1); }
+    if(btnNext){ btnNext.classList.toggle("is-disabled", L >= max - 1); }
+  }
+
+  function smoothScrollBy(el, delta){
+    try{ el.scrollBy({ left: delta, behavior: "smooth" }); }
+    catch(e){
+      var start = el.scrollLeft, to = start + delta, t0 = performance.now(), dur = 280;
+      function step(t){ var k = Math.min(1, (t - t0) / dur); var e = 1 - Math.pow(1 - k, 3);
+        el.scrollLeft = start + (to - start) * e; if(k < 1) requestAnimationFrame(step); }
+      requestAnimationFrame(step);
+    }
+  }
+  function tabScrollStep(){ return Math.round(Math.max(120, tablist.clientWidth * 0.7)); }
+
+  if(tabs){
+    tabs.addEventListener("click", function(e){
+      var t = e.target.closest(".chpc__tab"); if(!t) return;
+      setActiveTab(t);
+      loadTab(t.getAttribute("data-tab"));
+    });
+    if(btnPrev) btnPrev.addEventListener("click", function(){ smoothScrollBy(tablist, -tabScrollStep()); });
+    if(btnNext) btnNext.addEventListener("click", function(){ smoothScrollBy(tablist, tabScrollStep()); });
+    if(tablist){
+      tablist.addEventListener("scroll", updateTabOverflow, { passive:true });
+      window.addEventListener("resize", updateTabOverflow);
+      window.addEventListener("orientationchange", function(){ setTimeout(updateTabOverflow, 250); });
+      [0, 60, 240].forEach(function(ms){ setTimeout(updateTabOverflow, ms); });
+    }
+  }
+
+  var btnPrevPg = root.querySelector(".chpc__arrow--prev");
+  var btnNextPg = root.querySelector(".chpc__arrow--next");
   var currentPage = 0;
-  var autoplayTimer = null;
-  var isHovering = false;
-  var isInView = true;
+  var anchors = [];
+  var EPS = 2;
 
   function isMobile(){ return window.innerWidth < 740; }
-  function debounce(fn,ms){ var t; return function(){ clearTimeout(t); t=setTimeout(fn,ms); }; }
-
   function pages(){ return Array.prototype.slice.call(track.querySelectorAll(".chpc__page")); }
-  function pageWidth(){
-    var p = pages();
-    return Math.round((isMobile() && p.length) ? p[0].getBoundingClientRect().width : track.clientWidth);
-  }
-  function pagesCount(){
-    return (isMobile() && pages().length) ? pages().length
-           : Math.max(1, Math.round(track.scrollWidth / (pageWidth() || 1)));
-  }
+  function slides(){ return Array.prototype.slice.call(track.querySelectorAll(".chpc__slide")); }
+
   function groupMobilePages(){
-    var grouped = Array.prototype.slice.call(track.querySelectorAll(".chpc__page"));
-    if (grouped.length){
-      var slidesFromPages = Array.prototype.slice.call(track.querySelectorAll(".chpc__page > .chpc__slide"));
+    var grouped = pages();
+    if(grouped.length){
       var frag0 = document.createDocumentFragment();
-      slidesFromPages.forEach(function(s){ frag0.appendChild(s); });
+      grouped.forEach(function(p){ Array.prototype.slice.call(p.children).forEach(function(ch){ frag0.appendChild(ch); }); });
       track.innerHTML = ""; track.appendChild(frag0);
     }
-    if (isMobile()){
-      var cards = Array.prototype.slice.call(track.querySelectorAll(":scope > .chpc__slide"));
+    if(isMobile()){
+      var cards = slides();
       var frag = document.createDocumentFragment();
-      for (var i=0;i<cards.length;i+=MOBILE_PAGE_SIZE){
-        var page = document.createElement("div"); page.className="chpc__page";
-        for (var j=i;j<i+MOBILE_PAGE_SIZE && j<cards.length;j++){ page.appendChild(cards[j]); }
+      for(var i=0;i<cards.length;i+=2){
+        var page = document.createElement("div"); page.className = "chpc__page";
+        if(cards[i]) page.appendChild(cards[i]);
+        if(cards[i+1]) page.appendChild(cards[i+1]);
         frag.appendChild(page);
       }
       track.innerHTML = ""; track.appendChild(frag);
     }
   }
 
-  function equalizeHeights(){
-    var allCards = track.querySelectorAll('.chcard, .ch-card');
-    if (!allCards.length) return;
-
-    if (isMobile()){
-      pages().forEach(function(page){
-        var cards = page.querySelectorAll('.chcard, .ch-card');
-        if (!cards.length) return;
-        cards.forEach(function(c){ c.style.height = 'auto'; });
-        var maxH = 0;
-        cards.forEach(function(c){
-          var h = Math.ceil(c.getBoundingClientRect().height);
-          if (h > maxH) maxH = h;
-        });
-        cards.forEach(function(c){ c.style.height = maxH + 'px'; });
-      });
-      root.classList.remove('chpc--equalized');
-      root.style.removeProperty('--chpc-eq-h');
+  function buildAnchors(){
+    anchors = [];
+    if(isMobile()){
+      pages().forEach(function(p){ anchors.push(Math.round(p.offsetLeft)); });
     } else {
-      allCards.forEach(function(c){ c.style.height = 'auto'; });
-      requestAnimationFrame(function(){
-        var maxH = 0;
-        allCards.forEach(function(c){
-          var h = Math.ceil(c.getBoundingClientRect().height);
-          if (h > maxH) maxH = h;
-        });
-        if (maxH > 0){
-          root.style.setProperty('--chpc-eq-h', maxH + 'px');
-          root.classList.add('chpc--equalized');
-          allCards.forEach(function(c){ c.style.height = '100%'; });
-        }
-      });
+      var per = parseInt(root.dataset.perDesktop || "5", 10);
+      if(window.innerWidth >= 740 && window.innerWidth < 1100){ per = parseInt(root.dataset.perTablet || "3", 10); }
+      if(window.innerWidth < 740){ per = parseInt(root.dataset.perMobile || "4", 10); }
+      var list = slides();
+      for(var i=0;i<list.length;i+=per){ anchors.push(Math.round(list[i].offsetLeft)); }
+      var maxScroll = Math.max(0, Math.round(track.scrollWidth - track.clientWidth));
+      if(!anchors.length || Math.abs(anchors[anchors.length-1]-maxScroll) > EPS){ anchors.push(maxScroll); }
     }
+    if(!anchors.length){ anchors = [0]; }
   }
 
-  function attachImgLoadHandlers(){
-    var imgs = root.querySelectorAll('.chcard__img, .chpc__img');
-    imgs.forEach(function(img){
-      if (img.complete) return;
-      img.addEventListener('load', debounce(equalizeHeights, 50), { once:true });
-    });
-  }
-
-  var ro;
-  function observeCards(){
-    if (!('ResizeObserver' in window)) return;
-    if (ro) ro.disconnect();
-    ro = new ResizeObserver(debounce(equalizeHeights, 80));
-    track.querySelectorAll('.chcard, .ch-card').forEach(function(el){ ro.observe(el); });
-  }
-
-  /* Dots + counter */
-  function windowStartFor(page, total, maxDots){
-    if (total <= maxDots) return 0;
-    var half = Math.floor(maxDots/2), start = page - half;
-    if (start < 0) start = 0;
-    if (start > total - maxDots) start = total - maxDots;
-    return start;
-  }
-  function buildDots(activePage){
-    if (!dotsWrap) return;
-    dotsWrap.innerHTML = "";
-    var total = pagesCount();
-    if (total <= 1){ dotsWrap.style.display = "none"; if (countEl) countEl.style.display='none'; return; }
-    dotsWrap.style.display = "flex"; if (countEl) countEl.style.display='block';
-
-    var active = (typeof activePage === "number") ? activePage : currentPage;
-    var start  = windowStartFor(active, total, MAX_DOTS);
-    var count  = Math.min(total, MAX_DOTS);
-
-    for (var i=0; i<count; i++){
-      var realPage = start + i;
-      var b=document.createElement("button");
-      b.type="button"; b.className="chpc__dot";
-      b.setAttribute("role","tab");
-      b.setAttribute("aria-controls","chpc-track-{{ section.id }}");
-      b.setAttribute("aria-label","Go to page " + (realPage+1));
-      b.dataset.page = String(realPage);
-      b.addEventListener("click", function(e){
-        var p = parseInt(e.currentTarget.dataset.page, 10);
-        scrollToPage(p, true);
-        e.currentTarget.focus();
-      });
-      dotsWrap.appendChild(b);
+  function nearestIndex(L){
+    var idx = 0, min = Infinity;
+    for(var i=0;i<anchors.length;i++){
+      var d = Math.abs(anchors[i]-L);
+      if(d < min){ min = d; idx = i; }
     }
-    updateDots(active);
-  }
-  function updateDots(activePage){
-    if (!dotsWrap) return;
-    var total  = pagesCount();
-    var active = (typeof activePage === "number") ? activePage : currentPage;
-    var max    = MAX_DOTS;
-
-    if (total <= max){
-      dotsWrap.querySelectorAll(".chpc__dot").forEach(function(b, i){
-        b.dataset.page = String(i);
-        b.setAttribute("aria-current", i === active ? "true" : "false");
-        b.setAttribute("aria-label","Go to page " + (i+1));
-      });
-    } else {
-      var start = windowStartFor(active, total, max);
-      dotsWrap.querySelectorAll(".chpc__dot").forEach(function(b, i){
-        var realPage = start + i;
-        b.dataset.page = String(realPage);
-        b.setAttribute("aria-label","Go to page " + (realPage+1));
-        b.setAttribute("aria-current", realPage === active ? "true" : "false");
-      });
-    }
-    updateCount();
-  }
-  function updateCount(){
-    if (!countEl) return;
-    countEl.textContent = (currentPage + 1) + ' / ' + pagesCount();
+    return idx;
   }
 
-  /* Arrows (desktop/tablet) */
-  function updateArrows(idx){
-    if (!btnPrev || !btnNext) return;
-    var n = pagesCount();
-    var i = (typeof idx === "number") ? idx : currentPage;
-    btnPrev.disabled = (i === 0 && !loop);
-    btnNext.disabled = (i === n - 1 && !loop);
+  function updatePgArrows(){
+    if(!btnPrevPg || !btnNextPg) return;
+    var n = anchors.length;
+    btnPrevPg.disabled = currentPage <= 0;
+    btnNextPg.disabled = currentPage >= n-1;
   }
 
   function scrollToPage(idx, smooth){
-    var total = pagesCount();
-    if (idx < 0) idx = loop ? (total - 1) : 0;
-    if (idx > total - 1) idx = loop ? 0 : (total - 1);
-    track.scrollTo({ left: idx * pageWidth(), behavior: smooth ? "smooth" : "auto" });
+    if(idx < 0) idx = 0;
+    if(idx > anchors.length - 1) idx = anchors.length - 1;
     currentPage = idx;
-    updateDots(currentPage);
-    updateArrows(currentPage);
-    updateShadows();
-  }
-
-  function updateShadows(){
-    var atStart = track.scrollLeft <= 1;
-    var atEnd   = (track.scrollLeft + track.clientWidth) >= (track.scrollWidth - 1);
-    root.setAttribute('data-at-start', atStart ? 'true' : 'false');
-    root.setAttribute('data-at-end', atEnd ? 'true' : 'false');
-  }
-
-  function startAutoplay(){
-    if (!autoplay) return;
-    stopAutoplay();
-    autoplayTimer = setInterval(function(){
-      if (isHovering || !isInView) return;
-      scrollToPage(currentPage + 1, true);
-    }, Math.max(3000, autoplayMs));
-  }
-  function stopAutoplay(){
-    if (autoplayTimer){ clearInterval(autoplayTimer); autoplayTimer = null; }
-  }
-  function observeInView(){
-    if (!('IntersectionObserver' in window)) return;
-    var io = new IntersectionObserver(function(entries){
-      entries.forEach(function(entry){
-        isInView = entry.isIntersecting;
-      });
-    }, { root: null, threshold: 0.15 });
-    io.observe(root);
+    track.scrollTo({ left: anchors[idx] || 0, behavior: smooth ? "smooth" : "auto" });
+    updatePgArrows();
   }
 
   function rebuildPager(){
-    var prevIndex = currentPage;
     groupMobilePages();
-    currentPage = Math.min(prevIndex, pagesCount() - 1);
-    buildDots(currentPage);
-    updateDots(currentPage);
-    updateArrows(currentPage);
-    attachImgLoadHandlers();
-    observeCards();
-    equalizeHeights();
-    updateShadows();
+    buildAnchors();
+    currentPage = Math.min(currentPage, anchors.length-1);
+    updatePgArrows();
   }
 
-  function init(){
-    rebuildPager();
-    if (btnPrev) btnPrev.addEventListener("click", function(){ scrollToPage(currentPage - 1, true); });
-    if (btnNext) btnNext.addEventListener("click", function(){ scrollToPage(currentPage + 1, true); });
+  if(btnPrevPg) btnPrevPg.addEventListener("click", function(){ scrollToPage(currentPage - 1, true); });
+  if(btnNextPg) btnNextPg.addEventListener("click", function(){ scrollToPage(currentPage + 1, true); });
+  track.addEventListener("scroll", function(){ currentPage = nearestIndex(Math.round(track.scrollLeft)); updatePgArrows(); }, { passive:true });
+  window.addEventListener("resize", function(){ rebuildPager(); updateTabOverflow(); });
 
-    track.addEventListener("keydown", function(e){
-      if (e.key === "ArrowRight"){ e.preventDefault(); scrollToPage(currentPage + 1, true); }
-      if (e.key === "ArrowLeft"){  e.preventDefault(); scrollToPage(currentPage - 1, true); }
-      if (e.key === "Home"){       e.preventDefault(); scrollToPage(0, true); }
-      if (e.key === "End"){        e.preventDefault(); scrollToPage(pagesCount()-1, true); }
-    });
-
-    track.addEventListener("scroll", debounce(function(){
-      var w = pageWidth() || 1;
-      currentPage = Math.round(track.scrollLeft / w);
-      updateDots(currentPage);
-      updateArrows(currentPage);
-      updateShadows();
-    }, 60));
-
-    root.addEventListener('mouseenter', function(){ isHovering = true; });
-    root.addEventListener('mouseleave', function(){ isHovering = false; });
-
-    window.addEventListener("resize", debounce(function(){
-      rebuildPager(); startAutoplay();
-    }, 160));
-
-    if (document.fonts && document.fonts.ready){ document.fonts.ready.then(equalizeHeights); }
-    window.addEventListener("load", function(){ equalizeHeights(); startAutoplay(); updateShadows(); });
-    observeInView();
-  }
-
-  init();
+  rebuildPager();
+  updateTabOverflow();
 })();
 </script>
+</section>
 
 {% schema %}
 {
-  "name": "CH Product Carousel",
+  "name": "productcarousel",
   "class": "section",
   "settings": [
-    { "type": "checkbox", "id": "show_hero_header", "label": "Show thin gradient header", "default": true },
-    { "type": "select", "id": "hero_style", "label": "Header style", "default": "seamless",
-      "options": [
-        { "value": "seamless", "label": "Seamless (blend into section)" },
-        { "value": "card", "label": "Card (shadowed panel)" }
-      ]
-    },
-    { "type": "range", "id": "hero_bleed_height", "label": "Header blend height", "min": 0, "max": 120, "step": 4, "default": 48 },
-    { "type": "range", "id": "hero_bottom_gap", "label": "Space below header", "min": 0, "max": 24, "step": 2, "default": 6 },
-    { "type": "select", "id": "hero_cta_style", "label": "CTA style", "default": "link",
-      "options": [
-        { "value": "pill", "label": "Pill button" },
-        { "value": "link", "label": "Text link" }
-      ]
-    },
-    { "type": "checkbox", "id": "show_view_all_in_hero", "label": "Show 'View all' link in header (when available)", "default": false },
-    { "type": "checkbox", "id": "hide_regular_header_when_hero", "label": "Hide regular header when thin header is shown", "default": true },
+    { "type": "range", "id": "padding_top", "label": "Padding top", "min": 0, "max": 120, "step": 4, "default": 12 },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 120, "step": 4, "default": 16 },
 
-    { "type": "text", "id": "hero_kicker", "label": "Header kicker", "default": "Featured" },
-    { "type": "text", "id": "hero_heading", "label": "Header title", "default": "Best Sellers" },
-    { "type": "text", "id": "hero_subheading", "label": "Header subtitle", "default": "Shop around Camerahaus' recently trending products" },
-    { "type": "text", "id": "hero_cta_label", "label": "CTA label", "default": "Shop this collection" },
-    { "type": "url", "id": "hero_cta_link", "label": "CTA link" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Featured Products" },
+    { "type": "text", "id": "subheading", "label": "Subheading", "default": "Shop Camerahaus’ trending picks" },
 
-    { "type": "color", "id": "hero_bg_start", "label": "Gradient start", "default": "#fff1f0" },
-    { "type": "color", "id": "hero_bg_end", "label": "Gradient end", "default": "#ffe0dd" },
-    { "type": "range", "id": "hero_bg_angle", "label": "Gradient angle", "min": 0, "max": 360, "step": 5, "default": 30 },
-    { "type": "color", "id": "hero_text_color", "label": "Header text color", "default": "#E0302A" },
-
-    { "type": "select", "id": "source", "label": "Source", "default": "collection",
-      "options": [
-        { "value": "collection", "label": "Collection" },
-        { "value": "manual", "label": "Manual products" }
-      ]},
-    { "type": "collection", "id": "collection", "label": "Collection (when Source is Collection)" },
-    { "type": "select", "id": "collection_sort", "label": "Collection sort (client-side)", "default": "default",
-      "options": [
-        { "value": "default", "label": "Collection default" },
-        { "value": "price-asc", "label": "Price, low to high" },
-        { "value": "price-desc", "label": "Price, high to low" },
-        { "value": "title-asc", "label": "Title A–Z" },
-        { "value": "title-desc", "label": "Title Z–A" },
-        { "value": "date-desc", "label": "Newest first" },
-        { "value": "date-asc", "label": "Oldest first" }
-      ]},
-    { "type": "product_list", "id": "products", "label": "Manual products", "limit": 24 },
     { "type": "range", "id": "max_items", "label": "Max items", "min": 4, "max": 24, "step": 1, "default": 12 },
 
     { "type": "range", "id": "items_per_view_desktop", "label": "Items per view (desktop)", "min": 3, "max": 5, "step": 1, "default": 5 },
-    { "type": "range", "id": "items_per_view_tablet", "label": "Items per view (tablet)", "min": 2, "max": 4, "step": 1, "default": 3 },
-    { "type": "range", "id": "items_per_view_mobile", "label": "Items per view (mobile)", "min": 1, "max": 6, "step": 1, "default": 4 },
+    { "type": "range", "id": "items_per_view_tablet",  "label": "Items per view (tablet)",  "min": 2, "max": 4, "step": 1, "default": 3 },
+    { "type": "range", "id": "items_per_view_mobile",  "label": "Items per view (mobile)",  "min": 1, "max": 6, "step": 1, "default": 4 },
 
     { "type": "checkbox", "id": "enable_loop", "label": "Loop pages", "default": false },
     { "type": "checkbox", "id": "enable_autoplay", "label": "Autoplay", "default": false },
@@ -674,38 +406,41 @@ Mobile: NO arrows, full-bleed viewport, tight dots, hidden rail.
     { "type": "checkbox", "id": "show_arrows", "label": "Show arrows (desktop/tablet)", "default": true },
     { "type": "checkbox", "id": "show_dots", "label": "Show pagination dots", "default": true },
 
-    { "type": "select", "id": "card_ratio", "label": "Card image ratio", "default": "square",
-      "options": [
-        { "value": "square", "label": "1:1 (Square)" },
-        { "value": "4:3", "label": "4:3" },
-        { "value": "3:4", "label": "3:4" }
-      ]},
-    { "type": "select", "id": "image_fit", "label": "Image fit", "default": "contain",
-      "options": [
-        { "value": "contain", "label": "Contain (recommended)" },
-        { "value": "cover", "label": "Cover" }
-      ]},
+    { "type": "select", "id": "card_ratio", "label": "Card image ratio", "default": "square", "options": [
+      { "value": "square", "label": "1:1 (Square)" },
+      { "value": "4:3", "label": "4:3" },
+      { "value": "3:4", "label": "3:4" }
+    ]},
+    { "type": "select", "id": "image_fit", "label": "Image fit", "default": "contain", "options": [
+      { "value": "contain", "label": "Contain (recommended)" },
+      { "value": "cover",   "label": "Cover" }
+    ]},
 
-    { "type": "text", "id": "heading", "label": "Heading", "default": "Best Sellers" },
-    { "type": "text", "id": "subheading", "label": "Subheading", "default": "Shop around Camerahaus' recently trending products" },
-    { "type": "url", "id": "view_all", "label": "Optional 'View all' link" },
-
-    { "type": "color", "id": "heading_text_color", "label": "Header title color", "default": "#111111" },
-    { "type": "color", "id": "subheading_text_color", "label": "Header subtitle color", "default": "#5A5F6A" },
-    { "type": "checkbox", "id": "show_item_count", "label": "Show item count in header", "default": true }
+    { "type": "range", "id": "mobile_bleed_px", "label": "Mobile bleed (px)", "min": 0, "max": 48, "step": 1, "default": 0 },
+    { "type": "checkbox", "id": "mobile_full_bleed", "label": "Force 100vw full-bleed on mobile", "default": false },
+    { "type": "range", "id": "mobile_side_gutter", "label": "Mobile side gutter (px)", "min": 8, "max": 24, "step": 2, "default": 16 },
+    { "type": "checkbox", "id": "show_card_outline", "label": "Show card outline/shadow", "default": true }
   ],
-  "blocks": [],
-  "presets": [
+  "blocks": [
     {
-      "name": "CH Product Carousel (mobile full-bleed, modular)",
-      "settings": {
-        "source": "collection",
-        "show_arrows": true,
-        "show_dots": true,
-        "enable_autoplay": false,
-        "show_hero_header": true
-      }
+      "type": "tabs",
+      "name": "tabs",
+      "settings": [
+        { "type": "text", "id": "tab_label", "label": "Tab label", "default": "Speakers" },
+        { "type": "collection", "id": "collection", "label": "Collection" },
+        { "type": "product_list", "id": "products", "label": "Products (fallback)", "limit": 24 },
+        { "type": "select", "id": "collection_sort", "label": "Sort (client-side)", "default": "default", "options": [
+          { "value": "default",   "label": "Collection default" },
+          { "value": "price-asc", "label": "Price, low to high" },
+          { "value": "price-desc","label": "Price, high to low" },
+          { "value": "title-asc", "label": "Title A–Z" },
+          { "value": "title-desc","label": "Title Z–A" },
+          { "value": "date-desc", "label": "Newest first" },
+          { "value": "date-asc",  "label": "Oldest first" }
+        ]}
+      ]
     }
-  ]
+  ],
+  "presets": [{ "name": "productcarousel" }]
 }
 {% endschema %}

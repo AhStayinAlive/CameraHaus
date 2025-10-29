@@ -1,0 +1,11 @@
+:root{
+  --font-sans: "Inter","Inter var",ui-sans-serif,system-ui,-apple-system,
+               "Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",
+               "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol",sans-serif;
+
+  --font-body-family: var(--font-sans);
+  --font-heading-family: var(--font-sans);
+}
+
+html, body, button, input, select, textarea{ font-family:var(--font-sans); }
+html{ font-synthesis-weight:none; font-synthesis-style:none; }

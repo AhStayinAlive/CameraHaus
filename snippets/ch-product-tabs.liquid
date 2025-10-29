@@ -1,0 +1,379 @@
+{%- comment -%}
+CH PRODUCT TABS
+• Desktop: three tabs (Details / Specs / Reviews)
+• Mobile: accordion (only one open at a time, active = red), each panel opens directly under its header
+• “Details” = images-only; “Specifications” = text-only; Reviews via Okendo
+• Full-bleed gray background behind the whole section (safe, non-leaking)
+{%- endcomment -%}
+
+<section class="ch-tabs" id="ch-tabs" aria-label="Product details">
+  <!-- Desktop tab bar -->
+  <div class="ch-tabs__bar" role="tablist">
+    <button class="ch-tab is-active" role="tab" aria-selected="true" aria-controls="tab-details" id="tabbtn-details">PRODUCT DETAILS</button>
+    <button class="ch-tab" role="tab" aria-selected="false" aria-controls="tab-specs" id="tabbtn-specs">SPECIFICATIONS</button>
+    <button class="ch-tab" role="tab" aria-selected="false" aria-controls="tab-reviews" id="tabbtn-reviews">REVIEWS</button>
+  </div>
+
+  <!-- Mobile accordion headers -->
+  <div class="ch-acc" aria-label="Product sections (mobile only)">
+    <button class="ch-acc__btn" data-target="tab-details" aria-controls="tab-details" aria-expanded="false">
+      <span>Product Details</span><span class="ch-acc__icon" aria-hidden="true"></span>
+    </button>
+    <button class="ch-acc__btn" data-target="tab-specs" aria-controls="tab-specs" aria-expanded="false">
+      <span>Specifications</span><span class="ch-acc__icon" aria-hidden="true"></span>
+    </button>
+    <button class="ch-acc__btn" data-target="tab-reviews" aria-controls="tab-reviews" aria-expanded="false">
+      <span>Reviews</span><span class="ch-acc__icon" aria-hidden="true"></span>
+    </button>
+  </div>
+
+  <!-- Desktop panels wrapper (we’ll move panels back here on desktop) -->
+  <div class="ch-panels">
+    <!-- DETAILS → images only -->
+    <div id="tab-details" class="ch-tabpane is-active" role="tabpanel" aria-labelledby="tabbtn-details">
+      <div class="ch-tabpane__body ch-pane-details">
+        <div class="ch-details-grid" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <!-- SPECS → text only -->
+    <div id="tab-specs" class="ch-tabpane" role="tabpanel" aria-labelledby="tabbtn-specs">
+      <div class="ch-tabpane__body ch-pane-specs">
+        <div class="ch-specs-body"></div>
+      </div>
+    </div>
+
+    <!-- REVIEWS -->
+    <div id="tab-reviews" class="ch-tabpane" role="tabpanel" aria-labelledby="tabbtn-reviews">
+      <div class="ch-tabpane__body">
+        {% if rating_count == 0 %}
+        <div class="ch-sample-review" aria-label="Sample review">
+          <div class="ch-sample-review__head">
+            <div class="ch-sample-review__stars" aria-hidden="true">★★★★★</div>
+            <span class="ch-sample-review__name">Miguel D.</span>
+            <span class="ch-sample-review__badge">Verified Buyer</span>
+          </div>
+          <p class="ch-sample-review__title">Rock-steady autofocus + great bundle</p>
+          <p class="ch-sample-review__body">Took this to a weekend shoot—AF is sticky, IBIS is excellent, and the bundle saved me a card run. Solid purchase.</p>
+        </div>
+        {% endif %}
+        {% render 'okendo-reviews-widget', product: product %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Raw description (to split images/text) -->
+  <div id="ch-desc-raw" class="visually-hidden">
+    {{ product.description }}
+  </div>
+</section>
+
+<script>
+(function(){
+  var root = document.getElementById('ch-tabs'); if(!root) return;
+
+  // Panels
+  var paneD = document.getElementById('tab-details');
+  var paneS = document.getElementById('tab-specs');
+  var paneR = document.getElementById('tab-reviews');
+  var panelsWrapper = root.querySelector('.ch-panels');
+
+  // Desktop tabs
+  var btnD = document.getElementById('tabbtn-details');
+  var btnS = document.getElementById('tabbtn-specs');
+  var btnR = document.getElementById('tabbtn-reviews');
+
+  // Mobile accordion buttons
+  var acc = root.querySelector('.ch-acc');
+  var accBtns = acc ? Array.from(acc.querySelectorAll('.ch-acc__btn')) : [];
+
+  // Split description: IMAGES → details, TEXT → specs
+  (function splitDesc(){
+    var raw = document.getElementById('ch-desc-raw');
+    var detailsGrid = root.querySelector('.ch-details-grid');
+    var specsBody = root.querySelector('.ch-specs-body');
+    if(!raw || !detailsGrid || !specsBody) return;
+
+    var src = document.createElement('div');
+    src.innerHTML = raw.innerHTML || '';
+
+    Array.from(src.querySelectorAll('script,style,iframe')).forEach(n=>n.remove());
+    Array.from(src.querySelectorAll('[style]')).forEach(n=>n.removeAttribute('style'));
+    Array.from(src.querySelectorAll('ul,ol,nav')).forEach(function(list){
+      var t=(list.textContent||'').toLowerCase();
+      if(t.includes('highlight') && t.includes('spec')) list.remove();
+    });
+
+    Array.from(src.querySelectorAll('img, picture, figure')).forEach(function(img){
+      var carrier = img.closest('a, figure, picture, .rte__image, .product-single__media') || img;
+      var toMove = carrier;
+      if(carrier.tagName==='A' && /\S/.test(carrier.textContent.replace(/\s+/g,'').replace(/\u00A0/g,''))){ toMove = img; }
+      var wrap = document.createElement('div');
+      wrap.className = 'ch-detail-img';
+      wrap.appendChild(toMove.cloneNode(true));
+      var i = wrap.querySelector('img');
+      if(i){ if(!i.getAttribute('alt')) i.setAttribute('alt','Product image'); i.setAttribute('loading','lazy'); i.removeAttribute('width'); i.removeAttribute('height'); }
+      detailsGrid.appendChild(wrap);
+      toMove.remove();
+    });
+
+    Array.from(src.querySelectorAll('p,h1,h2,h3,h4,h5,h6,div,section,article,blockquote,table,dl,pre,code,ul,ol'))
+      .forEach(n=>{ if(!n.textContent.trim() && !n.querySelector('table,ul,ol')) n.remove(); });
+    Array.from(src.querySelectorAll('table')).forEach(tb=>tb.classList.add('ch-spec-table'));
+
+    while(src.firstChild){ specsBody.appendChild(src.firstChild); }
+
+    if(!root.querySelector('.ch-details-grid').children.length){
+      var ph=document.createElement('p'); ph.className='ch-empty'; ph.textContent='No additional images provided.'; root.querySelector('.ch-details-grid').appendChild(ph);
+    }
+    if(!specsBody.textContent.trim()){
+      var ph2=document.createElement('p'); ph2.className='ch-empty'; ph2.textContent='Specifications will appear here when available.'; specsBody.appendChild(ph2);
+    }
+  })();
+
+  // Desktop tab activation
+  function applyRise(pane){
+    if(!pane) return;
+    var items=Array.from(pane.querySelectorAll('.ch-tabpane__body > *'));
+    items.forEach(function(el,i){ el.style.setProperty('--rise-delay',(i*60)+'ms'); el.classList.remove('rise'); void el.offsetWidth; el.classList.add('rise'); });
+  }
+  function activateTab(which){
+    var isD=which==='d', isS=which==='s', isR=which==='r';
+    [btnD,btnS,btnR].forEach(function(b){ if(b){ b.classList.remove('is-active'); b.setAttribute('aria-selected','false'); }});
+    if(isD){ btnD.classList.add('is-active'); btnD.setAttribute('aria-selected','true'); }
+    if(isS){ btnS.classList.add('is-active'); btnS.setAttribute('aria-selected','true'); }
+    if(isR){ btnR.classList.add('is-active'); btnR.setAttribute('aria-selected','true'); }
+
+    [paneD,paneS,paneR].forEach(function(p){ if(p){ p.classList.remove('is-active'); }});
+    if(isD){ paneD.classList.add('is-active'); applyRise(paneD); }
+    if(isS){ paneS.classList.add('is-active'); applyRise(paneS); }
+    if(isR){ paneR.classList.add('is-active'); applyRise(paneR); }
+  }
+  btnD && btnD.addEventListener('click', function(){ if(!isMobile()) activateTab('d'); });
+  btnS && btnS.addEventListener('click', function(){ if(!isMobile()) activateTab('s'); });
+  btnR && btnR.addEventListener('click', function(){ if(!isMobile()) activateTab('r'); });
+
+  // Helpers
+  function isMobile(){ return window.matchMedia('(max-width: 640px)').matches; }
+
+  // Mobile: move each panel directly under its header, one-open-only, active red
+  function placePanelsMobile(){
+    if(!acc) return;
+    var map = {
+      'tab-details': paneD,
+      'tab-specs':   paneS,
+      'tab-reviews': paneR
+    };
+    accBtns.forEach(function(b){
+      var id = b.getAttribute('data-target');
+      var p  = map[id];
+      if(p && b.nextElementSibling !== p){
+        b.insertAdjacentElement('afterend', p); // open BELOW the header
+      }
+      // collapse initially
+      if(p){
+        p.classList.add('ch-acc__panel');
+        p.classList.remove('is-active');
+        p.classList.remove('is-open');
+        p.style.maxHeight = '0px';
+      }
+      b.classList.remove('is-open');
+      b.setAttribute('aria-expanded','false');
+    });
+  }
+
+  function placePanelsDesktop(){
+    if(!panelsWrapper) return;
+    [paneD,paneS,paneR].forEach(function(p){
+      if(p && p.parentElement !== panelsWrapper){
+        panelsWrapper.appendChild(p);
+      }
+      p && p.classList.remove('ch-acc__panel');
+      p && p.style.removeProperty('max-height');
+      p && p.classList.remove('is-open');
+    });
+    activateTab('d');
+  }
+
+  function openAccordion(id){
+    // close others first (one-open-only)
+    accBtns.forEach(function(b){
+      var target = b.getAttribute('data-target');
+      var panel  = document.getElementById(target);
+      if(target !== id){
+        b.classList.remove('is-open'); b.setAttribute('aria-expanded','false');
+        if(panel){ panel.classList.remove('is-open'); panel.style.maxHeight='0px'; }
+      }
+    });
+    // open target
+    var btn = acc.querySelector('[data-target="'+id+'"]');
+    var panel = document.getElementById(id);
+    if(!btn || !panel) return;
+    var willOpen = !btn.classList.contains('is-open');
+    if(willOpen){
+      btn.classList.add('is-open'); btn.setAttribute('aria-expanded','true');
+      panel.classList.add('is-open');
+      panel.style.maxHeight = panel.scrollHeight + 'px';
+      applyRise(panel);
+    }else{
+      btn.classList.remove('is-open'); btn.setAttribute('aria-expanded','false');
+      panel.classList.remove('is-open'); panel.style.maxHeight='0px';
+    }
+  }
+
+  if(acc){
+    acc.addEventListener('click', function(e){
+      var b = e.target.closest('.ch-acc__btn'); if(!b || !isMobile()) return;
+      openAccordion(b.getAttribute('data-target'));
+    });
+  }
+
+  // Keep open height accurate on resize
+  function refreshHeights(){
+    if(!isMobile()) return;
+    [paneD,paneS,paneR].forEach(function(p){
+      if(p && p.classList.contains('is-open')){
+        p.style.maxHeight = p.scrollHeight + 'px';
+      }
+    });
+  }
+
+  // Mode sync
+  function syncMode(){
+    if(isMobile()){
+      root.classList.add('is-accordion');
+      placePanelsMobile();
+    }else{
+      root.classList.remove('is-accordion');
+      placePanelsDesktop();
+    }
+  }
+  syncMode();
+  window.addEventListener('resize', function(){ syncMode(); refreshHeights(); });
+
+  // Hash deep-link support (#tab-reviews, etc.)
+  if(location.hash === '#tab-reviews'){
+    if(isMobile()){ openAccordion('tab-reviews'); }
+    else { activateTab('r'); }
+  }
+})();
+</script>
+
+<style>
+/* ===== Tokens ===== */
+:root{
+  --ch-accent: #c0392b;
+  --ch-on-accent: #ffffff;
+  --ch-border: #e5e7eb;
+  --ch-muted: #6b7280;
+  --ch-bg: #f6f7f8;
+  --ch-section-bg: #f3f4f6;
+  --ch-content-max: 1200px;
+}
+
+/* ===== Full-bleed gray (safe) ===== */
+.ch-tabs{ position:relative; z-index:0; isolation:isolate; padding:12px 0 16px; background:transparent; }
+.ch-tabs::before{ content:""; position:absolute; z-index:-1; top:0; bottom:0; left:50%; width:100vw; transform:translateX(-50%); background:var(--ch-section-bg); }
+
+/* ===== Desktop Tabs ===== */
+.ch-tabs__bar[role="tablist"]{ display:flex; gap:10px; justify-content:center; align-items:center; max-width:var(--ch-content-max); margin:0 auto; padding:0 12px 8px; }
+.ch-tab{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:.58rem 1.05rem; border-radius:16px; letter-spacing:.02em;
+  border:1.5px solid var(--ch-border); background:#fff; color:var(--ch-muted);
+  font-weight:700; cursor:pointer; transition:.15s;
+}
+.ch-tab:hover:not(.is-active){ background:var(--ch-accent); color:var(--ch-on-accent); border-color:var(--ch-accent); transform:translateY(-1px); }
+.ch-tab.is-active{ background:var(--ch-accent); color:var(--ch-on-accent); border-color:var(--ch-accent); box-shadow:0 0 0 3px rgba(192,57,43,.18); }
+.ch-tab:focus-visible{ outline:3px solid color-mix(in srgb, var(--ch-accent) 60%, white); outline-offset:2px }
+
+/* ===== Panels (desktop) ===== */
+.ch-panels{ max-width:var(--ch-content-max); margin:12px auto 0; padding:0 12px; }
+.ch-tabpane{ display:none; }
+.ch-tabpane.is-active{ display:block; }
+.ch-tabpane__body{ background:var(--ch-bg); border:1px solid var(--ch-border); border-radius:12px; padding:16px; }
+
+/* Details grid */
+.ch-details-grid{ display:grid; grid-template-columns:1fr; gap:16px }
+.ch-detail-img{ background:#fff; border:1px solid var(--ch-border); border-radius:12px; overflow:hidden; }
+.ch-detail-img img, .ch-detail-img picture, .ch-detail-img figure{ display:block; width:100%; height:auto }
+
+/* Specs text */
+.ch-specs-body{ font-size:1rem; line-height:1.55 }
+.ch-specs-body > *{ background:#fff; border:1px solid var(--ch-border); border-radius:12px; padding:14px; margin:10px 0 }
+.ch-specs-body h1{ font-size:1.4rem; margin-top:.2rem }
+.ch-specs-body h2{ font-size:1.25rem; margin-top:.2rem }
+.ch-specs-body h3{ font-size:1.1rem;  margin-top:.2rem }
+.ch-specs-body ul{ padding-left:1.25rem } .ch-specs-body li{ margin:.25rem 0 }
+
+/* Tables */
+.ch-spec-table{ width:100%; border-collapse:collapse }
+.ch-spec-table th, .ch-spec-table td{ padding:.55rem .7rem; border:1px solid #eee; vertical-align:top }
+.ch-spec-table th{ width:36%; font-weight:600; background:#fafafa }
+
+/* Empty */
+.ch-empty{ color:var(--ch-muted); margin:.6rem 0 }
+
+/* Rise animation */
+@keyframes ch-rise{ from{opacity:0; transform:translateY(8px) scale(.98)} to{opacity:1; transform:translateY(0) scale(1)} }
+.rise{ animation:ch-rise .45s ease-out var(--rise-delay,0ms) both }
+
+/* ===== Mobile Accordion ===== */
+.ch-acc{ display:none; max-width:var(--ch-content-max); margin:0 auto; padding:0 12px; }
+.ch-acc__btn{
+  width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
+  background:#fff; border:1px solid var(--ch-border); color:#111;
+  padding:.75rem .75rem; font-weight:700; border-radius:10px; margin:.6rem 0 0;
+  text-align:left; box-shadow:0 1px 0 rgba(0,0,0,.02);
+  transition: background .15s, border-color .15s, color .15s, box-shadow .15s;
+}
+.ch-acc__btn:hover{ border-color:#d1d5db; box-shadow:0 2px 0 rgba(0,0,0,.03); }
+.ch-acc__btn.is-open{
+  background:var(--ch-accent); color:var(--ch-on-accent); border-color:var(--ch-accent);
+  box-shadow:0 6px 18px rgba(192,57,43,.18);
+}
+
+.ch-acc__icon{
+  width:36px; height:36px; display:inline-grid; place-items:center;
+  background:#111; color:#fff; border-radius:6px; flex:0 0 36px; position:relative;
+  transition: background .15s;
+}
+.ch-acc__icon::before, .ch-acc__icon::after{ content:""; position:absolute; background:#fff; }
+.ch-acc__icon::before{ width:14px; height:2px; }
+.ch-acc__icon::after{ width:2px; height:14px; transition:transform .15s; }
+.ch-acc__btn.is-open .ch-acc__icon{ background:rgba(255,255,255,.25); }
+.ch-acc__btn.is-open .ch-acc__icon::after{ transform:scaleY(0); } /* minus */
+
+.ch-acc__panel{
+  display:block; overflow:hidden; max-height:0;
+  transition:max-height .32s ease;
+  margin:8px 0 12px; border-radius:12px;
+}
+.ch-acc__panel .ch-tabpane__body{ padding:12px; }
+
+/* Swap to accordion on small screens */
+@media (max-width: 640px){
+  .ch-tabs__bar{ display:none !important; }
+  .ch-panels{ padding:0 12px; } /* keep width for desktop when JS toggles */
+  .ch-acc{ display:block; }
+
+  /* Make desktop cards compact in accordion */
+  .ch-details-grid{ gap:12px; }
+  .ch-specs-body{ font-size:.93rem; line-height:1.4; }
+  .ch-specs-body > *{ padding:10px; margin:6px 0; }
+  .ch-spec-table th, .ch-spec-table td{ padding:.45rem; }
+}
+
+/* Hide floating review ribbons on small screens */
+@media (max-width: 640px){
+  [class*="oke-"][class*="floating"],
+  .okendo-floating-reviews,
+  .okeReviews-floatingWidget,
+  .okeReviews-floatingTab,
+  .reviews-flyout { display:none !important; }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce){ .ch-tab{ transition:none } .ch-tab:hover{ transform:none } .rise{ animation:none } }
+
+</style>

@@ -1,0 +1,293 @@
+{%- comment -%} Sleek cart drawer — centered CTAs, minimal X, outline stepper, realtime updates {%- endcomment -%}
+
+<style>
+  .ch-panel[data-ch-panel="cart"]{
+    --font-body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+    --ink:#161616; --muted:#6B7280; --line:#E5E7EB; --brand:#e03a2f; --brand-600:#d12f24;
+  }
+  .ch-panel[data-ch-panel="cart"] *:not(svg):not(style){
+    font-family:var(--font-body); font-weight:400; box-sizing:border-box;
+    -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  }
+
+  /* Always above header + no horizontal rails */
+  .ch-panel[data-ch-panel="cart"] .ch-panel__ov{ z-index:999990!important; }
+  .ch-panel[data-ch-panel="cart"] .ch-panel__pn{ z-index:999991!important; width:min(520px,calc(100vw - 44px))!important; border-radius:14px!important; }
+  .ch-panel[data-ch-panel="cart"] .cart-wrap,
+  .ch-panel[data-ch-panel="cart"] .cart-body,
+  .ch-panel[data-ch-panel="cart"] .cart-ft{ overflow-x:hidden!important; }
+
+  /* Hide theme’s built-in header */
+  .ch-panel[data-ch-panel="cart"] .ch-panel__hd,
+  .ch-panel[data-ch-panel="cart"] .drawer__header,
+  .ch-panel[data-ch-panel="cart"] .drawer__title{ display:none!important; }
+
+  /* Shell */
+  .ch-panel[data-ch-panel="cart"] .cart-wrap{ display:grid; grid-template-rows:auto 1fr auto; height:100%; background:#fff; }
+  .ch-panel[data-ch-panel="cart"] .cart-head{
+    display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-bottom:1px solid var(--line);
+  }
+  .ch-panel[data-ch-panel="cart"] .cart-title{ margin:0; font-size:13px; letter-spacing:.02em; text-transform:uppercase; color:var(--ink); }
+
+  /* Minimal X (no circle) */
+  .ch-panel[data-ch-panel="cart"] .cart-x{
+    width:28px; height:28px; border:0; background:transparent; color:#262626; display:grid; place-items:center; padding:0; cursor:pointer;
+  }
+  .ch-panel[data-ch-panel="cart"] .cart-x:hover{ color:var(--brand); }
+  .ch-panel[data-ch-panel="cart"] .cart-x svg{ width:20px; height:20px; }
+
+  .ch-panel[data-ch-panel="cart"] .cart-body{ min-height:0; overflow-y:auto; }
+  .ch-panel[data-ch-panel="cart"] .items{ padding:8px 12px; }
+
+  /* Item row */
+  .ch-panel[data-ch-panel="cart"] .it{ display:grid; grid-template-columns:72px 1fr; gap:10px; padding:12px 0; }
+  .ch-panel[data-ch-panel="cart"] .it + .it{ border-top:1px solid var(--line); }
+  .ch-panel[data-ch-panel="cart"] .it-img{ width:72px; height:72px; object-fit:contain; border-radius:10px; }
+  .ch-panel[data-ch-panel="cart"] .it-title{ margin:0; font-size:13px; line-height:1.25; text-transform:none; color:var(--ink); }
+  .ch-panel[data-ch-panel="cart"] .it-variant{ margin:2px 0 6px; color:var(--muted); font-size:11px; text-transform:uppercase; }
+  .ch-panel[data-ch-panel="cart"] .it-price{ font-size:14px; color:var(--brand); }
+  .ch-panel[data-ch-panel="cart"] .it-compare{ color:#9CA3AF; text-decoration:line-through; margin-right:6px; }
+
+  /* Stepper — outline, centered glyphs */
+  .ch-panel[data-ch-panel="cart"] .it-bar{ display:flex; align-items:center; gap:8px; margin-top:6px; }
+  .ch-panel[data-ch-panel="cart"] .stepper{
+    display:grid; grid-template-columns:34px 44px 34px; height:34px;
+    border:1.5px solid #111; border-radius:10px; overflow:hidden; transition:border-color .15s;
+  }
+  .ch-panel[data-ch-panel="cart"] .stepper:hover{ border-color:var(--brand); }
+  .ch-panel[data-ch-panel="cart"] .stepper button{
+    display:flex; align-items:center; justify-content:center;
+    border:0; background:#fff; color:#111; font-size:16px; line-height:1; transition:color .15s, background .15s;
+  }
+  .ch-panel[data-ch-panel="cart"] .stepper button:first-child{ border-right:1px solid #111; }
+  .ch-panel[data-ch-panel="cart"] .stepper button:last-child { border-left:1px solid #111; }
+  .ch-panel[data-ch-panel="cart"] .stepper button:hover{ color:var(--brand); background:#fafafa; }
+  .ch-panel[data-ch-panel="cart"] .stepper input{
+    border:0; background:transparent; text-align:center; font-size:13px; color:#111;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  /* Trash icon */
+  .ch-panel[data-ch-panel="cart"] .trash-only{ margin-top:4px; }
+  .ch-panel[data-ch-panel="cart"] .icon-btn{ width:24px;height:24px;border:0;background:transparent; display:grid; place-items:center; color:#6B7280; transition:color .15s; }
+  .ch-panel[data-ch-panel="cart"] .icon-btn:hover{ color:var(--brand); }
+
+  /* Footer */
+  .ch-panel[data-ch-panel="cart"] .cart-ft{ position:sticky; bottom:0; background:#fff; border-top:1px solid var(--line); padding:12px 14px 16px; display:grid; gap:10px; }
+  .ch-panel[data-ch-panel="cart"] .row{ display:flex; justify-content:space-between; align-items:center; }
+  .ch-panel[data-ch-panel="cart"] .subtotal-lbl{ font-size:13px; }
+  .ch-panel[data-ch-panel="cart"] .subtotal-val{ font-size:15px; }
+  .ch-panel[data-ch-panel="cart"] .fine{ color:var(--muted); font-size:12px; line-height:1.35; }
+  .ch-panel[data-ch-panel="cart"] .terms{ display:flex; gap:8px; align-items:flex-start; color:var(--muted); font-size:12px; line-height:1.35; text-transform:none; }
+  .ch-panel[data-ch-panel="cart"] .terms input[type="checkbox"]{ accent-color:var(--brand); }
+
+  /* CTAs centered exactly */
+  .ch-panel[data-ch-panel="cart"] .cta{
+    display:flex; flex-direction:column; align-items:center; gap:8px; padding:2px 0;
+  }
+  .ch-panel[data-ch-panel="cart"] .btn{
+    width:320px; max-width:calc(100% - 28px); height:32px; padding:0 14px; border-radius:8px; font-size:13px;
+    display:inline-flex; align-items:center; justify-content:center; text-decoration:none; cursor:pointer;
+    transition:background-color .15s, border-color .15s, color .15s; margin-inline:auto;
+  }
+  @media (max-width:640px){ .ch-panel[data-ch-panel="cart"] .btn{ border-radius:10px; max-width:calc(100% - 24px); } }
+  .ch-panel[data-ch-panel="cart"] .btn-outline{ background:#fff; color:#111; border:1px solid #111; }
+  .ch-panel[data-ch-panel="cart"] .btn-outline:hover{ background:var(--brand); border-color:var(--brand); color:#fff; }
+  .ch-panel[data-ch-panel="cart"] .btn-solid{ background:var(--brand); border:1px solid #e03a2f; color:#fff; }
+  .ch-panel[data-ch-panel="cart"] .btn-solid:hover{ background:var(--brand-600); border-color:var(--brand-600); }
+
+  /* Hide upsell/policy duplicates */
+  .ch-panel[data-ch-panel="cart"] .you-may-also-like,
+  .ch-panel[data-ch-panel="cart"] [id*="CartDrawer-Recommendations"],
+  .ch-panel[data-ch-panel="cart"] [class*="recommendation"],
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__toolbar,
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree,
+  .ch-panel[data-ch-panel="cart"] .cart__policies,
+  .ch-panel[data-ch-panel="cart"] .cart__terms{ display:none!important; }
+</style>
+
+<div class="cart-wrap" data-cart-root>
+  <div class="cart-head">
+    <h3 class="cart-title">SHOPPING CART</h3>
+    <button class="cart-x" type="button" data-cart-close aria-label="Close">
+      <!-- minimal X -->
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="cart-body">
+    <div class="items" data-cart-items></div>
+  </div>
+
+  <div class="cart-ft">
+    <div class="row">
+      <div class="subtotal-lbl">Subtotal:</div>
+      <div class="subtotal-val" data-cart-subtotal>—</div>
+    </div>
+    <div class="fine">Taxes and shipping calculated at checkout</div>
+    <label class="terms"><input type="checkbox" id="agree-terms"> <span>I agree with the terms and conditions.</span></label>
+    <div class="cta">
+      <a class="btn btn-outline" href="/cart">View cart</a>
+      <a class="btn btn-solid" href="/checkout" data-checkout>Check out</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const panel = document.querySelector('.ch-panel[data-ch-panel="cart"]');
+  if (!panel) return;
+
+  const itemsEl = panel.querySelector('[data-cart-items]');
+  const subEl   = panel.querySelector('[data-cart-subtotal]');
+  const agree   = panel.querySelector('#agree-terms');
+  const checkoutBtn = panel.querySelector('[data-checkout]');
+  const closeBtn = panel.querySelector('[data-cart-close]');
+
+  const nf = new Intl.NumberFormat({{ request.locale.iso_code | json }} || 'en-PH',
+    { style:'currency', currency: {{ shop.currency | json }} || 'PHP' });
+  const money = c => nf.format((Number(c)||0)/100);
+  const esc = s => (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const thumb = u => u ? u.replace(/(\.(?:jpe?g|png|webp|gif))(?:\?.*)?$/i,'_224x$1') : '';
+
+  function updateHeaderCount(n){
+    document.querySelectorAll('[data-cart-count]').forEach(b=>{
+      b.textContent = String(n||0);
+      b.classList.add('pop'); setTimeout(()=>b.classList.remove('pop'),180);
+    });
+    const live = document.querySelector('[data-cart-live]'); if (live) live.textContent = `Cart items: ${n||0}`;
+  }
+
+  function rowTpl(line, idx){
+    const cp = Number(line.compare_at_price || 0);
+    return `
+      <div class="it" data-line="${idx+1}" data-key="${esc(line.key || '')}">
+        <img class="it-img" src="${thumb(line.image || (line.featured_image && line.featured_image.url))}" alt="${esc(line.product_title||'')}">
+        <div>
+          <h4 class="it-title">${esc(line.product_title || line.title || '')}</h4>
+          ${line.variant_title && line.variant_title !== 'Default Title' ? `<div class="it-variant">${esc(line.variant_title)}</div>` : ``}
+          <div>${cp>line.final_price?`<span class="it-compare">${money(cp)}</span>`:''}<span class="it-price">${money(line.final_price)}</span></div>
+          <div class="it-bar">
+            <div class="stepper">
+              <button type="button" data-dec aria-label="Decrease">−</button>
+              <input type="text" value="${line.quantity}" inputmode="numeric" data-qty>
+              <button type="button" data-inc aria-label="Increase">+</button>
+            </div>
+          </div>
+          <div class="trash-only">
+            <button class="icon-btn" type="button" title="Remove" data-remove>
+              <svg width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M6 7h12v2H6zm1 3h10l-1 10H8L7 10zm3-5h4l1 2H9l1-2z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function bindRow(row){
+    const key  = row.getAttribute('data-key');
+    const line = Number(row.getAttribute('data-line')) || 1;
+    const qty  = row.querySelector('[data-qty]');
+    const dec  = row.querySelector('[data-dec]');
+    const inc  = row.querySelector('[data-inc]');
+    const rmv  = row.querySelector('[data-remove]');
+
+    const setQty = (q) => {
+      q = Math.max(0, Number(q)||0);
+      qty.value = q; // optimistic
+      disableRow(true);
+
+      return fetch('/cart/change.js', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
+        body: JSON.stringify(key ? { id: key, quantity: q } : { line, quantity: q })
+      }).then(r=>r.json()).then(cart=>{
+        paint(cart);
+      }).catch(()=> refresh() ).finally(()=>disableRow(false));
+    };
+
+    const disableRow = (on) => {
+      [dec,inc,qty,rmv].forEach(el=>{ if(el){ el.disabled = on; el.style.opacity = on ? .6 : 1; } });
+    };
+
+    dec && dec.addEventListener('click', ()=> setQty((Number(qty.value)||0)-1));
+    inc && inc.addEventListener('click', ()=> setQty((Number(qty.value)||0)+1));
+    qty && qty.addEventListener('change', ()=> setQty(qty.value));
+    rmv && rmv.addEventListener('click', ()=> setQty(0));
+  }
+
+  function paint(cart){
+    itemsEl.innerHTML = '';
+    if (!cart || !cart.items || !cart.items.length){
+      itemsEl.innerHTML = `<div style="padding:18px;color:#6B7280;font-size:14px;">Your cart is empty.</div>`;
+      subEl.textContent = money(0);
+      updateHeaderCount(0);
+      return;
+    }
+    cart.items.forEach((l,i)=> itemsEl.insertAdjacentHTML('beforeend', rowTpl(l,i)) );
+    itemsEl.querySelectorAll('.it').forEach(bindRow);
+    subEl.textContent = money(cart.items_subtotal_price || 0);
+    updateHeaderCount(cart.item_count || cart.items.length || 0);
+    document.dispatchEvent(new CustomEvent('cart:refreshed',{detail:cart}));
+  }
+
+  function refresh(){
+    fetch('/cart.js',{headers:{'Accept':'application/json'},cache:'no-store'})
+      .then(r=>r.json()).then(paint).catch(()=>{});
+  }
+
+  /* Require terms before checkout */
+  checkoutBtn && checkoutBtn.addEventListener('click', (e)=>{ if (agree && !agree.checked){ e.preventDefault(); agree.focus(); } });
+
+  /* Close (desktop + mobile) */
+  function closeCart(){
+    try{
+      if (window.CHPanels && typeof window.CHPanels.close==='function'){ window.CHPanels.close('cart'); return; }
+      document.dispatchEvent(new CustomEvent('ch:panel',{detail:{name:'cart',open:false}}));
+      panel.closest('.ch-panel')?.removeAttribute('data-open');
+      document.querySelector('.ch-panel__ov, .cart-drawer__overlay')?.click();
+    }catch(_){}
+  }
+  closeBtn && closeBtn.addEventListener('click', closeCart);
+
+  /* Refresh on open */
+  document.addEventListener('ch:panel', (e)=>{ const d=e && e.detail; if(d && d.name==='cart' && d.open) refresh(); });
+
+  refresh();
+})();
+</script>
+
+<!-- Purge duplicate “terms” blocks so CTAs can center perfectly -->
+<script>
+(function(){
+  const ROOT_SEL = '.ch-panel[data-ch-panel="cart"]';
+
+  function purgeExtraTerms(scope){
+    const root = scope || document.querySelector(ROOT_SEL);
+    if(!root) return;
+
+    root.querySelectorAll('input[type="checkbox"]').forEach(cb=>{
+      if (cb.id === 'agree-terms') return;
+      const wrap = cb.closest('label, .cart__policies, .cart__terms, .ajaxcart__agree, .cart__checkbox, .field');
+      (wrap || cb).remove();
+    });
+
+    // Just in case a theme injects late:
+    root.querySelectorAll('.cart__policies, .cart__terms, .ajaxcart__agree, .cart__checkbox')
+      .forEach(n=> n.remove());
+  }
+
+  purgeExtraTerms();
+  document.addEventListener('ch:panel', (e)=>{
+    const d = e && e.detail;
+    if (d && d.name === 'cart' && d.open) setTimeout(()=>purgeExtraTerms(), 30);
+  });
+
+  const root = document.querySelector(ROOT_SEL);
+  if (root){
+    const mo = new MutationObserver(()=> purgeExtraTerms(root));
+    mo.observe(root, { subtree:true, childList:true });
+  }
+})();
+</script>

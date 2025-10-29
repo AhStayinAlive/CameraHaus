@@ -1,0 +1,159 @@
+{% comment %}
+  Section: brands-index-static (Dawn 2.0+)
+  Purpose: Shows fixed list of brand tiles; click → Search results with vendor filter
+  Notes:
+    - Upload brand logos to Content → Files (PNG/SVG) with the filenames below.
+    - Change LINK_MODE to 'collection' if you’d rather send users to /collections/all with vendor filter.
+{% endcomment %}
+
+{% assign LINK_MODE = 'search' %}
+
+<section id="ch-brands-{{ section.id }}" class="ch-brands" data-section-id="{{ section.id }}">
+  <style>
+    #ch-brands-{{ section.id }}{
+      --panel:#fff; --ink:#111; --muted:#6B7280; --line:rgba(17,17,17,.12);
+      --radius:12px; --shadow:0 10px 30px rgba(17,17,17,.06); --gap:20px;
+    }
+    #ch-brands-{{ section.id }} *,#ch-brands-{{ section.id }} *::before,#ch-brands-{{ section.id }} *::after{
+      box-sizing:border-box; font-family:var(--font-sans);
+    }
+    .ch-header{ margin:20px 0 16px; }
+    .ch-title{ margin:0 0 6px; line-height:1.12; letter-spacing:-.02em; font-weight:900; }
+    .ch-sub{ margin:0; color:#111; opacity:.9; }
+    .ch-az{ display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 22px; border-bottom:1px solid var(--line); padding-bottom:12px; }
+    .az-btn{ border:1px solid var(--line); background:#fff; color:var(--ink); border-radius:10px; padding:8px 12px; font-size:14px; line-height:1; cursor:pointer; }
+    .az-btn[aria-current="true"]{ background:#F6F7F8; font-weight:700; }
+    .az-btn:focus-visible{ outline:0; box-shadow:0 0 0 3px rgba(32,94,214,.35); }
+    .ch-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--gap); }
+    @media (min-width:750px){ .ch-grid{ grid-template-columns:repeat(4,minmax(0,1fr)); } }
+    @media (min-width:1100px){ .ch-grid{ grid-template-columns:repeat(6,minmax(0,1fr)); } }
+    .tile{ display:flex; align-items:center; justify-content:center; text-align:center; min-height:108px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; box-shadow:var(--shadow); text-decoration:none; color:var(--ink); transition:transform .2s,border-color .2s,box-shadow .2s; }
+    .tile:hover{ transform:translateY(-2px); border-color:rgba(17,17,17,.22); box-shadow:0 12px 36px rgba(17,17,17,.10); }
+    .tile:focus-visible{ outline:0; box-shadow:0 0 0 3px rgba(32,94,214,.35); }
+    .tile img{ max-width:100%; max-height:52px; width:auto; height:auto; object-fit:contain; filter:saturate(0); opacity:.95; }
+    .tile .fallback{ font-weight:700; letter-spacing:.02em; }
+    .group{ margin-top:26px; }
+    .group-title{ margin:0 0 12px; font-size:14px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); }
+  </style>
+
+  <div class="page-width">
+    <header class="ch-header">
+      <h1 class="ch-title">{{ section.settings.heading | default: 'Brand list' }}</h1>
+      <p class="ch-sub">{{ section.settings.subheading | default: 'Camerahaus official brand partners since 1980.' }}</p>
+    </header>
+
+    <!-- A–Z -->
+    <nav class="ch-az" aria-label="Jump by letter">
+      {% assign letters = "All,A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,#" | split: "," %}
+      {% for L in letters %}
+        <button class="az-btn" data-letter="{{ L }}" {% if forloop.first %}aria-current="true"{% endif %}>{{ L }}</button>
+      {% endfor %}
+    </nav>
+
+    {% comment %}
+      Static brand list:
+      Format = Name|FileName|SearchQuery (already prefixed with vendor:)
+      FileName should exist in Content → Files.
+    {% endcomment %}
+    {% assign brand_rows = "
+Canon|brand-canon.png|vendor:Canon,
+Nikon|brand-nikon.png|vendor:Nikon,
+Ricoh / Pentax|brand-ricoh-pentax.png|vendor:Ricoh OR vendor:Pentax,
+Fujifilm|brand-fujifilm.png|vendor:Fujifilm,
+Sony|brand-sony.png|vendor:Sony,
+LUMIX|brand-lumix.png|vendor:Panasonic OR vendor:LUMIX,
+GoPro|brand-gopro.png|vendor:GoPro,
+DJI|brand-dji.png|vendor:DJI,
+Insta360|brand-insta360.png|vendor:Insta360,
+Kodak|brand-kodak.png|vendor:Kodak,
+Lomography|brand-lomography.png|vendor:Lomography,
+Holga|brand-holga.png|vendor:Holga,
+AKASO|brand-akaso.png|vendor:AKASO,
+FIMI|brand-fimi.png|vendor:FIMI,
+BetaFPV|brand-betafpv.png|vendor:BetaFPV,
+PanoX|brand-panox.png|vendor:PanoX,
+Billingham|brand-billingham.png|vendor:Billingham,
+7Artisans|brand-7artisans.png|vendor:7Artisans,
+Benro|brand-benro.png|vendor:Benro,
+BOYA|brand-boya.png|vendor:BOYA,
+Carl Zeiss|brand-zeiss.png|vendor:Carl Zeiss OR vendor:ZEISS,
+Eirmai|brand-eirmai.png|vendor:Eirmai,
+Hollyland|brand-hollyland.png|vendor:Hollyland,
+JJC|brand-jjc.png|vendor:JJC,
+Kenko / Tokina|brand-kenko-tokina.png|vendor:Kenko OR vendor:Tokina,
+Kipon|brand-kipon.png|vendor:Kipon,
+K&F Concept|brand-kfconcept.png|vendor:K&F Concept OR vendor:K&F,
+LensGo|brand-lensgo.png|vendor:LensGo,
+Lowepro|brand-lowepro.png|vendor:Lowepro,
+Polaroid|brand-polaroid.png|vendor:Polaroid,
+Rode|brand-rode.png|vendor:Rode,
+Saramonic|brand-saramonic.png|vendor:Saramonic,
+SIRUI|brand-sirui.png|vendor:SIRUI,
+Suneast|brand-suneast.png|vendor:Suneast,
+SJCam|brand-sjcam.png|vendor:SJCAM,
+Slik|brand-slik.png|vendor:Slik,
+Tamron|brand-tamron.png|vendor:Tamron,
+Viltrox|brand-viltrox.png|vendor:Viltrox
+" | strip | split: "," %}
+
+    {% capture all_tiles %}
+      {% for row in brand_rows %}
+        {% assign parts = row | strip | split: "|" %}
+        {% assign nm = parts[0] | strip %}
+        {% assign file = parts[1] | strip %}
+        {% assign q = parts[2] | strip %}
+        {% assign letter = nm | slice: 0, 1 | upcase %}
+        {% if letter contains '0' or letter contains '1' or letter contains '2' or letter contains '3' or letter contains '4' or letter contains '5' or letter contains '6' or letter contains '7' or letter contains '8' or letter contains '9' %}
+          {% assign letter = '#' %}
+        {% endif %}
+
+        {% if LINK_MODE == 'collection' %}
+          {% comment %} Alternative: send to All-products collection with vendor filter chip {% endcomment %}
+          {% assign href = '/collections/all?filter.p.vendor=' | append: nm | url_encode %}
+        {% else %}
+          {% assign href = '/search?type=product&q=' | append: q | url_encode %}
+        {% endif %}
+
+        <a class="tile" data-letter="{{ letter }}" href="{{ href }}">
+          {% assign src = file | file_url %}
+          {% if src contains 'files' %}
+            <img loading="lazy" src="{{ src }}" width="160" height="52" alt="{{ nm | escape }}">
+          {% else %}
+            <span class="fallback">{{ nm }}</span>
+          {% endif %}
+        </a>
+      {% endfor %}
+    {% endcapture %}
+
+    <div class="ch-grid" id="ch-brand-grid">
+      {{ all_tiles }}
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const root = document.getElementById('ch-brands-{{ section.id }}');
+      const grid = root.querySelector('#ch-brand-grid');
+      const buttons = Array.from(root.querySelectorAll('.az-btn'));
+
+      function setActive(letter){
+        buttons.forEach(b => b.setAttribute('aria-current', b.dataset.letter === letter ? 'true' : 'false'));
+        const cards = Array.from(grid.children);
+        if(letter === 'All'){ cards.forEach(c => c.style.display = ''); return; }
+        cards.forEach(c => { c.style.display = (c.getAttribute('data-letter') === letter) ? '' : 'none'; });
+        if(!Array.from(grid.children).some(c => c.style.display !== 'none')){ setActive('All'); }
+      }
+
+      root.addEventListener('click', (e) => {
+        const btn = e.target.closest('.az-btn');
+        if(!btn) return;
+        e.preventDefault();
+        setActive(btn.dataset.letter);
+      });
+
+      buttons.forEach(b => b.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); setActive(b.dataset.letter); }
+      }));
+    })();
+  </script>
+</section>

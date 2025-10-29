@@ -1,0 +1,11 @@
+{%- comment -%} Okendo: full reviews widget container {%- endcomment -%}
+<div class="okeReviews"
+     data-oke-reviews-widget
+     data-oke-reviews-product-id="{{ product.id }}"
+     data-oke-reviews-product-title="{{ product.title | escape }}"
+     data-oke-reviews-product-handle="{{ product.handle }}"
+     data-oke-reviews-product-url="{{ shop.url }}{{ product.url }}"
+     {% if product.featured_image %}
+       data-oke-reviews-product-image-url="{{ product.featured_image | img_url: '600x600' | prepend: 'https:' }}"
+     {% endif %}>
+</div>

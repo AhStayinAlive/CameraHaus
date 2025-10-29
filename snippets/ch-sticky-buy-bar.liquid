@@ -1,0 +1,405 @@
+{%- comment -%}
+ch-stickybar.liquid
+Self-contained sticky buy bar for PDPs.
+
+Optional params:
+- product: product object (defaults to `product`)
+- current_variant: variant object (defaults to first available)
+- observe_selector: CSS selector string for the main CTA row to watch for visibility
+  (fallbacks: .product-form__item--submit, .product-form__cart-submit, [name="add"])
+{%- endcomment -%}
+
+{%- assign _product = product | default: all_products[product.handle] -%}
+{%- assign _variant = current_variant | default: _product.selected_or_first_available_variant -%}
+{%- assign _thumb  = _variant.featured_image | default: _product.featured_image -%}
+{%- assign _bar_id = 'ChStickyBar-' | append: _product.id -%}
+
+{%- assign _has_discount = false -%}
+{%- if _variant.compare_at_price and _variant.compare_at_price > _variant.price -%}
+  {%- assign _has_discount = true -%}
+  {%- assign _save_amount = _variant.compare_at_price | minus: _variant.price -%}
+  {%- assign _save_pct = _save_amount | times: 100.0 | divided_by: _variant.compare_at_price | round -%}
+{%- endif -%}
+
+<div class="ch-stickybar" id="{{ _bar_id }}" data-soldout="{% unless _variant.available %}true{% else %}false{% endunless %}">
+  <form class="ch-stickybar__form" action="/cart/add" method="post" aria-label="Quick add to cart" novalidate>
+    <img class="ch-stickybar__thumb"
+         src="{{ _thumb | img_url: '120x120' }}"
+         alt="{{ _product.title | escape }}">
+
+    <div class="ch-stickybar__info">
+      <div class="ch-stickybar__title" title="{{ _product.title }}">{{ _product.title }}</div>
+      <div class="ch-stickybar__price">
+        <span class="price" data-sticky-price>{{ _variant.price | money }}</span>
+        {% if _has_discount %}
+          <s class="compare" data-sticky-compare>{{ _variant.compare_at_price | money }}</s>
+          <span class="save" data-sticky-save>Save {{ _save_amount | money }} ({{ _save_pct }}%)</span>
+        {% else %}
+          <s class="compare" data-sticky-compare style="display:none"></s>
+          <span class="save" data-sticky-save style="display:none"></span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if _product.has_only_default_variant == false %}
+      <select class="ch-stickybar__variant" aria-label="Select variant" name="id" data-sticky-variant>
+        {% for v in _product.variants %}
+          <option value="{{ v.id }}" {% if v.id == _variant.id %}selected{% endif %} {% unless v.available %}disabled{% endunless %}>
+            {{ v.title }}
+          </option>
+        {% endfor %}
+      </select>
+    {% else %}
+      <input type="hidden" name="id" value="{{ _variant.id }}">
+    {% endif %}
+
+    <div class="ch-stickybar__qty ch-qty" data-for="StickyQty">
+      <button type="button" class="ch-qty__btn" aria-label="Decrease" data-act="minus">−</button>
+      <input type="number" value="1" min="1" class="ch-qty__input" id="StickyQty" name="quantity" aria-label="{{ 'products.product.quantity' | t }}">
+      <button type="button" class="ch-qty__btn" aria-label="Increase" data-act="plus">+</button>
+    </div>
+
+    <button type="submit" class="btn ch-stickybar__atc" {% unless _variant.available %}disabled{% endunless %}>
+      {{ 'products.product.add_to_cart' | t }}
+    </button>
+
+    <button type="button" class="ch-stickybar__wish" aria-label="Add to wishlist">
+      {% render 'icon-wishlist' %}
+    </button>
+  </form>
+
+  {%- comment -%} Inline, pruned product data for self-contained updates {%- endcomment -%}
+  <script type="application/json" data-ch-stickybar-product>
+  {
+    "id": {{ _product.id | json }},
+    "title": {{ _product.title | json }},
+    "variants": [
+      {%- for v in _product.variants -%}
+        {
+          "id": {{ v.id | json }},
+          "price": {{ v.price | json }},
+          "compare_at_price": {{ v.compare_at_price | json }},
+          "available": {{ v.available | json }},
+          "title": {{ v.title | json }},
+          "featured_image": {{ v.featured_image | default: _product.featured_image | json }}
+        }{% unless forloop.last %},{% endunless %}
+      {%- endfor -%}
+    ],
+    "money_format": {{ shop.money_format | json }}
+  }
+  </script>
+</div>
+
+<style>
+/* ===== Sticky bar (scoped, minimal & Havit-style) ===== */
+.ch-stickybar{
+  --gap: 10px;
+  --control-h: 40px;
+  --radius: 9999px;
+  --border: #E5E7EB;
+  --fg:#111827;
+  --muted:#6B7280;
+  --accent:#d12f24;
+  --accent-hover:#b51f18;
+
+  position:fixed; left:0; right:0; bottom:0; z-index:2147483600;
+  background:#fff; border-top:1px solid var(--border);
+  box-shadow:0 -8px 24px rgba(0,0,0,.08);
+  transform:translateY(100%); transition:transform .28s ease;
+  padding:12px clamp(12px, 3vw, 24px) calc(12px + env(safe-area-inset-bottom));
+  color:var(--fg);
+}
+.ch-stickybar.is-visible{ transform:translateY(0); }
+.ch-stickybar.is-hidden, .ch-stickybar.is-disabled{ display:none; }
+
+/* Layout via grid areas for clean reflow */
+.ch-stickybar__form{
+  display:grid; gap: var(--gap) var(--gap);
+  grid-template-columns:auto 1fr auto auto;
+  grid-template-areas:
+    "thumb info qty atc"
+    "thumb variant variant wish";
+  align-items:center;
+  max-width:1200px; margin-inline:auto;
+}
+
+.ch-stickybar__thumb{ grid-area:thumb; width:44px; height:44px; object-fit:cover; border-radius:8px; }
+.ch-stickybar__info{ grid-area:info; min-width:0; }
+.ch-stickybar__title{ font-weight:600; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:60vw; }
+.ch-stickybar__price{ display:flex; align-items:baseline; gap:10px; font-weight:700; flex-wrap:wrap; }
+.ch-stickybar__price .price{ color:var(--accent); }          /* Price in red */
+.ch-stickybar__price .compare{ color:var(--muted); font-weight:500; text-decoration:line-through; }
+.ch-stickybar__price .save{ color:var(--accent); font-weight:700; font-size:.9rem; }
+
+/* Variant / Qty / ATC */
+.ch-stickybar__variant{
+  grid-area:variant;
+  height:var(--control-h); border:1px solid var(--border);
+  border-radius:var(--radius); padding:0 12px; background:#fff;
+  max-width:260px;
+}
+.ch-stickybar__qty{
+  grid-area:qty; height:var(--control-h);
+  justify-self:start;               /* keep pill to its natural width */
+}
+.ch-stickybar__qty .ch-qty__btn{ height:var(--control-h); line-height:var(--control-h); }
+.ch-stickybar__qty .ch-qty__input{ height:var(--control-h); }
+
+.ch-stickybar__atc{
+  grid-area:atc;
+  height:var(--control-h); padding:0 18px; border-radius:var(--radius);
+  background:var(--accent); color:#fff; font-weight:700; letter-spacing:.02em;
+}
+.ch-stickybar__atc:hover{ background:var(--accent-hover); }
+.ch-stickybar__atc[disabled]{ opacity:.6; cursor:not-allowed; }
+
+.ch-stickybar__wish{
+  grid-area:wish;
+  width:var(--control-h); height:var(--control-h);
+  border:1px solid var(--border); border-radius:var(--radius);
+  background:#fff; display:grid; place-items:center;
+}
+
+/* Tidy qty (local reuse) */
+.ch-qty{
+  box-sizing:border-box;
+  display:inline-grid;                 /* NEW: prevents stretching */
+  grid-template-columns:44px 56px 44px;
+  align-items:stretch; height:var(--control-h);
+  border:1.5px solid #1f2937; border-radius:var(--radius);
+  background:#fff; overflow:hidden; padding:0;
+}
+.ch-qty__btn{ display:flex; align-items:center; justify-content:center; width:44px; height:var(--control-h); border:0; background:transparent !important; color:#111; font-size:22px; font-weight:900; line-height:1; }
+.ch-qty__btn:hover,.ch-qty__btn:focus{color:var(--accent) !important;}
+.ch-qty__input{ width:56px; height:var(--control-h); border:0; margin:0; padding:0; background:transparent !important; text-align:center; font-weight:700; font-size:16px; line-height:1; font-variant-numeric:tabular-nums; }
+.ch-qty__input::-webkit-outer-spin-button,.ch-qty__input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0 }
+
+/* Desktop polish */
+@media (min-width: 990px){
+  .ch-stickybar{
+    padding:14px 24px calc(14px + env(safe-area-inset-bottom));
+    background:rgba(255,255,255,.96);
+    -webkit-backdrop-filter:saturate(180%) blur(8px);
+            backdrop-filter:saturate(180%) blur(8px);
+  }
+  .ch-stickybar__thumb{ width:48px; height:48px; }
+  .ch-stickybar__title{ max-width:40vw; }
+  .ch-stickybar__form{
+    grid-template-columns:auto 1fr auto auto auto auto;
+    grid-template-areas:"thumb info variant qty atc wish";
+  }
+}
+
+/* Mobile simplifications */
+@media (max-width: 749px){
+  .ch-stickybar__price{ font-size:.95rem; }
+  .ch-stickybar__price .compare{ display:none; }  /* cleaner on small screens */
+  .ch-stickybar__form{
+    grid-template-columns:44px 1fr auto;
+    grid-template-areas:
+      "thumb info atc"
+      "variant variant variant"
+      "qty qty wish";
+  }
+}
+
+/* Avoid chat bubble overlap (JS sets --chat-right) */
+.ch-stickybar.avoid-chat{ padding-right: max(16px, var(--chat-right, 16px)); }
+/* Darker, smaller "Save" label (card-style) */
+.ch-stickybar{
+  --save-color: #b91c1c; /* dark red, similar to card */
+}
+
+.ch-stickybar .ch-stickybar__price{
+  flex-wrap: wrap; /* already in file, keep this */
+}
+
+.ch-stickybar .ch-stickybar__price .save{
+  color: var(--save-color);
+  font-size: 0.82rem;         /* smaller than price */
+  font-weight: 700;
+  line-height: 1.2;
+  display: block;             /* force onto its own line */
+  width: 100%;
+  order: 3;                   /* after price & compare */
+  margin-top: 2px;
+}
+
+/* Slightly tighter on larger screens if you want it extra subtle */
+@media (min-width: 990px){
+  .ch-stickybar .ch-stickybar__price .save{
+    font-size: 0.8rem;
+  }
+}
+
+</style>
+
+<script>
+/* ===== ch-stickybar: fully self-contained (polished & robust) ===== */
+(function(){
+  var bar = document.currentScript && document.currentScript.previousElementSibling && document.currentScript.previousElementSibling.previousElementSibling;
+  if (!bar || !bar.classList || !bar.classList.contains('ch-stickybar')) {
+    bar = document.getElementById({{ _bar_id | json }});
+  }
+  if(!bar) return;
+
+  /* 1) Lift to <body> so nothing overlays it */
+  try { if (bar.parentElement !== document.body) document.body.appendChild(bar); } catch(e) {}
+
+  /* 2) Disable when sold out */
+  if (bar.getAttribute('data-soldout') === 'true') { bar.classList.add('is-hidden'); }
+
+  /* 3) Local data + helpers */
+  var dataEl = bar.querySelector('script[data-ch-stickybar-product]');
+  var pdata = dataEl ? JSON.parse(dataEl.textContent || '{}') : null;
+
+  function formatMoney(cents, fmt) {
+    if (window.Shopify && typeof Shopify.formatMoney === 'function') return Shopify.formatMoney(cents, fmt);
+    var value = (cents/100).toFixed(2);
+    return (fmt || '${{amount}}').replace(/\{\{\s*amount\s*\}\}/, value);
+  }
+
+  function stickyOffset() {
+    var h = 0;
+    var header = document.querySelector('.site-header, .header-wrapper, header[role="banner"], .ch-header');
+    if (header) h = Math.max(0, Math.round(header.getBoundingClientRect().height));
+    return h;
+  }
+
+  /* 4) Show/hide logic based on main CTA visibility */
+  var observeSelector = {{ observe_selector | default: '' | json }};
+  var anchor = observeSelector ? document.querySelector(observeSelector) : (
+    document.querySelector('.product-form__item--submit') ||
+    document.querySelector('.product-form__cart-submit') ||
+    document.querySelector('button[name="add"]') ||
+    document.querySelector('[type="submit"][name="add"]')
+  );
+
+  function setVisible(v){ bar.classList.toggle('is-visible', v); }
+
+  if (anchor && 'IntersectionObserver' in window) {
+    var io;
+    function buildIO() {
+      return new IntersectionObserver(function(entries){
+        entries.forEach(function(e){ setVisible(e.intersectionRatio === 0); });
+      }, {
+        threshold: [0, 0.01],
+        rootMargin: '-' + stickyOffset() + 'px 0px 0px 0px'
+      });
+    }
+    io = buildIO(); io.observe(anchor);
+    var rt; window.addEventListener('resize', function(){
+      clearTimeout(rt); rt = setTimeout(function(){ try { io.disconnect(); } catch(e){} io = buildIO(); io.observe(anchor); }, 150);
+    }, { passive:true });
+  } else {
+    // Fallback: appear once user scrolls past first screenful
+    function onScroll(){
+      var off = stickyOffset();
+      var y = window.scrollY || document.documentElement.scrollTop || 0;
+      setVisible(y > off + 200);
+    }
+    document.addEventListener('scroll', onScroll, {passive:true});
+    window.addEventListener('resize', onScroll, {passive:true});
+    onScroll();
+  }
+
+  /* 5) Maintain body bottom padding equal to bar height (prevents overlap) */
+  function applyBodyPad(){
+    var h = Math.round(bar.getBoundingClientRect().height);
+    document.body.style.paddingBottom = 'calc(' + h + 'px + env(safe-area-inset-bottom))';
+  }
+  applyBodyPad();
+  if (window.ResizeObserver){
+    new ResizeObserver(applyBodyPad).observe(bar);
+  } else {
+    window.addEventListener('resize', applyBodyPad, {passive:true});
+  }
+
+  /* 6) Qty controls */
+  (function(){
+    var wrap = bar.querySelector('.ch-stickybar__qty');
+    var input = wrap && wrap.querySelector('input[name="quantity"]');
+    if(!wrap || !input) return;
+    wrap.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-act]'); if(!btn) return;
+      var v = parseInt(input.value || '1', 10);
+      if (btn.getAttribute('data-act') === 'minus') v = Math.max(1, v-1);
+      if (btn.getAttribute('data-act') === 'plus')  v = v+1;
+      input.value = v;
+    });
+  })();
+
+  /* 7) Variant + price + savings sync */
+  var vSel = bar.querySelector('[data-sticky-variant]');
+  function updateUI(vid){
+    if(!pdata) return;
+    var v = (pdata.variants || []).find(function(x){ return String(x.id) === String(vid); });
+    var p = bar.querySelector('[data-sticky-price]');
+    var c = bar.querySelector('[data-sticky-compare]');
+    var s = bar.querySelector('[data-sticky-save]');
+    var atc = bar.querySelector('.ch-stickybar__atc');
+    var img = bar.querySelector('.ch-stickybar__thumb');
+
+    if (v && p) p.textContent = formatMoney(v.price, pdata.money_format);
+    if (v && c) {
+      if (v.compare_at_price && v.compare_at_price > v.price) {
+        c.style.display = '';
+        c.textContent = formatMoney(v.compare_at_price, pdata.money_format);
+
+        if (s){
+          var saveAmt = v.compare_at_price - v.price;
+          var pct = Math.round((saveAmt / v.compare_at_price) * 100);
+          s.textContent = 'Save ' + formatMoney(saveAmt, pdata.money_format) + ' (' + pct + '%)';
+          s.style.display = '';
+        }
+      } else {
+        c.style.display = 'none';
+        if (s){ s.style.display = 'none'; s.textContent = ''; }
+      }
+    }
+    if (v && img && v.featured_image && v.featured_image.src) {
+      img.src = v.featured_image.src.replace(/(\.jpg|\.png|\.jpeg)(\?.*)?$/i, '_120x$1');
+    }
+    if (atc) {
+      atc.disabled = !(v && v.available);
+      bar.classList.toggle('is-disabled', !(v && v.available));
+    }
+  }
+  if (vSel) { vSel.addEventListener('change', function(){ updateUI(vSel.value); }); updateUI(vSel.value); }
+
+  /* 8) Optional AJAX add-to-cart (play nice if theme has it) */
+  bar.querySelector('.ch-stickybar__form').addEventListener('submit', function(e){
+    if (!window.fetch) return; // fallback to normal POST
+    e.preventDefault();
+    var fd = new FormData(e.target);
+    fetch('/cart/add.js', { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } })
+      .then(function(r){ return r.ok ? r.json() : Promise.reject(r); })
+      .then(function(){
+        document.dispatchEvent(new CustomEvent('cart:added', { detail: { source: 'ch-stickybar' } }));
+      })
+      .catch(function(){ e.target.submit(); });
+  });
+
+  /* 9) Avoid floating chat launchers (Intercom/Zendesk/etc.) */
+  function avoidChat(){
+    var selectors = [
+      '.intercom-lightweight-app-launcher', '.zEWidget-launcher', '#launcher',
+      '.fb_dialog', '.chat-widget', '.chat-button', '[data-testid*="launcher"]',
+      '[class*="Chat"][class*="Launcher"]', '[class*="chat"][class*="launcher"]'
+    ];
+    var el; for (var i=0;i<selectors.length;i++){ el = document.querySelector(selectors[i]); if (el) break; }
+    if(!el) return;
+    function apply(){
+      var r = el.getBoundingClientRect();
+      if (r.width && r.height){
+        var pad = Math.max(16, (window.innerWidth - r.left) + 12); // distance from right edge
+        bar.style.setProperty('--chat-right', pad + 'px');
+        bar.classList.add('avoid-chat');
+      }
+    }
+    apply(); window.addEventListener('resize', apply, {passive:true});
+  }
+  window.addEventListener('load', avoidChat);
+
+})();
+</script>

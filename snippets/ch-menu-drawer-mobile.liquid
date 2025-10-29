@@ -1,195 +1,353 @@
 {%- comment -%}
-Mobile Menu Drawer (left slide)
-Usage: {% render 'ch-menu-drawer-mobile', is_open: false %}
-Triggers supported out of the box:
-- [data-open-drawer]  (legacy)
-- [data-drawer-open]
-- [data-panel-open="menu"]
+Mobile Menu Drawer (HAVIT style) — main menu + categories
 {%- endcomment -%}
 
-<div class="ch-drawer only-m{% if is_open %} is-open{% endif %}"
-     id="ch-menu-drawer"
-     aria-hidden="{% if is_open %}false{% else %}true{% endif %}"
-     data-ch-drawer="menu">
-  <div class="ch-drawer__ov" data-close></div>
-  <aside class="ch-drawer__pn" role="dialog" aria-modal="true" aria-label="Menu">
-    <div class="ch-drawer__hd">
-      <div class="title">Menu</div>
-      <button type="button" class="btn" aria-label="Close" data-close>
-        <svg class="ico" viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3L16.9 4.3z"/></svg>
+{%- assign _is_open = is_open | default: false -%}
+{%- assign _main_handle = main_handle | default: 'main-menu-copy' -%}
+{%- assign _wishlist_url = wishlist_url | default: '/pages/wishlist' -%}
+{%- assign _store_url = store_locator_url | default: '/pages/store-locator' -%}
+{%- assign _main_menu = linklists[_main_handle] -%}
+
+<div id="ch-menu-drawer"
+     class="ch-mdrawer{% if _is_open %} is-open{% endif %}"
+     aria-hidden="{% if _is_open %}false{% else %}true{% endif %}">
+  <div class="ch-mdrawer__overlay" data-close></div>
+
+  <aside class="ch-mdrawer__panel" role="dialog" aria-modal="true" aria-label="Menu">
+    <div class="ch-mdrawer__header">
+      <div class="ch-mdrawer__title">Menu</div>
+      <button type="button" class="ch-btn ch-close" aria-label="Close" data-close>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
 
-    <div class="grid">
-      <div class="col">
-        <nav aria-label="Primary">
-          <ul class="list">
-            <li><a href="{{ routes.root_url }}">Home</a></li>
-            <li><a href="{{ section.settings.store_locator_url | default: '/pages/store-locator' }}">Find a store near you</a></li>
+    <div class="ch-tabs" role="tablist" aria-label="Main navigation tabs">
+      <button id="ch-tab-menu" class="ch-tab is-active" role="tab"
+              aria-selected="true" aria-controls="ch-panel-menu">Menu</button>
+      <button id="ch-tab-cats" class="ch-tab" role="tab"
+              aria-selected="false" aria-controls="ch-panel-cats">Categories</button>
+    </div>
 
-            {% if section.settings.links_secondary %}
-              {% assign links_obj = linklists[section.settings.links_secondary] %}
-              {% if links_obj and links_obj.links.size > 0 %}
-                {% for l in links_obj.links %}
-                  <li><a href="{{ l.url }}">{{ l.title }}</a></li>
-                {% endfor %}
-              {% endif %}
+    <div class="ch-tabpanes">
+      <!-- MENU -->
+      <section id="ch-panel-menu" class="ch-pane is-on" role="tabpanel"
+               aria-labelledby="ch-tab-menu" aria-hidden="false" style="display:block;">
+        <ul class="ch-list">
+          <li>
+            <a class="ch-row" href="/pages/brands">
+              <span class="ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><rect x="3" y="5" width="7" height="7"/><rect x="14" y="5" width="7" height="7"/><rect x="3" y="16" width="7" height="7"/><rect x="14" y="16" width="7" height="7"/></svg>
+              </span>
+              <span class="tx">Brands</span>
+            </a>
+          </li>
+          <li>
+            <a class="ch-row" href="{{ _store_url }}">
+              <span class="ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 21s7-6.4 7-11a7 7 0 1 0-14 0c0 4.6 7 11 7 11z"/><circle cx="12" cy="10" r="3"/></svg>
+              </span>
+              <span class="tx">Store locator</span>
+            </a>
+          </li>
+          <li>
+            <a class="ch-row" href="{{ routes.search_url }}" data-panel-open="search">
+              <span class="ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+              </span>
+              <span class="tx">Search</span>
+            </a>
+          </li>
+          <li>
+            <a class="ch-row" href="{{ _wishlist_url }}" data-panel-open="wishlist">
+              <span class="ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 20.5l-7.2-6.6A4.8 4.8 0 0 1 12 6.6a4.8 4.8 0 0 1 7.2 7.3L12 20.5z"/></svg>
+              </span>
+              <span class="tx">Wishlist</span>
+            </a>
+          </li>
+          <li>
+            <a class="ch-row" href="{{ routes.cart_url }}" data-panel-open="cart">
+              <span class="ico" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M3 6h2l2.6 9H18l3-7H6.2"/><circle cx="10" cy="20" r="1.6"/><circle cx="17.5" cy="20" r="1.6"/></svg>
+              </span>
+              <span class="tx">Cart</span>
+            </a>
+          </li>
+          {% if shop.customer_accounts_enabled %}
+            {% if customer %}
+              <li>
+                <a class="ch-row" href="{{ routes.account_url }}">
+                  <span class="ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+                  </span>
+                  <span class="tx">Account</span>
+                </a>
+              </li>
+            {% else %}
+              <li>
+                <a class="ch-row" href="{{ routes.account_login_url }}">
+                  <span class="ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/></svg>
+                  </span>
+                  <span class="tx">Login / Register</span>
+                </a>
+              </li>
             {% endif %}
+          {% endif %}
+        </ul>
+      </section>
 
-            <li><a href="{{ routes.search_url }}">Search</a></li>
-            <li><a href="/pages/wishlist">Wishlist</a></li>
+      <!-- CATEGORIES: find "Category/Categories" node in Main menu (copy) -->
+      {%- assign _cats_index = -1 -%}
+      {%- if _main_menu and _main_menu.links.size > 0 -%}
+        {%- for top in _main_menu.links -%}
+          {%- assign _t = top.title | strip | downcase -%}
+          {%- if _t == 'category' or _t == 'categories' -%}
+            {%- assign _cats_index = forloop.index0 -%}{%- break -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
 
-            {% if shop.customer_accounts_enabled %}
-              {% if customer %}
-                <li><a href="{{ routes.account_url }}">Account</a></li>
-              {% else %}
-                <li><a href="{{ routes.account_login_url }}">Login / Register</a></li>
-              {% endif %}
-            {% endif %}
-          </ul>
-        </nav>
-      </div>
-
-      <div class="col">
-        <div class="sec">
-          <button class="sec__head" type="button" data-acc aria-expanded="true">
-            <span>Categories</span>
-            <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-          </button>
-          <div class="sec__body">
-            <ul class="list">
-              {% assign main_handle = section.settings.menu_main %}
-              {% assign parent_title = section.settings.categories_parent_title | default: 'Category' %}
-              {% assign menu_obj = linklists[main_handle] %}
-              {% assign categories_parent_index = -1 %}
-              {% if menu_obj %}
-                {% for l in menu_obj.links %}
-                  {% assign t_norm = l.title | strip | downcase %}
-                  {% assign p_norm = parent_title | strip | downcase %}
-                  {% if t_norm == p_norm %}{% assign categories_parent_index = forloop.index0 %}{% endif %}
-                {% endfor %}
-              {% endif %}
-
-              {% if menu_obj and categories_parent_index > -1 %}
-                {% assign cats_parent = menu_obj.links[categories_parent_index] %}
-                {% if cats_parent.links and cats_parent.links.size > 0 %}
-                  {% for c in cats_parent.links %}<li><a href="{{ c.url }}">{{ c.title }}</a></li>{% endfor %}
-                {% else %}
-                  <li><a href="{{ section.settings.categories_fallback_url | default: '/collections/all' }}">All Categories</a></li>
+      <section id="ch-panel-cats" class="ch-pane" role="tabpanel"
+               aria-labelledby="ch-tab-cats" aria-hidden="true" hidden style="display:none;">
+        <ul class="ch-list ch-list--cats">
+          {%- if _main_menu and _cats_index > -1 -%}
+            {%- assign cats_parent = _main_menu.links[_cats_index] -%}
+            {%- for l in cats_parent.links -%}
+              {%- assign n = l.title | strip | downcase -%}
+              {%- unless n == 'brands' -%}
+              <li>
+                <a class="ch-row" href="{{ l.url }}">
+                  <span class="ico" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      {%- case true -%}
+                        {%- when n contains 'instant' and n contains 'camera' -%}
+                          <rect x="4" y="6" width="16" height="12" rx="2"/>
+                          <circle cx="12" cy="11" r="3"/>
+                          <path d="M5 16h14M8 4h6v2H8z"/>
+                        {%- when n contains 'compact' and n contains 'camera' -%}
+                          <rect x="4" y="8" width="16" height="9" rx="2"/>
+                          <circle cx="12" cy="12.5" r="2.8"/>
+                          <rect x="6" y="9.5" width="3.2" height="1.8" rx=".5"/>
+                        {%- when n contains 'mirror' and n contains 'camera' -%}
+                          <rect x="3" y="7" width="18" height="10" rx="2"/>
+                          <circle cx="12" cy="12" r="3.25"/>
+                          <rect x="6" y="5" width="4" height="2" rx="1"/>
+                        {%- when n contains 'action' and n contains 'camera' -%}
+                          <rect x="3" y="6" width="18" height="12" rx="3"/>
+                          <circle cx="14.5" cy="12" r="3.2"/>
+                          <rect x="5.5" y="9" width="3.6" height="2.6" rx=".6"/>
+                        {%- when n contains 'film camera' or n == 'film camera' -%}
+                          <rect x="3" y="8" width="18" height="9" rx="2"/>
+                          <circle cx="12" cy="12.5" r="3"/>
+                          <path d="M8 8l1.5-3h5L16 8"/>
+                        {%- when n contains '360' and n contains 'camera' -%}
+                          <rect x="8" y="3" width="8" height="18" rx="4"/>
+                          <circle cx="12" cy="7" r="2"/><circle cx="12" cy="17" r="1"/>
+                        {%- when n contains 'kids' and n contains 'camera' -%}
+                          <rect x="3" y="8" width="18" height="9" rx="3"/>
+                          <circle cx="12" cy="12.5" r="3"/>
+                          <circle cx="9" cy="11" r=".7"/><circle cx="15" cy="11" r=".7"/>
+                        {%- when n contains 'lens' -%}
+                          <circle cx="12" cy="12" r="5.6"/><path d="M12 6.6l3 5.1M9 7.9h6M7.9 12l5.1 3M9 16.1l3-5.1M12 17.4l3-5.1M15 16.1H9"/>
+                        {%- when n contains 'films' or n contains 'consum' -%}
+                          <rect x="4" y="6" width="16" height="12" rx="1"/>
+                          <path d="M8 6v12M16 6v12M4 10h16M4 14h16"/>
+                        {%- when n contains 'flash' -%}
+                          <rect x="8" y="4" width="8" height="5" rx="1"/>
+                          <rect x="7.5" y="10" width="9" height="6" rx="2"/>
+                          <path d="M10.5 16v5M13.5 16v5M10 21h4"/>
+                        {%- when n contains 'light' -%}
+                          <polygon points="7,5 14,7 14,13 7,11"/><path d="M14 10l4 2"/><path d="M12 13v7M9 22h6"/>
+                        {%- when n contains 'storage' or n contains 'memory' or n contains 'sd' or n contains 'card' -%}
+                          <path d="M7 3h7l3 3v15H7z"/><path d="M10 6h1M12 6h1M14 6h1"/>
+                        {%- when n contains 'binocular' or n contains 'scope' -%}
+                          <circle cx="8.5" cy="14" r="3"/><circle cx="15.5" cy="14" r="3"/><path d="M11 13V8l-2-2M13 13V8l2-2M9.5 7h5"/>
+                        {%- when n contains 'drone' -%}
+                          <circle cx="12" cy="12" r="1.6"/><circle cx="6" cy="6" r="2.1"/><circle cx="18" cy="6" r="2.1"/><circle cx="6" cy="18" r="2.1"/><circle cx="18" cy="18" r="2.1"/><path d="M8 8l4 4M16 8l-4 4M8 16l4-4M16 16l-4-4"/>
+                        {%- when n contains 'gimbal' -%}
+                          <rect x="13" y="6" width="6" height="8" rx="1"/><path d="M13 10h-3l-2 2v6M8 18h4"/><circle cx="10" cy="12" r="1"/>
+                        {%- when n contains 'tripod' -%}
+                          <rect x="11" y="3" width="2" height="2" rx=".4"/><path d="M12 5v3M8 8h8"/><path d="M6 21l6-10 6 10M4 21h16"/>
+                        {%- when n contains 'bag' -%}
+                          <rect x="4" y="8" width="16" height="10" rx="2"/><path d="M8 8v-1a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1M4 12h16"/>
+                        {%- when n contains 'microphone' or n contains 'mic' -%}
+                          <rect x="9" y="3" width="6" height="10" rx="3"/><path d="M12 13v5M8 18h8"/>
+                        {%- else -%}
+                          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                      {%- endcase -%}
+                    </svg>
+                  </span>
+                  <span class="tx">{{ l.title }}</span>
+                  {% if l.links.size > 0 %}
+                    <button class="ch-plus" type="button" aria-label="Expand {{ l.title }}" aria-expanded="false" aria-controls="sub-{{ forloop.index }}"></button>
+                  {% endif %}
+                </a>
+                {% if l.links.size > 0 %}
+                  <ul id="sub-{{ forloop.index }}" class="ch-sub" hidden>
+                    {% for s in l.links %}<li><a href="{{ s.url }}">{{ s.title }}</a></li>{% endfor %}
+                  </ul>
                 {% endif %}
-              {% else %}
-                <li><a href="{{ section.settings.categories_fallback_url | default: '/collections/all' }}">All Categories</a></li>
-              {% endif %}
-            </ul>
-          </div>
-        </div>
-
-        <div class="sec">
-          <button class="sec__head" type="button" data-acc aria-expanded="false">
-            <span>Brands</span>
-            <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-          </button>
-          <div class="sec__body" hidden>
-            <div class="chips">
-              {% assign brands = section.settings.brands_list | default: "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" | split: '\n' %}
-              {% for b in brands %}
-                {% assign v = b | strip %}
-                {% if v != '' %}
-                  <a class="chip" href="/search?type=product&q={{ 'vendor:"' | append: v | append: '"' | url_encode }}"><span>{{ v }}</span></a>
-                {% endif %}
-              {% endfor %}
-              {% if section.settings.brands_fallback_url %}
-                <a class="chip" href="{{ section.settings.brands_fallback_url }}"><span>All brands</span></a>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
+              </li>
+              {%- endunless -%}
+            {%- endfor -%}
+          {%- else -%}
+            <li><a class="ch-row" href="/collections/all"><span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="10" rx="2"/><circle cx="12" cy="13" r="3.2"/></svg></span><span class="tx">All Categories</span></a></li>
+          {%- endif -%}
+        </ul>
+      </section>
     </div>
   </aside>
 </div>
 
 <style>
-/* ===== Drawer-only styles (scoped) ===== */
-#ch-menu-drawer{ position:fixed; inset:0; z-index:1300; pointer-events:none; }
-#ch-menu-drawer.is-open{ pointer-events:auto; }
-#ch-menu-drawer .ch-drawer__ov{ position:absolute; inset:0; background:rgba(17,17,17,.48); -webkit-backdrop-filter:saturate(120%) blur(8px); backdrop-filter:saturate(120%) blur(8px); opacity:0; transition:opacity .28s cubic-bezier(.22,1,.36,1); }
-#ch-menu-drawer.is-open .ch-drawer__ov{ opacity:1; }
+/* ===== Base tokens & type */
+#ch-menu-drawer, #ch-menu-drawer *{ font-family: var(--font-sans) !important; }
+#ch-menu-drawer{ --brand:#e03a2f; --bd:#e5e7eb; --ink:#111; --muted:#6b7280; }
 
-#ch-menu-drawer .ch-drawer__pn{
-  position:absolute; top:0; left:0; width:min(720px,92vw); height:100%;
-  background:linear-gradient(180deg, var(--brand, #E0302A) 0%, #c72b26 100%); color:#fff; transform:translateX(-104%);
-  transition:transform .42s cubic-bezier(.22,1,.36,1), box-shadow .24s ease; padding:14px; overflow:auto; box-shadow:0 12px 32px rgba(17,17,17,.12), 0 2px 8px rgba(17,17,17,.06);
-}
-#ch-menu-drawer.is-open .ch-drawer__pn{ transform:translateX(0); }
+/* Shell/overlay */
+.ch-mdrawer{position:fixed; inset:0; pointer-events:none; z-index:1300;}
+.ch-mdrawer.is-open{pointer-events:auto;}
+.ch-mdrawer__overlay{position:absolute; inset:0; background:rgba(0,0,0,.45); opacity:0; transition:opacity .22s; z-index:10;}
+.ch-mdrawer.is-open .ch-mdrawer__overlay{opacity:1;}
+.ch-mdrawer__panel{position:absolute; top:0; left:0; width:92vw; max-width:420px; height:100%; background:#fff; color:var(--ink); border-right:1px solid var(--bd); transform:translateX(-104%); transition:transform .32s cubic-bezier(.22,.61,.36,1); z-index:11; display:flex; flex-direction:column; -webkit-overflow-scrolling:touch;}
+.ch-mdrawer.is-open .ch-mdrawer__panel{transform:translateX(0);}
 
-#ch-menu-drawer .ch-drawer__hd{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding-bottom:12px; border-bottom:1px solid rgba(255,255,255,.22); }
-#ch-menu-drawer .title{ font:800 16px/1.2 var(--font-body, ui-sans-serif); letter-spacing:.2px; }
-#ch-menu-drawer .btn{ background:transparent; border:0; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
-#ch-menu-drawer .ico{ width:20px; height:20px; fill:currentColor; }
+/* Header + X (match cart look) */
+.ch-mdrawer__header{position:sticky; top:0; z-index:2; display:flex; align-items:center; justify-content:space-between; gap:8px; background:#fff; padding:14px; border-bottom:1px solid var(--bd);}
+.ch-mdrawer__title{font-weight:600; font-size:14px; text-transform:uppercase; letter-spacing:.02em;}
+.ch-btn{border:0; background:transparent; padding:6px; margin:-6px; cursor:pointer; min-width:44px; min-height:44px;}
+.ch-close{width:32px;height:32px;border-radius:999px;border:1px solid var(--bd);display:grid;place-items:center;}
+.ch-close:hover{background:#f9fafb;border-color:#dfe3e8;}
+.ch-close svg{width:18px;height:18px;stroke:currentColor;stroke-width:2;fill:none;}
 
-#ch-menu-drawer .grid{ display:grid; grid-template-columns:1fr; gap:12px; padding-top:12px; }
-@media(min-width:480px){ #ch-menu-drawer .grid{ grid-template-columns:1fr 1fr; } }
-#ch-menu-drawer .col{ background:#fff; color:#111; border-radius:12px; padding:12px; border:1px solid #E5E7EB; box-shadow:0 1px 0 rgba(0,0,0,.02); }
+/* Tabs — no bold/uppercase */
+.ch-tabs{display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:10px 14px 6px; border-bottom:1px solid var(--bd); background:#fff; position:sticky; top:56px; z-index:1;}
+.ch-tab{background:#fff; border:1px solid var(--bd); border-radius:10px; padding:10px 12px; cursor:pointer; font-weight:500; font-size:14px; color:#222; text-transform:none;}
+.ch-tab.is-active{border-color:var(--brand); box-shadow:0 0 0 1px var(--brand) inset; color:var(--brand);}
+.ch-tab:focus-visible{outline:2px solid var(--brand); outline-offset:2px;}
 
-#ch-menu-drawer .list{ list-style:none; margin:0; padding:0; display:grid; gap:4px; }
-#ch-menu-drawer .list a{ display:block; padding:12px; border-radius:10px; text-decoration:none; color:#111; font-weight:700; min-height:44px; }
-#ch-menu-drawer .list a:hover{ background:#F9FAFB; }
+/* Panes */
+.ch-tabpanes{position:relative; flex:1; overflow:hidden;}
+.ch-pane{height:100%; overflow:auto; padding:10px 14px 18px; -webkit-overflow-scrolling:touch; touch-action:pan-y;}
+.ch-pane[data-anim="in"]{animation:chFade .18s ease both;}
+@keyframes chFade{from{opacity:0; transform:translateY(6px)}to{opacity:1; transform:translateY(0)}}
 
-#ch-menu-drawer .sec + .sec{ margin-top:12px; }
-#ch-menu-drawer .sec__head{ width:100%; display:flex; align-items:center; justify-content:space-between; padding:12px; border-radius:12px; border:1px solid #E5E7EB; background:#fff; cursor:pointer; font-weight:800; }
-#ch-menu-drawer .sec__head:focus-visible{ outline:0; box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--brand, #E0302A); }
-#ch-menu-drawer .sec__body{ padding:10px 0 0; }
-#ch-menu-drawer .chev{ width:18px; height:18px; transition:transform .18s ease; }
-#ch-menu-drawer [aria-expanded="true"] .chev{ transform:rotate(180deg); }
+/* Lists/rows */
+.ch-list{list-style:none; margin:8px 0 0; padding:0; border:1px solid var(--bd); border-radius:10px; overflow:hidden; background:#fff;}
+.ch-list > li + li{border-top:1px solid var(--bd);}
+.ch-row{display:flex; align-items:center; gap:12px; padding:14px; color:var(--ink); text-decoration:none;}
+.ch-row:hover{background:#fafafa;}
+.ch-row .tx{font-weight:500; font-size:14px;}
 
-#ch-menu-drawer .chips{ display:flex; flex-wrap:wrap; gap:8px; }
-#ch-menu-drawer .chip{
-  display:inline-flex; align-items:center; height:32px; padding:0 12px; border-radius:999px;
-  border:1px solid #E5E7EB; background:#fff; color:#111; text-decoration:none; font-weight:700; font-size:12px;
-}
-#ch-menu-drawer .chip:hover{ background:#FFF4F3; border-color:var(--brand, #E0302A); }
+/* Icons (ensure shapes receive stroke/fill) */
+.ico{width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;color:#222;flex:0 0 20px;}
+.ico svg{width:20px;height:20px;}
+.ico svg *{stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; fill:none; vector-effect:non-scaling-stroke;}
 
-/* Motion reduce */
-@media (prefers-reduced-motion: reduce){
-  #ch-menu-drawer .ch-drawer__ov{ transition:none; }
-  #ch-menu-drawer .ch-drawer__pn{ transition:none; }
-}
+/* Category plus + accordion */
+.ch-list--cats .ch-row{position:relative; padding-right:44px;}
+.ch-plus{position:absolute; right:8px; top:50%; transform:translateY(-50%); width:28px; height:28px; border:1px solid var(--bd); border-radius:8px; background:#fff; cursor:pointer; display:grid; place-items:center; transition:background .15s,border-color .15s;}
+.ch-plus::before{content:""; width:18px; height:18px; background:currentColor;
+  -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="black" stroke-width="2" fill="none" stroke-linecap="round"/></svg>') center/18px 18px no-repeat;
+          mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="black" stroke-width="2" fill="none" stroke-linecap="round"/></svg>') center/18px 18px no-repeat;}
+.ch-plus[aria-expanded="true"]::before{
+  -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5 12h14" stroke="black" stroke-width="2" fill="none" stroke-linecap="round"/></svg>') center/18px 18px no-repeat;
+          mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5 12h14" stroke="black" stroke-width="2" fill="none" stroke-linecap="round"/></svg>') center/18px 18px no-repeat;}
+.ch-plus:hover{background:#f9fafb; border-color:#dfe3e8;}
+
+.ch-sub{list-style:none; margin:0; padding:0 0 10px 44px; background:#fff; border-top:1px solid var(--bd);
+  overflow:hidden; max-height:0; opacity:0; transition:max-height .24s ease, opacity .2s ease;}
+.ch-sub.show{max-height:600px; opacity:1;}
+.ch-sub li a{display:block; padding:10px 12px; color:#333; text-decoration:none; font-size:14px;}
+.ch-sub li a:hover{background:#f8f8f8;}
 </style>
 
 <script>
-(() => {
-  const drawer  = document.getElementById('ch-menu-drawer');
-  if(!drawer) return;
+(function(){
+  const root = document.getElementById('ch-menu-drawer'); if(!root) return;
+  const html    = document.documentElement;
+  const panel   = root.querySelector('.ch-mdrawer__panel');
+  const overlay = root.querySelector('.ch-mdrawer__overlay');
 
+  // open/close
+  let opener=null;
   const setOpen = (open) => {
-    drawer.classList.toggle('is-open', !!open);
-    drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
-    document.documentElement.style.overflow = open ? 'hidden' : '';
-    if(open){
-      const first = drawer.querySelector('button, a, [href], [tabindex]:not([tabindex="-1"])');
-      first && first.focus();
-    }
+    root.classList.toggle('is-open', !!open);
+    root.setAttribute('aria-hidden', open ? 'false' : 'true');
+    html.style.overflow = open ? 'hidden' : '';
+    if(open){ opener = document.activeElement; (root.querySelector('button, a[href]')||root).focus(); }
+    else{ opener && opener.focus && opener.focus({preventScroll:true}); }
   };
 
-  // open/close triggers (legacy + new)
-  document.addEventListener('click', (e)=>{
-    if(e.target.closest('[data-open-drawer],[data-drawer-open],[data-panel-open="menu"]')){ e.preventDefault(); setOpen(true); }
-    if(e.target.closest('#ch-menu-drawer [data-close], #ch-menu-drawer .ch-drawer__ov')){ e.preventDefault(); setOpen(false); }
-    const link = e.target.closest('#ch-menu-drawer a[href]');
-    if(link && !link.getAttribute('href').startsWith('#')) setOpen(false);
+  document.addEventListener('click', (e) => {
+    if(e.target.closest('[data-panel-open="menu"],[data-open-drawer],[data-drawer-open]')){ e.preventDefault(); setOpen(true); }
+    if(e.target.closest('#ch-menu-drawer [data-close]') || e.target === overlay){ e.preventDefault(); setOpen(false); }
   }, true);
 
-  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') setOpen(false); }, true);
+  document.addEventListener('keydown', (e) => {
+    if(!root.classList.contains('is-open')) return;
+    if(e.key === 'Escape'){ e.preventDefault(); setOpen(false); }
+    if(e.key === 'Tab'){
+      const f = root.querySelectorAll('a[href],button,[tabindex]:not([tabindex="-1"])');
+      const list = [...f].filter(el => !el.disabled && el.offsetParent !== null);
+      if(!list.length) return;
+      const first = list[0], last = list[list.length-1];
+      if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+    }
+  }, true);
 
-  // simple accordion
-  drawer.addEventListener('click', (e)=>{
-    const head = e.target.closest('#ch-menu-drawer [data-acc]');
-    if(!head) return;
-    const open = head.getAttribute('aria-expanded') === 'true';
-    head.setAttribute('aria-expanded', open ? 'false' : 'true');
-    const body = head.parentElement.querySelector('.sec__body');
-    if(body) body.hidden = open;
-  });
+  // tabs
+  const btnMenu  = root.querySelector('#ch-tab-menu');
+  const btnCats  = root.querySelector('#ch-tab-cats');
+  const paneMenu = root.querySelector('#ch-panel-menu');
+  const paneCats = root.querySelector('#ch-panel-cats');
+
+  function showPane(goCats){
+    btnMenu.classList.toggle('is-active', !goCats);
+    btnMenu.setAttribute('aria-selected', (!goCats).toString());
+    btnCats.classList.toggle('is-active', goCats);
+    btnCats.setAttribute('aria-selected', (goCats).toString());
+    paneMenu.hidden = goCats; paneMenu.style.display = goCats ? 'none':'block';
+    paneCats.hidden = !goCats; paneCats.style.display = goCats ? 'block':'none';
+    const pane = goCats ? paneCats : paneMenu; pane.setAttribute('data-anim','in');
+    setTimeout(()=>pane.removeAttribute('data-anim'), 220);
+  }
+  btnMenu && btnMenu.addEventListener('click', (e)=>{ e.preventDefault(); showPane(false); });
+  btnCats && btnCats.addEventListener('click', (e)=>{ e.preventDefault(); showPane(true); });
+
+  // single-open accordion with animation
+  root.addEventListener('click', (e)=>{
+    const plus = e.target.closest('.ch-plus'); if(!plus) return;
+    e.preventDefault();
+    const id = plus.getAttribute('aria-controls');
+    const current = id && root.querySelector('#'+id);
+    const expanded = plus.getAttribute('aria-expanded') === 'true';
+
+    // close others
+    root.querySelectorAll('.ch-plus[aria-expanded="true"]').forEach(p=>{
+      if(p!==plus){
+        p.setAttribute('aria-expanded','false');
+        const sib = root.querySelector('#'+p.getAttribute('aria-controls'));
+        if(sib){ sib.classList.remove('show'); sib.hidden = true; }
+      }
+    });
+
+    plus.setAttribute('aria-expanded', (!expanded).toString());
+    if(current){
+      current.hidden = expanded;
+      current.classList.toggle('show', !expanded);
+    }
+  }, true);
+
+  // swipe-to-close
+  let sx=null, sy=null, cx=null, cy=null;
+  panel.addEventListener('touchstart',(e)=>{ const t=e.touches[0]; sx=t.clientX; sy=t.clientY; cx=sx; cy=sy; panel.style.transition='none'; },{passive:true});
+  panel.addEventListener('touchmove', (e)=>{ if(sx===null) return; const t=e.touches[0]; cx=t.clientX; cy=t.clientY; const dx=cx-sx, dy=Math.abs(cy-sy); if(Math.abs(dx)>6 && Math.abs(dx)>dy){ panel.style.transform = `translateX(${Math.max(0,dx)}px)`; } },{passive:true});
+  panel.addEventListener('touchend', ()=>{ if(sx===null) return; const dx=Math.max(0,(cx||0)-sx); panel.style.transition=''; panel.style.transform=''; if(dx>80){ setOpen(false); } sx=sy=cx=cy=null; },{passive:true});
+
+  // API
+  window.CHMenuDrawer = { open: ()=>setOpen(true), close: ()=>setOpen(false), showCategories:()=>showPane(true), showMenu:()=>showPane(false) };
 })();
 </script>

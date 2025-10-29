@@ -3,7 +3,8 @@
 <head>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..900&display=swap" rel="stylesheet">
+  {{ 'fonts.css' | asset_url | stylesheet_tag }}
 
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
@@ -72,8 +73,241 @@
   {{ content_for_header }}
 
 
-	<style rel='text/css'>#w3-product-accessories{padding:0 5px !important;}</style>
+	<style rel='text/css'>#w3-product-accessories{padding:0 5px !important;}
+  /* === CART PANEL HARD OVERRIDES === */
 
+/* 0) Make the cart drawer sit ABOVE the sticky header */
+.ch-panel__ov{ z-index: 20000 !important; }
+.ch-panel__pn{ z-index: 20001 !important; }
+
+/* 1) Kill the built-in side-panel header so we only see our “SHOPPING CART” */
+.ch-panel[data-ch-panel="cart"] .ch-panel__hd,
+.ch-panel[data-ch-panel="cart"] .drawer__header,
+.ch-panel[data-ch-panel="cart"] .drawer__title{ display:none !important; }
+
+/* 2) Remove legacy policy/terms blocks the theme injects */
+.ch-panel[data-ch-panel="cart"] .ajaxcart__footer,
+.ch-panel[data-ch-panel="cart"] .drawer__footer,
+.ch-panel[data-ch-panel="cart"] .ajaxcart__agree,
+.ch-panel[data-ch-panel="cart"] .cart__policies,
+.ch-panel[data-ch-panel="cart"] .cart__terms{ display:none !important; }
+
+/* 3) If ANY stray labels still render, hide all labels EXCEPT our custom one */
+.ch-panel[data-ch-panel="cart"] label:not(.terms){ display:none !important; }
+
+/* 4) Footer layout */
+.ch-panel[data-ch-panel="cart"] .cart-ft{ border-top:1px solid #E5E7EB; padding:14px 14px 16px; display:grid; gap:12px; background:#fff; }
+.ch-panel[data-ch-panel="cart"] .fine,
+.ch-panel[data-ch-panel="cart"] .terms{ color:#6B7280 !important; font:600 12px/1.35 Inter,system-ui,sans-serif !important; }
+
+/* 5) Stack CTAs (View Cart above Checkout) */
+.ch-panel[data-ch-panel="cart"] .cta{ display:grid !important; grid-template-columns:1fr !important; gap:10px !important; }
+
+/* 6) Button shape: height 32, padding 0 14, radius 8 (10 on mobile) */
+.ch-panel[data-ch-panel="cart"] .cta a,
+.ch-panel[data-ch-panel="cart"] .cta .btn,
+.ch-panel[data-ch-panel="cart"] .cta button{
+  height:32px !important; padding:0 14px !important; border-radius:8px !important;
+  font:600 13px/1 Inter,system-ui,sans-serif !important; text-decoration:none !important;
+  display:inline-flex !important; align-items:center !important; justify-content:center !important;
+}
+@media (max-width:640px){
+  .ch-panel[data-ch-panel="cart"] .cta a,
+  .ch-panel[data-ch-panel="cart"] .cta .btn,
+  .ch-panel[data-ch-panel="cart"] .cta button{ border-radius:10px !important; }
+}
+
+/* 7) Style by target (robust against theme class names) */
+/* View cart = black outline + black text; hover → brand red fill + white text */
+.ch-panel[data-ch-panel="cart"] .cart-ft .cta a[href="/cart"]{
+  background:#fff !important; color:#111 !important; border:1px solid #111 !important;
+}
+.ch-panel[data-ch-panel="cart"] .cart-ft .cta a[href="/cart"]:hover{
+  background:#e03a2f !important; border-color:#e03a2f !important; color:#fff !important;
+}
+
+/* Checkout = solid brand red */
+.ch-panel[data-ch-panel="cart"] .cart-ft .cta a[data-checkout],
+.ch-panel[data-ch-panel="cart"] .cart-ft .cta a[href="/checkout"]{
+  background:#e03a2f !important; border:1px solid #e03a2f !important; color:#fff !important;
+}
+.ch-panel[data-ch-panel="cart"] .cart-ft .cta a[data-checkout]:hover,
+.ch-panel[data-ch-panel="cart"] .cart-ft .cta a[href="/checkout"]:hover{
+  background:#d12f24 !important; border-color:#d12f24 !important;
+}
+
+</style>
+
+<!-- CART: GLOBAL HOTFIX (drop in theme.liquid before </body>) -->
+<style id="cart-hotfix">
+  /* Always above header + visible page gap */
+  .ch-panel[data-ch-panel="cart"] .ch-panel__ov,
+  .cart-drawer__overlay{ z-index: 999990 !important; }
+  .ch-panel[data-ch-panel="cart"] .ch-panel__pn,
+  #CartDrawer, .cart-drawer{ z-index: 999991 !important; width:min(520px, calc(100vw - 44px)) !important; border-radius:14px !important; overflow-x:hidden !important; }
+
+  /* Hide any built-in drawer header; we use our own */
+  .ch-panel[data-ch-panel="cart"] .ch-panel__hd,
+  .ch-panel[data-ch-panel="cart"] .drawer__header,
+  .ch-panel[data-ch-panel="cart"] .drawer__title{ display:none !important; }
+
+  /* Typography + sentence case titles */
+  .ch-panel[data-ch-panel="cart"] *{ font-weight:400 !important; }
+  .ch-panel[data-ch-panel="cart"] .it-title{ text-transform:none !important; }
+
+  /* Stepper look (works for our .stepper and Dawn-like .quantity) */
+  .ch-panel[data-ch-panel="cart"] .stepper,
+  #CartDrawer .quantity, .cart-drawer .quantity{
+    display:grid !important; grid-template-columns:32px 40px 32px !important; height:34px !important;
+    border:1px solid #111 !important; border-radius:10px !important; overflow:hidden !important;
+  }
+  .ch-panel[data-ch-panel="cart"] .stepper input,
+  #CartDrawer .quantity__input, .cart-drawer .quantity__input{ border:0 !important; background:transparent !important; text-align:center !important; font-size:13px !important; }
+  .ch-panel[data-ch-panel="cart"] .stepper button,
+  #CartDrawer .quantity__button, .cart-drawer .quantity__button{ border:0 !important; background:#fff !important; color:#111 !important; }
+  /* plus on black; hover red */
+  .ch-panel[data-ch-panel="cart"] .stepper .plus,
+  #CartDrawer .quantity__button:last-child,
+  .cart-drawer .quantity__button:last-child{ background:#111 !important; color:#fff !important; }
+  .ch-panel[data-ch-panel="cart"] .stepper button:hover,
+  #CartDrawer .quantity__button:hover,
+  .cart-drawer .quantity__button:hover{ color:#e03a2f !important; }
+  #CartDrawer .quantity__button:last-child:hover,
+  .cart-drawer .quantity__button:last-child:hover{ background:#e03a2f !important; color:#fff !important; }
+
+  /* Icons: red on hover */
+  .ch-panel[data-ch-panel="cart"] .icon-btn,
+  .ch-panel[data-ch-panel="cart"] [data-cart-close]{ transition:color .15s,border-color .15s; }
+  .ch-panel[data-ch-panel="cart"] .icon-btn:hover{ color:#e03a2f !important; }
+  .ch-panel[data-ch-panel="cart"] [data-cart-close]:hover{ color:#e03a2f !important; border-color:#e03a2f !important; }
+
+  /* Checkbox tick color + sentence case */
+  .ch-panel[data-ch-panel="cart"] input[type="checkbox"]{ accent-color:#e03a2f !important; }
+  .ch-panel[data-ch-panel="cart"] .terms{ text-transform:none !important; color:#6B7280 !important; }
+
+  /* Center CTAs, medium width; no horizontal rail */
+  .ch-panel[data-ch-panel="cart"] .cta,
+  #CartDrawer .cart-drawer__footer{ display:grid !important; justify-items:center !important; gap:8px !important; }
+  .ch-panel[data-ch-panel="cart"] .cta a,
+  #CartDrawer a[href="/cart"], #CartDrawer a[href="/checkout"],
+  .cart-drawer a[href="/cart"], .cart-drawer a[href="/checkout"]{
+    width:min(320px, 92%) !important; margin:0 auto !important; height:32px !important; padding:0 14px !important; border-radius:8px !important;
+    display:inline-flex !important; align-items:center !important; justify-content:center !important; font-size:13px !important;
+  }
+  .ch-panel[data-ch-panel="cart"] a[href="/cart"],
+  #CartDrawer a[href="/cart"], .cart-drawer a[href="/cart"]{ background:#fff !important; color:#111 !important; border:1px solid #111 !important; }
+  .ch-panel[data-ch-panel="cart"] a[href="/cart"]:hover,
+  #CartDrawer a[href="/cart"]:hover, .cart-drawer a[href="/cart"]:hover{ background:#e03a2f !important; border-color:#e03a2f !important; color:#fff !important; }
+  .ch-panel[data-ch-panel="cart"] a[href="/checkout"],
+  #CartDrawer a[href="/checkout"], .cart-drawer a[href="/checkout"]{ background:#e03a2f !important; border:1px solid #e03a2f !important; color:#fff !important; }
+  .ch-panel[data-ch-panel="cart"] a[href="/checkout"]:hover,
+  #CartDrawer a[href="/checkout"]:hover, .cart-drawer a[href="/checkout"]:hover{ background:#d12f24 !important; border-color:#d12f24 !important; }
+
+  /* Kill upsells/toolbars/policies that bloat the drawer */
+  .ch-panel[data-ch-panel="cart"] .you-may-also-like,
+  .ch-panel[data-ch-panel="cart"] .product-recommendations,
+  .ch-panel[data-ch-panel="cart"] [id*="CartDrawer-Recommendations"],
+  .ch-panel[data-ch-panel="cart"] [class*="recommendation"],
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__toolbar,
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree,
+  .ch-panel[data-ch-panel="cart"] .cart__policies,
+  .ch-panel[data-ch-panel="cart"] .cart__terms{ display:none !important; }
+  
+</style>
+
+<script id="cart-hotfix-js">
+(function(){
+  const CURRENCY = {{ shop.currency | json }} || "PHP";
+  const LOCALE   = {{ request.locale.iso_code | json }} || "en-PH";
+
+  const money = (c) => new Intl.NumberFormat(LOCALE,{style:'currency',currency:CURRENCY}).format((+c||0)/100);
+
+  function $panel(){
+    return document.querySelector('.ch-panel[data-ch-panel="cart"]') ||
+           document.querySelector('#CartDrawer') ||
+           document.querySelector('.cart-drawer');
+  }
+
+  /* Hard refresh cart and repaint subtotal (safe if custom markup) */
+  function refresh(){
+    fetch('/cart.js',{headers:{'Accept':'application/json'},cache:'no-store'})
+      .then(r=>r.json())
+      .then(cart=>{
+        const p = $panel(); if (!p) return;
+        const sub = p.querySelector('[data-cart-subtotal]') || p.querySelector('[data-cart-subtotal-price]');
+        if (sub) sub.textContent = money(cart.items_subtotal_price||0);
+        // If our custom list exists, repaint via event hook
+        document.dispatchEvent(new CustomEvent('cart:refreshed',{detail:cart}));
+      }).catch(()=>{});
+  }
+
+  /* Intercept +/−/trash everywhere (prevents theme listeners from double-firing) */
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('.stepper [data-inc], .stepper [data-dec], [data-remove], .quantity__button');
+    if(!btn) return;
+    const row = btn.closest('[data-key]') || btn.closest('[data-line]') || btn.closest('[data-cart-item]');
+    const qtyInput = row && (row.querySelector('[data-qty]') || row.querySelector('.quantity__input'));
+    if(!row || !qtyInput) return;
+
+    e.preventDefault(); e.stopPropagation();
+
+    let q = parseInt(qtyInput.value,10) || 0;
+    if (btn.matches('[data-inc], .quantity__button:last-child')) q++;
+    else if (btn.matches('[data-dec], .quantity__button:first-child')) q = Math.max(0, q-1);
+    else if (btn.hasAttribute('data-remove')) q = 0;
+
+    const key  = row.getAttribute('data-key');
+    const line = parseInt(row.getAttribute('data-line')||'1',10);
+
+    const payload = key ? { id: key, quantity: q } : { line, quantity: q };
+
+    fetch('/cart/change.js',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body: JSON.stringify(payload)
+    }).then(()=>refresh()).catch(()=>refresh());
+  }, true);
+
+  /* Robust close for the X */
+  document.addEventListener('click', function(e){
+    const x = e.target.closest('[data-cart-close]');
+    if(!x) return; e.preventDefault(); e.stopPropagation();
+    try{
+      if (window.CHPanels?.close) { window.CHPanels.close('cart'); return; }
+      const p = $panel(); const shell = p?.closest('.ch-panel'); shell?.removeAttribute('data-open');
+      document.querySelector('.ch-panel__ov, .cart-drawer__overlay')?.click();
+    }catch(_){}
+  }, true);
+
+  /* Refresh when your custom panel broadcasts open */
+  document.addEventListener('ch:panel', (e)=>{ const d=e.detail||{}; if(d.name==='cart' && d.open) refresh(); });
+})();
+</script>
+<style>
+/* ---- Global side-panel header/X unifier ---- */
+:root{ --font-sans: var(--font-sans, "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif); }
+
+.ch-panel, .ch-panel * { font-family: var(--font-sans) !important; }
+.ch-panel__ov{ background:rgba(0,0,0,.45); z-index: 12000; }
+.ch-panel__pn{ z-index: 12001; } /* always above header */
+
+.ch-panel__hd{
+  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background:#fff; border-bottom:1px solid #e5e7eb; padding: 12px 14px;
+  font-family: var(--font-sans);
+}
+.ch-panel__title{
+  margin:0; font: 700 14px/1 var(--font-sans); text-transform: uppercase; letter-spacing:.02em;
+}
+
+.ch-close, .cart-x, .ms-x{
+  width:32px; height:32px; display:grid; place-items:center;
+  border:0; background:transparent; color:#111; border-radius:8px;
+}
+.ch-close svg, .cart-x svg, .ms-x svg{ width:20px; height:20px; stroke:currentColor; stroke-width:1.8; fill:none; }
+.ch-close:hover, .cart-x:hover, .ms-x:hover{ background:#f6f7f9; }
+</style>
 
 </head>
 
@@ -109,7 +343,7 @@
   </a>
 
   {% section 'header' %}
-
+{% render 'breadcrumbs', menu: 'main-menu' %}
   <div class="page-container page-element is-moved-by-drawer">
     <main class="main-content" id="MainContent" role="main">
       {{ content_for_layout }}

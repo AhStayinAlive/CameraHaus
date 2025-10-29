@@ -1,5 +1,5 @@
 {% comment %}
-Shop by Brands — Carousel (shared controls; arrows outside, dots inside)
+Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button instead of search)
 {% endcomment %}
 
 <section id="ch-brands-{{ section.id }}" class="ch-brands ch-brands--photo" role="region" aria-labelledby="ch-brands-heading-{{ section.id }}">
@@ -7,6 +7,7 @@ Shop by Brands — Carousel (shared controls; arrows outside, dots inside)
   {%- if heading_tag != 'h2' and heading_tag != 'h3' and heading_tag != 'h4' -%}{% assign heading_tag = 'h2' %}{%- endif -%}
 
   <div class="page-width">
+
     {%- if section.blocks.size > 0 -%}
       {%- assign letters = '|' -%}
       {%- for block in section.blocks -%}
@@ -15,20 +16,26 @@ Shop by Brands — Carousel (shared controls; arrows outside, dots inside)
         {%- unless letters contains key -%}{%- assign letters = letters | append: L | append: '|' -%}{%- endunless -%}
       {%- endfor -%}
 
-      <{{ heading_tag }} id="ch-brands-heading-{{ section.id }}" class="chb-heading">
-        {{ section.settings.heading_text | default: 'Brands We Love' }}
-      </{{ heading_tag }}>
+      <div class="chb-top">
+        <{{ heading_tag }} id="ch-brands-heading-{{ section.id }}" class="chb-heading">
+          {{ section.settings.heading_text | default: 'Brands We Love' }}
+        </{{ heading_tag }}>
 
-      <div class="chb-controls" role="group" aria-label="Brand filters">
-        {%- if section.settings.enable_search -%}
-        <div class="chb-search">
-          <label class="sr-only" for="chb-search-{{ section.id }}">Search brands</label>
-          <input id="chb-search-{{ section.id }}" data-search type="search" inputmode="search" autocomplete="off" spellcheck="false"
-                 placeholder="Search brands…" aria-label="Search brands"/>
-        </div>
+        {%- if section.settings.cta_link != blank or section.settings.cta_text != blank -%}
+          <a
+            class="chb-search-btn chb-cta-btn"
+            href="{{ section.settings.cta_link | default: '#' }}"
+            aria-label="Browse brands"  <!-- neutral label works for both -->
+          
+            <span class="chb-search-text" data-mobile="View brands">
+              {{ section.settings.cta_text | default: 'Browse all brands' }}
+            </span>
+            <svg class="chb-search-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">…</svg>
+          </a>
         {%- endif -%}
+      </div>
 
-        {%- if section.settings.enable_az_filter -%}
+      {%- if section.settings.enable_az_filter -%}
         {%- assign letters_arr = letters | split: '|' -%}
         <div class="chb-az" data-az aria-label="Filter by first letter">
           <ul role="list" class="chb-az-list">
@@ -38,11 +45,11 @@ Shop by Brands — Carousel (shared controls; arrows outside, dots inside)
             {% endif %}{% endfor %}
           </ul>
         </div>
-        {%- endif -%}
-      </div>
+      {%- endif -%}
 
+      <!-- Viewport (arrows live INSIDE here so they center on cards) -->
       <div class="chb-viewport">
-        <ul role="list" class="chb-track" data-track tabindex="0" aria-label="Brands We Love">
+        <ul role="list" class="chb-track" data-track tabindex="0" aria-label="{{ section.settings.heading_text | default: 'Brands We Love' }}">
           {%- for block in section.blocks -%}
             {%- if block.settings.pin_to_top -%}
               {%- assign bname = block.settings.brand_name | strip -%}
@@ -51,7 +58,7 @@ Shop by Brands — Carousel (shared controls; arrows outside, dots inside)
               {%- assign alt_text = block.settings.alt_text | default: bname -%}
               {%- assign link_url = block.settings.brand_url | default: '#' -%}
               <li role="listitem" class="chb-tile" data-tile data-brand="{{ bname_down | escape }}" data-letter="{{ bletter }}" data-featured="true">
-                <a class="chb-photo-card" href="{{ link_url }}" aria-label="Shop {{ bname | escape }}">
+                <a class="chb-photo-card" href="{{ link_url }}" aria-label="Shop {{ bname | escape }}" data-cta="Shop {{ bname | escape }}">
                   <span class="chb-photo-wrap" aria-hidden="true">
                     {%- if block.settings.brand_photo -%}
                       {%- assign src_360  = block.settings.brand_photo | image_url: width: 360 -%}
@@ -89,7 +96,7 @@ Shop by Brands — Carousel (shared controls; arrows outside, dots inside)
               {%- assign alt_text = block.settings.alt_text | default: bname -%}
               {%- assign link_url = block.settings.brand_url | default: '#' -%}
               <li role="listitem" class="chb-tile" data-tile data-brand="{{ bname_down | escape }}" data-letter="{{ bletter }}" data-featured="false">
-                <a class="chb-photo-card" href="{{ link_url }}" aria-label="Shop {{ bname | escape }}">
+                <a class="chb-photo-card" href="{{ link_url }}" aria-label="Shop {{ bname | escape }}" data-cta="Shop {{ bname | escape }}">
                   <span class="chb-photo-wrap" aria-hidden="true">
                     {%- if block.settings.brand_photo -%}
                       {%- assign src_360  = block.settings.brand_photo | image_url: width: 360 -%}
@@ -119,9 +126,16 @@ Shop by Brands — Carousel (shared controls; arrows outside, dots inside)
           {%- endfor -%}
         </ul>
 
-        <!-- Dots INSIDE the container -->
-        <div class="chpc__dots chb-dots" data-dots></div>
+        {% render 'chpc-controls',
+            id: section.id,
+            show_dots: false,
+            show_arrows: true,
+            mobile_hide_arrows: true,
+            placement: 'inside' %}
       </div><!-- /.chb-viewport -->
+
+      <!-- dots live outside so arrows center on cards -->
+      <div class="chpc__dots chb-dots" data-dots></div>
 
     {%- else -%}
       <{{ heading_tag }} id="ch-brands-heading-{{ section.id }}" class="chb-heading">{{ section.settings.heading_text | default: 'Brands We Love' }}</{{ heading_tag }}>
@@ -129,115 +143,305 @@ Shop by Brands — Carousel (shared controls; arrows outside, dots inside)
     {%- endif -%}
   </div><!-- /.page-width -->
 
-  {% comment %} Arrows OUTSIDE the container so they sit at section edges {% endcomment %}
-  {% render 'chpc-controls',
-      id: section.id,
-      show_dots: false,
-      show_arrows: true,
-      mobile_hide_arrows: true,
-      placement: 'outside' %}
+<style>
+  #ch-brands-{{ section.id }}{
+    padding-top:16px; padding-bottom:16px;
+    --brand:#D12F24;          /* Camerahaus red */
+    --gap: {{ section.settings.tile_gap | default: 14 }}px;
+    --radius: {{ section.settings.tile_radius | default: 16 }}px;
+  }
 
-  <style>
-    #ch-brands-{{ section.id }}{
-      --ch-red:#E0302A; --ink:#111; --muted:#6b7280; --border:#e5e7eb;
-      --gap: {{ section.settings.tile_gap | default: 14 }}px;
-      --radius: {{ section.settings.tile_radius | default: 16 }}px;
-      --shadow: 0 2px 10px rgba(0,0,0,.08);
-      --container-pad: 28px;
-      --edge: 12px;
-      --arrow-size: 36px; --arrow-border: 2px;
-      position: relative;
-      color:var(--ink);
+  /* container */
+  #ch-brands-{{ section.id }} .page-width{ max-width:1440px; margin:0 auto; padding:0 28px; }
+  @media (max-width:739.98px){ #ch-brands-{{ section.id }} .page-width{ padding:0 16px; } }
+
+  .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+  /* heading + CTA row */
+  #ch-brands-{{ section.id }} .chb-top{
+    display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0 0 10px; flex-wrap:wrap;
+  }
+  #ch-brands-{{ section.id }} .chb-heading{
+    margin:0; font-weight:700; letter-spacing:-.01em; line-height:1.15;
+    font-size:clamp(24px, 3vw + 8px, 32px);
+    color: var(--heading-color, inherit);
+  }
+
+  /* CTA button */
+  #ch-brands-{{ section.id }} .chb-search-btn{
+    display:inline-flex; align-items:center; gap:8px;
+    min-width:40px; height:36px; padding:0 12px;
+    border:0; border-radius:8px; cursor:pointer; color:#fff; background:var(--brand);
+    font-weight:700; line-height:1; text-decoration:none; position:relative;
+  }
+
+  /* —— kill ANY theme-added left prefix (the stray “>”) —— */
+  #ch-brands-{{ section.id }} .chb-search-btn::before,
+  #ch-brands-{{ section.id }} .chb-cta-btn::before,
+  #ch-brands-{{ section.id }} .chb-search-btn *::before{ content:none !important; display:none !important; }
+
+  /* right-side arrow */
+  #ch-brands-{{ section.id }} .chb-search-btn::after{
+    content:"\2192"; /* → */
+    font-weight:700; line-height:1;
+    margin-left:6px;
+  }
+
+  /* hide inline SVG icon; we use the glyph */
+  #ch-brands-{{ section.id }} .chb-search-icon{ display:none !important; }
+
+  /* viewport + track */
+  .chb-viewport{ position:relative; }
+  .chb-track{
+    display:flex; gap:var(--gap);
+    overflow-x:auto; padding:4px 8px 12px;
+    scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; align-items:stretch;
+  }
+  .chb-track::-webkit-scrollbar{ display:none; }
+
+  /* desktop base widths */
+  .chb-track > .chb-tile{ flex:0 0 min(360px, 33.33%); scroll-snap-align:start; }
+  @media (max-width:1099.98px){ .chb-track > .chb-tile{ flex-basis:44%; } }
+
+  /* MOBILE FULL-BLEED + 2-up, taller 4:3 posters */
+  @media (max-width:739.98px){
+    #ch-brands-{{ section.id }} .chb-viewport{
+      width: calc(100vw - (env(safe-area-inset-left) + env(safe-area-inset-right)));
+      margin-left: calc(50% - 50vw + env(safe-area-inset-left));
+      margin-right: calc(50% - 50vw + env(safe-area-inset-right));
     }
-    @media (max-width:739.98px){ #ch-brands-{{ section.id }}{ --container-pad: 16px; } }
-
-    /* hide any legacy controls */
-    #ch-brands-{{ section.id }} .chb-arrow,
-    #ch-brands-{{ section.id }} .chb-dots-legacy{ display:none !important; }
-
-    .page-width{ max-width:1440px; margin:0 auto; padding:0 var(--container-pad); }
-
-    .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-    .chb-heading{font-weight:800;font-size:clamp(1.2rem,1.8vw,1.5rem);margin:0 0 12px}
-
-    .chb-controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;margin-bottom:12px}
-    .chb-search{flex:1 1 220px;min-width:220px;max-width:460px}
-    [data-search]{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:#fff}
-    [data-search]:focus{outline:3px solid transparent;box-shadow:0 0 0 3px rgba(224,48,42,.28)}
-    .chb-az .chb-az-list{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0;padding:0;list-style:none}
-    .chb-chip{border:1px solid var(--border);background:#fff;border-radius:999px;padding:6px 10px;font-size:.85rem;line-height:1;cursor:pointer}
-    .chb-chip:is(:hover,:focus){box-shadow:0 0 0 3px rgba(224,48,42,.18);outline:none}
-    .chb-chip.is-active{border-color:var(--ch-red);color:var(--ch-red)}
-
-    .chb-viewport{position:relative}
-    .chb-track{
-      display:flex; gap:var(--gap);
-      overflow-x:auto; padding:4px 8px 10px;
-      scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
-      scrollbar-width:none; align-items:stretch;
+    #ch-brands-{{ section.id }} .chb-track{
+      padding-left: max(16px, env(safe-area-inset-left));
+      padding-right: max(16px, env(safe-area-inset-right));
+      scroll-padding-inline: max(16px, env(safe-area-inset-left));
     }
-    .chb-track::-webkit-scrollbar{display:none}
-    .chb-track > .chb-tile{flex:0 0 min(300px, 33.33%); scroll-snap-align:start}
-    @media (max-width:1099.98px){ .chb-track > .chb-tile{flex-basis:44%} }
-    @media (max-width:739.98px){  .chb-track > .chb-tile{flex-basis:80%} }
-
-    .chb-tile{list-style:none}
-    .chb-photo-card{position:relative;display:block;width:100%;aspect-ratio:4/3;border-radius:var(--radius);overflow:hidden;background:#f3f4f6;box-shadow:var(--shadow);text-decoration:none;color:inherit}
-    .chb-photo{width:100%;height:100%;object-fit:cover;display:block;transform:scale(1.001);transition:transform .35s ease}
-    .chb-photo-card:hover .chb-photo{transform:scale(1.03)}
-    .chb-gradient{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg, rgba(0,0,0,0.00) 55%, rgba(0,0,0,0.35) 100%)}
-    .chb-photo-card:focus-visible{outline:3px solid transparent;box-shadow:0 0 0 3px rgba(224,48,42,.38), var(--shadow)}
-    .chb-logo-wrap{position:absolute;z-index:2;left:12px;right:12px;bottom:10px;display:flex;align-items:flex-end;gap:10px}
-    .chb-logo{max-width:84%;max-height:clamp(56px,10vw,96px);width:auto;height:auto;filter:drop-shadow(0 1px 6px rgba(0,0,0,.55))}
-    .chb-text-logo{display:inline-block;padding:6px 10px;border-radius:10px;background:rgba(0,0,0,.5);color:#fff;font-weight:700;font-size:.95rem;backdrop-filter:saturate(120%) blur(2px)}
-    .chb-badge{position:absolute;top:10px;left:10px;z-index:2;font-size:.75rem;color:#fff;background:#E0302A;border-radius:999px;padding:4px 8px;box-shadow:0 4px 10px rgba(0,0,0,.16)}
-
-    /* ARROWS: outside (full-bleed) */
-    #ch-brands-{{ section.id }} .chpc__arrows[data-placement="outside"]{ position:absolute; inset:0; pointer-events:none; }
-    #ch-brands-{{ section.id }} .chpc__arrow{
-      pointer-events:auto; position:absolute; top:50%; transform:translateY(-50%);
-      width:var(--arrow-size); height:var(--arrow-size);
-      border-radius:999px; border:var(--arrow-border) solid var(--ch-red);
-      background:#fff; color:var(--ch-red); display:grid; place-items:center;
-      box-shadow:0 2px 8px rgba(224,48,42,.12); z-index:10; cursor:pointer;
-      transition:background .2s ease, color .2s ease, box-shadow .2s ease, border-color .2s ease;
+    #ch-brands-{{ section.id }} .chb-track > .chb-tile{
+      flex-basis: calc((100% - var(--gap)) / 2);
+      min-width: 0;
     }
-    #ch-brands-{{ section.id }} .chpc__arrow--prev{ left: calc(var(--container-pad) * -1 + var(--edge)); }
-    #ch-brands-{{ section.id }} .chpc__arrow--next{ right: calc(var(--container-pad) * -1 + var(--edge)); }
-    #ch-brands-{{ section.id }} .chpc__arrow:hover{ background:var(--ch-red); color:#fff; }
-    #ch-brands-{{ section.id }} .chpc__arrow[disabled]{ opacity:.38; pointer-events:none; }
-    @media (max-width:739.98px){
-      #ch-brands-{{ section.id }} .chpc__arrows[data-hide-mobile="true"]{ display:none !important; }
+    #ch-brands-{{ section.id }} .chb-photo-card{ aspect-ratio: 4/3; }
+    #ch-brands-{{ section.id }} .chb-logo{ max-height: clamp(48px, 9vw, 72px); }
+  }
+
+  .chb-tile{ list-style:none; }
+
+  /* poster card look */
+  .chb-photo-card{ position:relative; display:block; width:100%; aspect-ratio:16/9; border-radius:var(--radius); overflow:hidden; background:#f3f4f6; box-shadow:0 6px 18px rgba(0,0,0,.10); text-decoration:none; color:inherit; transform:translateZ(0); }
+  .chb-photo{ width:100%; height:100%; object-fit:cover; display:block; transform:scale(1.001); transition:transform .35s ease; }
+  .chb-photo-card:hover .chb-photo{ transform:scale(1.03); }
+  .chb-gradient{ position:absolute; inset:0; z-index:1; background:linear-gradient(180deg, rgba(0,0,0,0.00) 45%, rgba(0,0,0,0.40) 100%); }
+  .chb-photo-card:focus-visible{ outline:3px solid transparent; box-shadow:0 0 0 3px color-mix(in srgb, var(--brand) 38%, transparent), 0 10px 24px rgba(0,0,0,.14); }
+  .chb-logo-wrap{ position:absolute; z-index:2; left:14px; right:14px; bottom:12px; display:flex; align-items:flex-end; gap:10px; }
+  .chb-logo{ max-width:84%; max-height:clamp(56px,10vw,96px); width:auto; height:auto; filter:drop-shadow(0 1px 6px rgba(0,0,0,.55)); }
+  .chb-text-logo{ display:inline-block; padding:6px 10px; border-radius:10px; background:rgba(0,0,0,.5); color:#fff; font-weight:700; font-size:.95rem; backdrop-filter:saturate(120%) blur(2px); }
+
+  /* CTA pill on cards */
+  .chb-photo-card::after{
+    content: attr(data-cta);
+    position:absolute; right:12px; bottom:12px; z-index:2;
+    padding:6px 10px; border-radius:999px; background:var(--brand); color:#fff; font-weight:700; font-size:12px;
+    box-shadow:0 2px 10px rgba(0,0,0,.18); opacity:0; transform:translateY(4px); transition:opacity .25s ease, transform .25s ease;
+  }
+  @media (hover:hover){ .chb-photo-card:hover::after{ opacity:1; transform:translateY(0); } }
+  @media (max-width:739.98px){ .chb-photo-card::after{ opacity:1; } }
+
+  /* Featured ring */
+  .chb-tile[data-featured="true"] .chb-photo-card{ box-shadow:0 0 0 2px var(--brand) inset, 0 10px 24px rgba(209,47,36,.14); }
+  .chb-badge{ position:absolute; top:10px; left:10px; z-index:2; font-size:.75rem; color:#fff; background:var(--brand); border-radius:999px; padding:4px 8px; box-shadow:0 4px 10px rgba(0,0,0,.16); }
+
+  /* ARROWS — overlay to the viewport; centered; desktop-only */
+  #ch-brands-{{ section.id }} .chb-viewport{ position:relative; }
+  #ch-brands-{{ section.id }} .chb-viewport > .chpc__arrows{ position:absolute; top:0; right:0; bottom:0; left:0; pointer-events:none; z-index:6; }
+  #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow{
+    position:absolute; top:50%; transform:translateY(-50%); pointer-events:auto;
+    width:38px; height:38px; display:grid; place-items:center;
+    background:transparent; color:var(--brand);
+    border:1.5px solid var(--brand); border-radius:9999px;
+    transition: background .15s ease, color .15s ease, transform .08s ease; cursor:pointer;
+  }
+  #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow:hover{ background:var(--brand); color:#fff; }
+  #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow:active{ transform:translateY(-50%) scale(.96); }
+  #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow[disabled]{ opacity:.35; filter:grayscale(1); pointer-events:none; }
+  #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow--prev{ left:-24px; }
+  #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow--next{ right:-24px; }
+
+  /* absolutely hide arrows under 1100px */
+  @media (max-width:1099.98px){
+    #ch-brands-{{ section.id }} .chb-viewport > .chpc__arrows,
+    #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow{ display:none !important; }
+  }
+
+  /* dots — hidden */
+  #ch-brands-{{ section.id }} .chb-dots{ display:none !important; }
+
+  /* === Mobile: small pill, sits beside heading; swap label to 'View brands' === */
+  @media (max-width:739.98px){
+    #ch-brands-{{ section.id }} .chb-top{
+      flex-direction:row; align-items:center; justify-content:space-between; gap:12px; flex-wrap:nowrap;
+    }
+    #ch-brands-{{ section.id }} .chb-heading{
+      flex:1 1 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      font-size: clamp(22px, 4.8vw, 28px);
+    }
+    #ch-brands-{{ section.id }} .chb-search-btn{
+      height:28px; padding:0 10px; border-radius:8px; line-height:1; white-space:nowrap;
+    }
+    #ch-brands-{{ section.id }} .chb-search-text{ font-size:0; }
+    #ch-brands-{{ section.id }} .chb-search-text::after{
+      content: attr(data-mobile); font-size:12px; font-weight:700;
     }
 
-    /* DOTS: inside container; tight spacing + pill active */
-    #ch-brands-{{ section.id }} .chb-dots{ display:flex; justify-content:center; gap:0; margin:8px 0 0; }
-    #ch-brands-{{ section.id }} .chb-dots .chpc__dot{ position:relative; width:10px; height:10px; margin:0 1px; border:0; background:transparent; cursor:pointer; }
-    #ch-brands-{{ section.id }} .chb-dots .chpc__dot::before{ content:""; position:absolute; inset:-18px; }
-    #ch-brands-{{ section.id }} .chb-dots .chpc__dot::after{ content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:4px; height:4px; border-radius:9999px; background:#d1d5db; transition:width .25s ease, background-color .25s ease; }
-    #ch-brands-{{ section.id }} .chb-dots .chpc__dot[aria-current="true"]::after{ width:14px; height:4px; background:#E0302A; }
-    #ch-brands-{{ section.id }} .chb-dots .chpc__count{ display:none !important; }
+    #ch-brands-{{ section.id }} .chb-logo{
+      max-height: clamp(72px, 14vw, 110px);
+      max-width: 90%;
+      filter: drop-shadow(0 1px 8px rgba(0,0,0,.65));
+    }
+    #ch-brands-{{ section.id }} .chb-logo-wrap{ bottom:14px; }
+    #ch-brands-{{ section.id }} .chb-photo-card::after{
+      padding:4px 8px; font-size:11px; right:10px; bottom:10px; letter-spacing:.1px;
+    }
+    #ch-brands-{{ section.id }} .chb-text-logo{ font-size:1.05rem; padding:6px 10px; }
+  }
+  /* Remove any theme-added left prefix */
+#ch-brands-{{ section.id }} .chb-cta-btn::before,
+#ch-brands-{{ section.id }} .chb-cta-btn *::before { content: none !important; display:none !important; }
 
-    .chb-empty{color:var(--muted);margin:8px 0}
-  </style>
+/* Nicer chevron on the RIGHT (no text glyph) */
+#ch-brands-{{ section.id }} .chb-cta-btn{
+  position: relative;
+  padding-right: 38px;                  /* room for arrow */
+}
+
+/* draw chevron with borders so it looks crisp at any size */
+#ch-brands-{{ section.id }} .chb-cta-btn::after{
+  content: "";
+  position: absolute; right: 12px; top: 50%;
+  width: 12px; height: 12px;
+  border-right: 2px solid currentColor;
+  border-top: 2px solid currentColor;
+  transform: translateY(-50%) rotate(45deg);   /* ► */
+  opacity: .95;
+  transition: transform .22s ease, opacity .22s ease;
+}
+
+/* Hover/focus micro-interaction */
+@media (hover:hover){
+  #ch-brands-{{ section.id }} .chb-cta-btn:hover{
+    background: color-mix(in srgb, var(--brand) 88%, white 12%); /* subtle lighten */
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  }
+  #ch-brands-{{ section.id }} .chb-cta-btn:hover::after{
+    transform: translateY(-50%) translateX(4px) rotate(45deg);   /* slide right */
+  }
+}
+#ch-brands-{{ section.id }} .chb-cta-btn:focus-visible{
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 35%, transparent), 0 6px 16px rgba(0,0,0,.18);
+}
+#ch-brands-{{ section.id }} .chb-cta-btn:active::after{
+  transform: translateY(-50%) translateX(1px) rotate(45deg);
+}
+
+/* Mobile pill sizing stays small & square-ish */
+@media (max-width:739.98px){
+  #ch-brands-{{ section.id }} .chb-cta-btn{
+    height: 28px;
+    padding: 0 12px 0 10px;
+    border-radius: 8px;
+  }
+}
+/* --- CTA: fix arrow overlap + nicer chevron --- */
+
+/* Kill any stray theme prefix */
+#ch-brands-{{ section.id }} .chb-cta-btn::before,
+#ch-brands-{{ section.id }} .chb-cta-btn *::before { content:none !important; }
+
+/* Reserve space on the right for the chevron */
+#ch-brands-{{ section.id }} .chb-cta-btn{
+  padding-right: 36px !important;   /* <- space for arrow */
+  position: relative;
+}
+
+/* Crisp chevron drawn with borders */
+#ch-brands-{{ section.id }} .chb-cta-btn::after{
+  content:"";
+  position:absolute; top:50%; right:12px;
+  width:12px; height:12px;
+  border-right:2px solid currentColor;
+  border-top:2px solid currentColor;
+  transform:translateY(-50%) rotate(45deg);
+  transition:transform .22s ease, opacity .22s ease;
+}
+
+/* Mobile size + keep space for arrow (this was the overlap) */
+@media (max-width:739.98px){
+  #ch-brands-{{ section.id }} .chb-cta-btn{
+    height:28px;
+    padding:0 30px 0 10px !important; /* right padding kept */
+    border-radius:8px;
+  }
+  #ch-brands-{{ section.id }} .chb-cta-btn::after{
+    right:10px; width:10px; height:10px;
+  }
+}
+
+/* Remove any earlier rule that appended a text arrow to the label on desktop */
+@media (min-width:740px){
+  #ch-brands-{{ section.id }} .chb-search-text::after { content:none !important; }
+}
+
+/* Hover micro-interaction */
+@media (hover:hover){
+  #ch-brands-{{ section.id }} .chb-cta-btn:hover{
+    background: color-mix(in srgb, var(--brand) 88%, white 12%);
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  }
+  #ch-brands-{{ section.id }} .chb-cta-btn:hover::after{
+    transform: translateY(-50%) translateX(4px) rotate(45deg);
+  }
+}
+#ch-brands-{{ section.id }} .chb-cta-btn:active::after{
+  transform: translateY(-50%) translateX(1px) rotate(45deg);
+}
+/* Tighten CTA spacing */
+#ch-brands-{{ section.id }} .chb-cta-btn{
+  padding-right: 26px !important;   /* was 36px */
+}
+#ch-brands-{{ section.id }} .chb-cta-btn::after{
+  right: 8px;                        /* was 12px */
+  width: 10px; height: 10px;         /* slightly smaller chevron */
+}
+
+/* Mobile: a bit tighter still */
+@media (max-width:739.98px){
+  #ch-brands-{{ section.id }} .chb-cta-btn{
+    padding: 0 24px 0 8px !important;  /* right ↓ and left ↓ to shrink pill */
+    border-radius: 8px;
+  }
+  #ch-brands-{{ section.id }} .chb-cta-btn::after{
+    right: 8px;
+    width: 9px; height: 9px;
+  }
+}
+
+</style>
+
 
   <script>
   (function(){
     var root = document.getElementById('ch-brands-{{ section.id }}');
     if(!root) return;
 
-    var searchEl = root.querySelector('[data-search]');
     var azWrap   = root.querySelector('[data-az]');
     var track    = root.querySelector('[data-track]');
     var btnPrev  = root.querySelector('.chpc__arrow--prev');
     var btnNext  = root.querySelector('.chpc__arrow--next');
     var dotsWrap = root.querySelector('[data-dots]');
     var tiles    = root.querySelectorAll('[data-tile]');
-
-    function isMobile(){ return window.innerWidth < 740; }
+    var mqDesktop= window.matchMedia('(min-width:1100px)');
 
     function applyFilters(){
-      var term   = searchEl ? searchEl.value.trim().toLowerCase() : '';
+      var term = ''; // no search term anymore
       var letter = root.getAttribute('data-letter') || 'all';
       tiles.forEach(function(tile){
         var name  = tile.getAttribute('data-brand') || '';
@@ -249,7 +453,7 @@ Shop by Brands — Carousel (shared controls; arrows outside, dots inside)
       });
       rebuildPager();
     }
-    if(searchEl){ searchEl.addEventListener('input', applyFilters, { passive:true }); }
+
     if(azWrap){
       azWrap.addEventListener('click', function(e){
         var btn = e.target.closest('.chb-chip'); if(!btn) return;
@@ -263,33 +467,33 @@ Shop by Brands — Carousel (shared controls; arrows outside, dots inside)
 
     var currentPage = 0;
     function pageWidth(){ return track ? track.clientWidth : 1; }
-    function pagesCount(){
-      if(!track) return 1;
-      var w = pageWidth() || 1;
-      return Math.max(1, Math.ceil(track.scrollWidth / w));
-    }
+    function pagesCount(){ return !track ? 1 : Math.max(1, Math.ceil((track.scrollWidth||1) / (track.clientWidth||1))); }
+
     function updateArrows(){
       if(!btnPrev || !btnNext) return;
+      if(!mqDesktop.matches){
+        btnPrev.style.display = 'none';
+        btnNext.style.display = 'none';
+        return;
+      }
       var n = pagesCount();
+      var w = pageWidth() || 1;
+      currentPage = Math.round((track.scrollLeft||0) / w);
       btnPrev.disabled = (currentPage <= 0);
       btnNext.disabled = (currentPage >= n - 1);
-      var needArrows = n > 1 && !isMobile();
-      btnPrev.style.display = needArrows ? 'grid' : 'none';
-      btnNext.style.display = needArrows ? 'grid' : 'none';
+      var need = n > 1;
+      btnPrev.style.display = need ? 'grid' : 'none';
+      btnNext.style.display = need ? 'grid' : 'none';
     }
+
     function scrollToPage(idx, smooth){
       var total = pagesCount();
-      if(idx < 0) idx = 0;
-      if(idx > total - 1) idx = total - 1;
+      if(idx < 0) idx = 0; if(idx > total - 1) idx = total - 1;
       var left = idx * (pageWidth() || 1);
       track.scrollTo({ left:left, behavior: smooth ? 'smooth' : 'auto' });
       currentPage = idx; updateDots(); updateArrows();
     }
-    function onScroll(){
-      var w = pageWidth() || 1;
-      currentPage = Math.round(track.scrollLeft / w);
-      updateDots(); updateArrows();
-    }
+    function onScroll(){ updateDots(); updateArrows(); }
 
     var MAX_DOTS = 5;
     function windowStartFor(page, total, maxDots){
@@ -348,6 +552,7 @@ Shop by Brands — Carousel (shared controls; arrows outside, dots inside)
       if(btnPrev) btnPrev.addEventListener('click', function(){ scrollToPage(currentPage - 1, true); });
       if(btnNext) btnNext.addEventListener('click', function(){ scrollToPage(currentPage + 1, true); });
       window.addEventListener('resize', function(){ rebuildPager(); });
+      (mqDesktop.addEventListener ? mqDesktop.addEventListener('change', updateArrows) : mqDesktop.addListener(updateArrows));
       rebuildPager();
     }
 
@@ -375,8 +580,11 @@ Shop by Brands — Carousel (shared controls; arrows outside, dots inside)
   "settings": [
     { "type": "text", "id": "heading_text", "label": "Heading", "default": "Brands We Love" },
     { "type": "select", "id": "heading_level", "label": "Heading level", "default": "h2", "options": [{"value":"h2","label":"H2"},{"value":"h3","label":"H3"},{"value":"h4","label":"H4"}] },
-    { "type": "checkbox", "id": "enable_search", "label": "Enable search", "default": true },
-    { "type": "checkbox", "id": "enable_az_filter", "label": "Enable A–Z filter chips", "default": true },
+
+    { "type": "text", "id": "cta_text", "label": "CTA text", "default": "Browse all brands" },
+    { "type": "url",  "id": "cta_link", "label": "CTA link" },
+
+    { "type": "checkbox", "id": "enable_az_filter", "label": "Enable A–Z filter chips", "default": false },
     { "type": "range", "id": "tile_gap", "label": "Gap (px)", "min": 6, "max": 24, "step": 2, "default": 14 },
     { "type": "range", "id": "tile_radius", "label": "Tile corner radius (px)", "min": 8, "max": 28, "step": 2, "default": 16 }
   ],

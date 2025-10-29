@@ -1,431 +1,638 @@
 {%- assign _mode = mode | default: 'cats' -%}
 
+<!-- ch-mega.liquid — click-to-open mega menu, polished spacing + CTAs -->
+
 <style>
-/* ── Typography (Space Grotesk + Inter) ─────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap');
+  .mmg-wrap[data-mega]{ position:relative; }
+  .mmg{
+    --brand:#e03a2f; --brand-600:#d12f24;
+    position:fixed; left:var(--mmg-left,0px); top:calc(var(--mmg-top,0px) + 6px); z-index:4000;
+    background:#fff; color:#0F172A; border:1px solid #E7EBF0; border-radius:10px;
+    box-shadow:0 14px 30px rgba(2,6,23,.12), 0 0 0 1px rgba(2,6,23,.04) inset;
+    overflow:hidden; opacity:0; visibility:hidden; pointer-events:none; transform:translateY(6px);
+    transition:opacity .18s cubic-bezier(.22,.61,.36,1), transform .18s cubic-bezier(.22,.61,.36,1);
+    max-width:min(980px,95vw);
+  }
+  .mmg-wrap[data-open="true"] .mmg{ opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0); }
 
-:root{
-  --font-heading: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  .mmg-body{ padding:14px 16px 16px; max-height:60vh; overflow:hidden; }
+  .mmg-3cols{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:36px; min-width:760px; align-items:start; }
+
+  /* Head + CTA on the right */
+  .mmg-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 8px; }
+  .mmg-head h4{ margin:0; font:600 12px/1.15 "Inter",system-ui,sans-serif; color:#111827; letter-spacing:.01em; text-transform:none; }
+  .mmg-hr{ height:1px; background:#E5E7EB; margin:0 0 10px; }
+
+  .mmg-col ul{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+  .mmg-col a{ display:block; text-decoration:none; color:#4B5563; font:400 13px/1.45 "Inter",system-ui; }
+  .mmg-col a:hover{ color:#111827; text-decoration:underline; }
+
+  /* Column 1 rail (only this scrolls + subtle gray for separation) */
+  .mmg-col--rail{ background:#F5F6F8; border-radius:8px; padding:10px; }
+  .mmg-railwrap{ max-height:calc(60vh - 14px - 16px - 8px - 10px); overflow:auto; padding-right:6px; }
+  .mmg-railwrap::-webkit-scrollbar{ width:8px; } 
+  .mmg-railwrap::-webkit-scrollbar-thumb{ background:#E0E5EC; border-radius:8px; }
+  .mmg-railwrap:hover::-webkit-scrollbar-thumb{ background:#CBD5E1; }
+
+  /* Pivots: icon + label on ONE line */
+  .mmg-pivots li{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; column-gap:8px; }
+  .mmg-pivot{
+    grid-column:1 / span 2; display:flex; align-items:center; gap:8px;
+    min-height:32px; padding:4px 8px; border-radius:6px; text-decoration:none; overflow:hidden;
+  }
+  .mmg-pivot:hover{ background:#EEF2F6; text-decoration:none; }
+  .mmg-pivots a[aria-current="true"]{ color:#111827; font-weight:600; background:#EEF2F6; }
+  .mmg-icoL{ width:18px; height:18px; color:#9AA3AF; display:grid; place-items:center; flex:0 0 18px; }
+  .mmg-icoL svg *{ fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .mmg-txt{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mmg-go{
+    grid-column:3; width:24px; height:24px; border:0; background:transparent; color:#9AA3AF;
+    border-radius:6px; cursor:pointer; justify-self:end; opacity:0; transition:opacity .12s ease, background .12s ease;
+  }
+  .mmg-pivots li:hover .mmg-go{ opacity:1; }
+  .mmg-go:hover{ background:#EAEFF4; color:#111827; }
+  .mmg-go:focus-visible{ outline:2px solid #93C5FD; outline-offset:1px; }
+
+  /* CTA chips */
+  .mmg-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:6px 10px; border-radius:8px; text-decoration:none;
+    font:600 12px/1.1 "Inter"; letter-spacing:.01em;
+    background:var(--brand); border:1px solid var(--brand); color:#fff;
+    transition:background .15s ease, border-color .15s ease, transform .12s ease;
+    white-space:nowrap;
+  }
+  .mmg-btn:hover{ background:var(--brand-600); border-color:var(--brand-600); color:#fff; text-decoration:none; }
+  .mmg-btn:active{ transform:translateY(1px); }
+
+  /* Stagger on content swap */
+  .mmg-anim li{ opacity:0; transform:translateY(6px);
+    transition: opacity .18s cubic-bezier(.22,.61,.36,1), transform .18s cubic-bezier(.22,.61,.36,1); }
+  .mmg-anim.is-in li{ opacity:1; transform:translateY(0); }
+
+  @media (prefers-reduced-motion: reduce){ .mmg, .mmg-anim li{ transition:none!important; } }
+  /* --- pivot row: icon + text on a single line --- */
+.mmg-pivots li{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.mmg-pivot{ display:flex !important; align-items:center; gap:10px; padding:6px 8px; border-radius:8px; white-space:nowrap; }
+.mmg-icoL{ width:18px; height:18px; flex:0 0 18px; display:grid; place-items:center; color:#9AA3AF; }
+.mmg-txt{ overflow:hidden; text-overflow:ellipsis; }
+
+/* --- CTA buttons: idle = black outline; hover = brand red --- */
+.mmg-btn{
+  background:transparent; border:1px solid #111; color:#111;
+  padding:6px 12px; border-radius:10px; font:600 12px/1.1 "Inter";
 }
-html{ font-family: var(--font-body); font-feature-settings: "cv01","cv02","ss03","tnum" 0; }
-.price,[data-price]{ font-feature-settings: "tnum" 1, "lnum" 1; font-variant-numeric: tabular-nums lining-nums; }
-h1,h2,h3,.display{ font-family: var(--font-heading); letter-spacing:-.01em; }
-.smallcaps{ letter-spacing:.06em; text-transform:uppercase; }
-
-/* ── Mega styles ─────────────────────────────────────────────────────────── */
-:where([data-mega="{{ _mode }}"]) {
-  --mega-pad: clamp(12px, 1.5vw, 16px);
-  --mega-minw: clamp(940px, 76vw, 1180px);
-  --mega-gap: clamp(10px, 1.2vw, 16px);
-  --mega-radius: 16px;
-  --mega-border: var(--line, #e8e8e8);
-  --mega-shadow: 0 22px 60px rgba(17,17,17,.18);
-  --ink: #161616; --muted: #666; --muted-2:#9CA3AF; --brand:#E0302A;
-  --brand-10: color-mix(in srgb, var(--brand) 10%, transparent);
-  --brand-18: color-mix(in srgb, var(--brand) 18%, transparent);
-  --rail-w: clamp(220px, 20vw, 260px);
-  --thumb: clamp(120px, 10vw, 160px);
-  --fade-w: 24px; --min-card: 260px; --mega-left: 0px; --mega-top: 0px;
+.mmg-btn:hover{ background:var(--brand); border-color:var(--brand); color:#fff; }
+/* === Mega menu & search CTA: idle = black outline, hover = red/white === */
+#ch-header-{{ section.id }} .mmg .mmg-btn,
+#ch-header-{{ section.id }} .ps-foot .cta-all{
+  display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 14px;
+  border-radius:8px; border:1px solid #111; background:transparent;
+  color:#111; font-weight:600; font-size:13px; line-height:1;
+  text-decoration:none !important;           /* kill theme underline */
+  box-shadow:none;
 }
-[data-mega="{{ _mode }}"]{ position:relative; isolation:isolate; }
-[data-mega="{{ _mode }}"] > .mega{
-  position:fixed; left:var(--mega-left); top:calc(var(--mega-top) + 10px);
-  background:#fff; color:var(--ink);
-  border-radius:var(--mega-radius); border:1px solid var(--mega-border);
-  padding:var(--mega-pad); box-shadow:var(--mega-shadow);
-  display:none; z-index:4000; max-width:min(1240px, 95vw);
+#ch-header-{{ section.id }} .mmg .mmg-btn:hover,
+#ch-header-{{ section.id }} .ps-foot .cta-all:hover{
+  background:var(--brand); border-color:var(--brand); color:#fff;
+  text-decoration:none !important;
 }
-[data-mega="{{ _mode }}"][data-open="true"] > .mega{ display:block; }
-@media (min-width:992px){
-  [data-mega="{{ _mode }}"]:hover > .mega,
-  [data-mega="{{ _mode }}"]:focus-within > .mega{ display:block; }
+#ch-header-{{ section.id }} .mmg .mmg-btn:focus-visible,
+#ch-header-{{ section.id }} .ps-foot .cta-all:focus-visible{
+  outline:2px solid #111; outline-offset:2px;
 }
-[data-mega="{{ _mode }}"] .grid{ display:grid; grid-template-columns:var(--rail-w) 1fr; gap:var(--mega-gap); min-width:var(--mega-minw); }
-[data-mega="{{ _mode }}"] .rail{
-  border-right:1px solid var(--mega-border); padding-right:12px; max-height:70vh; overflow:auto; content-visibility:auto;
-  box-shadow: inset 0 10px 8px -10px rgba(0,0,0,.12), inset 0 -10px 8px -10px rgba(0,0,0,.1);
+/* === Clean, Moment-like rhythm & red accent =============================== */
+.mmg{
+  --brand:#D12F24;           /* requested red */
+  --brand-600:#B5201D;       /* hover/darker */
+  --row-h:34px;              /* consistent rail row height */
+  --ico:16px;                /* icon size */
+  --gap:24px;                /* column gap */
+  --radius:10px;
 }
-[data-mega="{{ _mode }}"] .ps-title{ margin:0 0 8px; font:800 12px/1 var(--font-body); color:var(--muted); letter-spacing:.02em; }
-[data-mega="{{ _mode }}"] .cats{ list-style:none; margin:0; padding:0; display:grid; gap:2px; }
-[data-mega="{{ _mode }}"] .cats a{ position:relative; display:flex; align-items:center; gap:10px; padding:10px; border-radius:10px; color:#111; text-decoration:none; min-height:44px; transition: background-color .14s ease; outline:none; }
-[data-mega="{{ _mode }}"] .cats a:hover,[data-mega="{{ _mode }}"] .cats a:focus{ background:#f6f6f6; }
-[data-mega="{{ _mode }}"] .cats a[aria-current="true"]{ background:#f1f5f9; }
-[data-mega="{{ _mode }}"] .cats a[aria-current="true"]::before{ content:""; position:absolute; inset:8px auto 8px 0; width:3px; border-radius:3px; background:var(--brand-18); }
-[data-mega="{{ _mode }}"] .cat-ico{ width:22px; height:22px; color:var(--muted-2); flex:0 0 22px; display:grid; place-items:center; }
 
-[data-mega="{{ _mode }}"] .prev{ display:grid; grid-template-rows:auto auto auto 1fr auto; max-height:72vh; overflow:auto; padding-right:6px; min-width:0; }
-[data-mega="{{ _mode }}"] .titlebar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 6px; }
-[data-mega="{{ _mode }}"] .titlebar .title{ font:800 14px/1.2 var(--font-heading); color:#000; }
-[data-mega="{{ _mode }}"] .titlebar .viewall{ display:inline-flex; gap:6px; align-items:center; font-weight:700; color:#111; text-decoration:none; }
-
-[data-mega="{{ _mode }}"] .chips{ display:flex; gap:10px; overflow-x:auto; padding:6px 0 10px; -webkit-overflow-scrolling:touch; mask-image: linear-gradient(to right, transparent, #000 var(--fade-w), #000 calc(100% - var(--fade-w)), transparent); -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade-w), #000 calc(100% - var(--fade-w)), transparent); }
-[data-mega="{{ _mode }}"] .chips::-webkit-scrollbar{ display:none; }
-[data-mega="{{ _mode }}"] .chip{ display:inline-flex; align-items:center; height:36px; padding:0 14px; border-radius:999px; border:2px solid var(--brand-18); background:#fff; color:#111; font:700 12.5px/1 var(--font-body); white-space:nowrap; outline:none; transition: background-color .14s ease, border-color .14s ease, color .14s ease; cursor:pointer; }
-[data-mega="{{ _mode }}"] .chip:hover,[data-mega="{{ _mode }}"] .chip:focus{ background:color-mix(in srgb, var(--brand) 6%, #fff); border-color:var(--brand); }
-[data-mega="{{ _mode }}"] .chip[aria-current="true"]{ background:var(--brand); color:#fff; border-color:var(--brand); }
-
-/* NEW: 3x2 product grid — larger, image-first cards */
-[data-mega="{{ _mode }}"] .cards{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--mega-gap); align-content:start; min-width:0; }
-@media (max-width: 1200px){ [data-mega="{{ _mode }}"] .cards{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
-@media (max-width: 640px){ [data-mega="{{ _mode }}"] .cards{ grid-template-columns:1fr; } }
-
-/* ch-card component — GLOBAL (unscoped) */
-.ch-card{ --ch-accent:#E0302A; --ch-accent-200:#F7C6C3; border:1px solid #E5E7EB; border-radius:14px; background:#fff; display:flex; flex-direction:column; height:100%; box-shadow:0 1px 2px rgba(16,24,40,.04); overflow:hidden; }
-@media (hover:hover){ .ch-card:hover{ box-shadow:0 10px 24px rgba(16,24,40,.10); transform:translateY(-1px); transition:box-shadow .18s ease, transform .18s ease; } }
-.ch-card__media{ aspect-ratio: 4/3; background:#fafafa; display:block; }
-.ch-card__img{ width:100%; height:100%; object-fit:contain; }
-.ch-card__body{ padding:10px 12px 12px; display:flex; flex-direction:column; gap:6px; }
-.ch-meta{ font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.04em; font-weight:700; }
-.ch-card__title{ margin:0; font-weight:800; font-size:14px; line-height:1.35; min-height:2.6em; }
-.ch-card__titlelink{ color:#111; text-decoration:none; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.ch-price{ display:flex; gap:8px; align-items:baseline; }
-.ch-price__cur{ color:var(--ch-accent); font-weight:900; font-size:16px; white-space:nowrap; }
-.ch-price__compare{ color:#6B7280; text-decoration:line-through; font-size:12px; }
-
-/* Sale badge: top-right, orange pill */
-.ch-badge--ribbon{ position:absolute; top:10px; right:10px; z-index:5; background:#FFEDD5; color:#B45309; font-weight:900; font-size:11px; line-height:1; padding:6px 8px; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
-
-/* Mobile sheet behaviour */
-@media (max-width: 991px){
-  [data-mega="{{ _mode }}"] > .mega{ left:auto; right:0; top:0; width:min(92vw,560px); height:100dvh; border-radius:0; border-left:1px solid var(--mega-border); transform:translateX(100%); transition:transform .2s ease; padding:0; }
-  [data-mega="{{ _mode }}"][data-open="true"] > .mega{ transform:translateX(0); }
-  [data-mega="{{ _mode }}"] .sheet-head{ position:sticky; top:0; background:#fff; border-bottom:1px solid var(--mega-border); z-index:1; display:flex; align-items:center; justify-content:space-between; padding:12px 14px; }
-  [data-mega="{{ _mode }}"] .sheet-title{ font:800 14px/1.2 var(--font-heading); }
-  [data-mega="{{ _mode }}"] .sheet-close{ width:34px; height:34px; border-radius:999px; border:1px solid var(--mega-border); background:#fff; font-weight:900; }
-  [data-mega="{{ _mode }}"] .grid{ grid-template-columns:1fr; min-width:auto; }
-  [data-mega="{{ _mode }}"] .rail{ border-right:0; border-bottom:1px solid var(--mega-border); padding:8px 6px; max-height:none; }
-  [data-mega="{{ _mode }}"] .cats{ display:flex; gap:6px; overflow:auto; padding:2px 6px; }
-  [data-mega="{{ _mode }}"] .cats a{ padding:8px 10px; border-radius:999px; background:#f6f6f6; }
-  [data-mega="{{ _mode }}"] .cats a[aria-current="true"]{ background:#111; color:#fff; }
-  [data-mega="{{ _mode }}"] .prev{ max-height:unset; padding:10px 10px 84px; }
-  [data-mega="{{ _mode }}"] .titlebar{ position:sticky; top:44px; background:#fff; padding:10px 0; z-index:1; }
-  [data-mega="{{ _mode }}"] .cards{ grid-template-columns:repeat(2,minmax(0,1fr)); }
-  [data-mega="{{ _mode }}"] .cta-row{ position:sticky; bottom:0; background:#fff; border-top:1px solid var(--mega-border); padding:10px; z-index:1; }
+/* 3 equal-feel columns: tighter & balanced */
+.mmg-3cols{
+  grid-template-columns: 220px 1fr 1fr; /* lock rail width; fluid content */
+  gap:var(--gap);
+  min-width:760px;
 }
+
+/* Column heads & dividers */
+.mmg-head h4{
+  margin:0;
+  font:600 12px/1.1 "Inter",system-ui,sans-serif;
+  letter-spacing:.04em; text-transform:uppercase; color:#111827;
+}
+.mmg-hr{ height:1px; background:#E7EBF0; margin:6px 0 10px; }
+
+/* Lists are denser and consistent across columns */
+.mmg-col ul{ list-style:none; margin:0; padding:0; display:grid; gap:4px; }
+.mmg-col a{
+  display:block; padding:6px 0; text-decoration:none;
+  color:#4B5563; font:400 13px/1.35 "Inter",system-ui;
+}
+.mmg-col a:hover{ color:#111827; text-decoration:underline; }
+
+/* --- Left rail: single-line, fixed-height rows with reserved icon column --- */
+.mmg-col--rail{ background:#F6F7FA; border-radius:8px; padding:10px; }
+.mmg-railwrap{ max-height:calc(60vh - 54px); overflow:auto; padding-right:6px; }
+.mmg-railwrap::-webkit-scrollbar{ width:8px; } 
+.mmg-railwrap::-webkit-scrollbar-thumb{ background:#E0E5EC; border-radius:8px; }
+.mmg-railwrap:hover::-webkit-scrollbar-thumb{ background:#CBD5E1; }
+
+.mmg-pivots li{
+  display:grid; grid-template-columns: var(--ico) 1fr 24px;
+  align-items:center; column-gap:10px;
+}
+.mmg-pivot{
+  grid-column:1 / span 2; display:flex; align-items:center; gap:10px;
+  min-height:var(--row-h); padding:0 8px; border-radius:8px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.mmg-icoL{
+  width:var(--ico); height:var(--ico); flex:0 0 var(--ico);
+  display:grid; place-items:center; color:#9AA3AF;
+}
+.mmg-txt{ overflow:hidden; text-overflow:ellipsis; }
+
+/* Keep rail spacing identical in brand mode by hiding (not collapsing) icons */
+.mmg[data-mode="brands"] .mmg-icoL{ visibility:hidden; }
+
+/* Hover & active styles with subtle red accent */
+.mmg-pivot:hover{ background:#EEF1F5; text-decoration:none; }
+.mmg-pivots a[aria-current="true"]{
+  color:#111827; font-weight:600;
+  background:linear-gradient(90deg, rgba(209,47,36,.08), rgba(209,47,36,0));
+  box-shadow:inset 2px 0 0 var(--brand);   /* red rail indicator */
+}
+
+/* “Go” chevron only on hover to keep it clean */
+.mmg-go{
+  grid-column:3; width:24px; height:24px; border:0; background:transparent;
+  color:#9AA3AF; border-radius:6px; cursor:pointer; justify-self:end; opacity:0;
+  transition:opacity .12s ease, background .12s ease, color .12s ease;
+}
+.mmg-pivots li:hover .mmg-go{ opacity:1; }
+.mmg-go:hover{ background:#EAEFF4; color:#111827; }
+.mmg-go:focus-visible{ outline:2px solid #93C5FD; outline-offset:1px; }
+
+/* CTAs: outline by default → brand red on hover */
+.mmg-btn{
+  display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 14px;
+  border-radius:8px; border:1px solid #111; background:transparent;
+  color:#111; font:600 13px/1 "Inter"; text-decoration:none !important;
+}
+.mmg-btn:hover{ background:var(--brand); border-color:var(--brand); color:#fff; }
+.mmg-btn:active{ transform:translateY(1px); }
+.mmg-btn:focus-visible{ outline:2px solid #111; outline-offset:2px; }
+
+/* Right/center column list hover: gentle underline only (keeps it clean) */
+.mmg-anim li{ opacity:0; transform:translateY(6px);
+  transition:opacity .18s cubic-bezier(.22,.61,.36,1), transform .18s cubic-bezier(.22,.61,.36,1);
+}
+.mmg-anim.is-in li{ opacity:1; transform:translateY(0); }
+
+/* Small screens: hide the 3rd column to keep things tidy */
+@media (max-width: 980px){
+  .mmg-3cols{ grid-template-columns: 220px 1fr; }
+  .mmg-col[data-col="right"]{ display:none; }
+}
+
+/* Motion safety */
+@media (prefers-reduced-motion: reduce){
+  .mmg, .mmg-anim li{ transition:none!important; }
+}
+/* ===== Minimal, Moment-like refinements =================================== */
+.mmg{ --brand:#D12F24; --brand-600:#b5201d; --row-h:34px; --ico:16px; }
+
+/* Top title like "Camera Gear" */
+.mmg-title{ display:flex; align-items:center; justify-content:space-between; padding:2px 2px 8px; }
+.mmg-title h3{ margin:0; font:600 16px/1.3 "Inter",system-ui; letter-spacing:.01em; color:#111827; }
+
+/* Column headings: sentence case, lighter tone */
+.mmg-head h4{
+  margin:0;
+  font:600 12px/1.25 "Inter",system-ui;
+  text-transform:none; letter-spacing:.01em; color:#1f2937;   /* no ALL CAPS */
+}
+
+/* Rail: same row height, no red bubble */
+.mmg-pivots li{ grid-template-columns: var(--ico) 1fr 24px; }
+.mmg-pivot{
+  min-height:var(--row-h); padding:0 10px 0 8px; border-radius:8px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* Red indicator becomes a slim left bar; background stays neutral */
+.mmg-pivots a[aria-current="true"]{
+  color:#111827; font-weight:600;
+  background:#f3f4f6;                /* subtle gray, not pink/red */
+  box-shadow:none;                    /* remove inset red glow */
+  border-left:2px solid var(--brand);
+  padding-left:6px;                   /* compensate for the 2px bar */
+}
+
+/* Hover stays calm */
+.mmg-pivot:hover{ background:#eef1f5; }
+
+/* Hide (don’t collapse) icons when in brands mode to keep spacing even */
+.mmg[data-mode="brands"] .mmg-icoL{ visibility:hidden; }
+
+/* Sub-head dividers are hairline and consistent */
+.mmg-hr{ height:1px; background:#e7ebf0; margin:6px 0 10px; }
+
+/* Buttons: outline → red on hover (minimal) */
+.mmg-btn{
+  display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 14px;
+  border-radius:8px; border:1px solid #111; background:transparent;
+  color:#111; font:600 13px/1 "Inter"; text-decoration:none !important;
+}
+.mmg-btn:hover{ background:var(--brand); border-color:var(--brand); color:#fff; }
+
 </style>
 
-<div data-mega="{{ _mode }}" aria-haspopup="true" aria-expanded="false">
-  {% if _mode == 'cats' %}
-    <a href="{{ categories_fallback_url | default: '/collections/all' }}" data-mega-trigger>All Categories</a>
-  {% else %}
-    <a href="{{ brands_fallback_url | default: '/search?type=product' }}" data-mega-trigger>Brands</a>
-  {% endif %}
-
-  <div class="mega" role="dialog" aria-label="{% if _mode == 'cats' %}All Categories{% else %}Brands{% endif %}" aria-modal="false" tabindex="-1">
-    <div class="sheet-head" hidden>
-      <div class="sheet-title">{% if _mode == 'cats' %}All Categories{% else %}Brands{% endif %}</div>
-      <button type="button" class="sheet-close" aria-label="Close">×</button>
-    </div>
-
-    <div class="grid">
-      <div class="rail">
-        <p class="ps-title">{% if _mode == 'cats' %}Hover or focus a category to preview{% else %}Hover or focus a brand to preview{% endif %}</p>
-        <ul class="cats" role="menu" {% if _mode == 'cats' %}data-cat-rail{% else %}data-br-rail{% endif %}>
+<div class="mmg" role="dialog" aria-modal="false" aria-label="{% if _mode == 'cats' %}All Categories{% else %}Brands{% endif %}">
+  <div class="mmg-body">
+    <div class="mmg-title">
+  <h3>{% if _mode == 'cats' %}Categories{% else %}Brands{% endif %}</h3>
+  <!-- optional: <a class="mmg-btn" href="/collections/all">View all</a> -->
+</div>
+<div class="mmg-hr"></div>
+    <div class="mmg-3cols" data-mmg-cols>
+      <!-- Column 1: PIVOTS (rail) -->
+      <div class="mmg-col mmg-col--rail">
+        <div class="mmg-head"><h4>{% if _mode == 'cats' %}By Category{% else %}By Brand{% endif %}</h4></div>
+        <div class="mmg-hr"></div>
+        <div class="mmg-railwrap">
+          <ul class="mmg-pivots" data-mmg-pivots>
           {% if _mode == 'cats' %}
-            {% if categories_parent_index >= 0 and menu_obj and menu_obj.links %}
-              {% for l in menu_obj.links %}
-                {% if forloop.index0 == categories_parent_index %}
-                  {% for c in l.links %}
-                    {% assign label = c.title | strip %}
-                    {% assign url = c.url | default: '/collections/all' %}
-                    {%- assign icon_key = '' -%}
-                    {%- for ln in icon_override_lines -%}
-                      {%- assign parts = ln | split: '|' -%}
-                      {%- assign ov_lab = parts[0] | strip -%}
-                      {%- assign ov_key = parts[1] | strip -%}
-                      {%- if ov_lab != '' and ov_key != '' -%}
-                        {%- assign ov_lab_d = ov_lab | downcase -%}
-                        {%- assign label_d  = label  | downcase -%}
-                        {%- if ov_lab_d == label_d -%}{%- assign icon_key = ov_key -%}{%- endif -%}
-                      {%- endif -%}
-                    {%- endfor -%}
-                    {% assign subs = c.links | map: 'title' | join: '||' %}
-                    <li>
-                      <a href="{{ url }}" data-cat="{{ label | escape }}" data-subs="{{ subs | escape }}" role="menuitem" title="Preview {{ label }} products" tabindex="0">
-                        <span class="cat-ico" aria-hidden="true">
-                          {% assign lk = icon_key | default: label | downcase %}
-                          {% if lk contains 'camera' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="12" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M9 7l1.5-2h3L15 7"/></svg>
-                          {% elsif lk contains 'lens' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="3" width="12" height="18" rx="3"/><path d="M8 7h8M8 11h8M8 15h8"/></svg>
-                          {% elsif lk contains 'drone' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="2"/><path d="M4 10h6l2-2 2 2h6M10 14H4m16 0h-6"/></svg>
-                          {% elsif lk contains 'tripod' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v5M8 8h8M7 21l5-10 5 10M5 21h14"/></svg>
-                          {% elsif lk contains 'flash' or lk contains 'lighting' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h10L9 13h5l-5 9v-8H6z"/></svg>
-                          {% elsif lk contains 'storage' or lk contains 'sd' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h2M12 7h2M16 7h2"/></svg>
-                          {% elsif lk contains 'microphone' or lk contains 'mic' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M12 18v3M8 21h8M5 12a7 7 0 0 0 14 0"/></svg>
-                          {% elsif lk contains 'gimbal' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="6" width="16" height="6" rx="2"/><path d="M12 12v7M9 19h6"/></svg>
-                          {% elsif lk contains 'binocular' or lk contains 'scope' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="14" r="3"/><circle cx="17" cy="14" r="3"/><path d="M10 14h4M5 11l2-4m10 4-2-4"/></svg>
-                          {% else %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                          {% endif %}
-                        </span>
-                        <span>{{ label }}</span>
-                      </a>
-                    </li>
-                  {% endfor %}
+            {%- assign _cat_parent_idx = categories_parent_index | plus: 0 -%}
+            {%- assign category_links = nil -%}
+            {% if _cat_parent_idx >= 0 and menu_obj and menu_obj.links and menu_obj.links.size > _cat_parent_idx %}{% assign category_links = menu_obj.links[_cat_parent_idx].links %}{% endif %}
+            {% if category_links == nil or category_links == empty %}
+              {% if menu_obj and menu_obj.links %}
+                {% assign p_norm = parent_title | default: 'Category' | strip | downcase %}
+                {% for l in menu_obj.links %}
+                  {% assign t_norm = l.title | strip | downcase %}
+                  {% if t_norm == p_norm or t_norm contains 'categor' or t_norm contains 'shop' %}{% assign category_links = l.links %}{% break %}{% endif %}
+                {% endfor %}
+                {% if category_links == nil or category_links == empty %}
+                  {% for l in menu_obj.links %}{% if l.links and l.links.size > 0 %}{% assign category_links = l.links %}{% break %}{% endif %}{% endfor %}
                 {% endif %}
+              {% endif %}
+            {% endif %}
+
+            {% if category_links and category_links.size > 0 %}
+              {% for c in category_links %}
+                {% assign label = c.title | strip %}
+                {% assign url   = c.url | default: '/collections/all' %}
+                {%- capture deep_json -%}
+                [
+                  {%- for g in c.links -%}
+                    {"title": {{ g.title | json }}, "url": {{ g.url | default: '/collections/all' | json }}, "items": [
+                      {%- for it in g.links -%}
+                        {"title": {{ it.title | json }}, "url": {{ it.url | default: '/collections/all' | json }}}{%- unless forloop.last -%},{%- endunless -%}
+                      {%- endfor -%}
+                    ]}{%- unless forloop.last -%},{%- endunless -%}
+                  {%- endfor -%}
+                ]
+                {%- endcapture -%}
+                {%- capture flat_json -%}
+                [
+                  {%- for x in c.links -%}
+                    {"title": {{ x.title | json }}, "url": {{ x.url | default: '/collections/all' | json }} }{%- unless forloop.last -%},{%- endunless -%}
+                  {%- endfor -%}
+                ]
+                {%- endcapture -%}
+                {% assign lk = label | downcase %}
+                <li>
+                  <a class="mmg-pivot" href="{{ url }}" data-label="{{ label | escape }}" data-base="{{ url }}" data-deep='{{ deep_json | strip_newlines | escape }}' data-flat='{{ flat_json | strip_newlines | escape }}'>
+                    <span class="mmg-icoL" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+
+                        <!-- ===== CAMERAS (specific first) ================================= -->
+                        {% if lk contains 'instant' and lk contains 'camera' %}
+                          <!-- Instant camera with print slot -->
+                          <rect x="4" y="6" width="16" height="12" rx="2"/>
+                          <circle cx="12" cy="11" r="3"/>
+                          <path d="M5 16h14M8 4h6a1 1 0 0 1 1 1v1H7V5a1 1 0 0 1 1-1z"/>
+
+                        {% elsif lk contains 'compact' and lk contains 'camera' %}
+                          <!-- Compact point-and-shoot -->
+                          <rect x="4" y="8" width="16" height="9" rx="2"/>
+                          <circle cx="12" cy="12.5" r="2.8"/>
+                          <rect x="6" y="9.5" width="3.2" height="1.8" rx="0.5"/>
+
+                        {% elsif lk contains 'mirror' and lk contains 'camera' %}
+                          <!-- Mirrorless -->
+                          <rect x="3" y="7" width="18" height="10" rx="2"/>
+                          <circle cx="12" cy="12" r="3.25"/>
+                          <rect x="6" y="5" width="4" height="2" rx="1"/>
+
+                        {% elsif lk contains 'action' and lk contains 'camera' %}
+                          <!-- Action cam -->
+                          <rect x="3" y="6" width="18" height="12" rx="3"/>
+                          <circle cx="14.5" cy="12" r="3.2"/>
+                          <rect x="5.5" y="9" width="3.6" height="2.6" rx="0.6"/>
+
+                        {% elsif lk contains 'film' and lk contains 'camera' %}
+                          <!-- Film SLR-style -->
+                          <rect x="3" y="8" width="18" height="9" rx="2"/>
+                          <circle cx="12" cy="12.5" r="3"/>
+                          <path d="M8 8l1.5-3h5L16 8"/>
+
+                        {% elsif lk contains '360' and lk contains 'camera' %}
+                          <!-- 360 camera -->
+                          <rect x="8" y="3" width="8" height="18" rx="4"/>
+                          <circle cx="12" cy="7" r="2"/>
+                          <circle cx="12" cy="17" r="1"/>
+
+                        {% elsif lk contains 'kids' and lk contains 'camera' %}
+                          <!-- Kids camera -->
+                          <rect x="3" y="8" width="18" height="9" rx="3"/>
+                          <circle cx="12" cy="12.5" r="3"/>
+                          <circle cx="8.8" cy="11" r="0.7"/><circle cx="15.2" cy="11" r="0.7"/>
+                          <path d="M10 14c.6.7 1.3 1 2 1s1.4-.3 2-1"/>
+
+                        {% elsif lk contains 'cinema' %}
+                          <!-- Cinema / video -->
+                          <rect x="7" y="10" width="12" height="7" rx="1"/>
+                          <circle cx="9" cy="7" r="2"/><circle cx="15" cy="7" r="2"/>
+                          <rect x="19.5" y="12" width="2.5" height="3" rx="0.5"/>
+
+                        {% elsif lk contains 'camera' %}
+                          <!-- Generic camera -->
+                          <rect x="3" y="8" width="18" height="9" rx="2"/>
+                          <circle cx="12" cy="12.5" r="3"/>
+                          <path d="M7 8l1.5-3h5L15 8"/>
+
+                        <!-- ===== OPTICS / MEDIA / LIGHTING ================================= -->
+                        {% elsif lk contains 'lens' %}
+                          <!-- Lens with aperture blades -->
+                          <circle cx="12" cy="12" r="5.6"/>
+                          <path d="M12 6.6l3 5.1M9 7.9h6M7.9 12l5.1 3M9 16.1l3-5.1M12 17.4l3-5.1M15 16.1H9"/>
+
+                        {% elsif lk contains 'films' or lk contains 'consum' %}
+                          <!-- Film strip -->
+                          <rect x="4" y="6" width="16" height="12" rx="1"/>
+                          <path d="M8 6v12M16 6v12M4 10h16M4 14h16"/>
+                          <!-- sprocket holes -->
+                          <circle cx="5.2" cy="7.5" r="0.35"/><circle cx="5.2" cy="10.5" r="0.35"/><circle cx="5.2" cy="13.5" r="0.35"/><circle cx="5.2" cy="16.5" r="0.35"/>
+                          <circle cx="18.8" cy="7.5" r="0.35"/><circle cx="18.8" cy="10.5" r="0.35"/><circle cx="18.8" cy="13.5" r="0.35"/><circle cx="18.8" cy="16.5" r="0.35"/>
+
+                        {% elsif lk contains 'flash' %}
+                          <!-- Speedlight flash -->
+                          <rect x="8" y="4" width="8" height="5" rx="1"/>
+                          <rect x="7.5" y="10" width="9" height="6" rx="2"/>
+                          <path d="M10.5 16v5M13.5 16v5M10 21h4"/>
+
+                        {% elsif lk contains 'light' %}
+                          <!-- Softbox on stand -->
+                          <polygon points="7,5 14,7 14,13 7,11"/>
+                          <path d="M14 10l4 2"/>
+                          <path d="M12 13v7M9 22h6"/>
+
+                        {% elsif lk contains 'storage' or lk contains 'memory' or lk contains 'sd' or lk contains 'card' %}
+                          <!-- SD / storage -->
+                          <path d="M7 3h7l3 3v15H7z"/>
+                          <path d="M10 6h1M12 6h1M14 6h1"/>
+
+                        <!-- ===== GEAR / ACCESSORIES ======================================== -->
+                        {% elsif lk contains 'binocular' or lk contains 'scope' %}
+                          <!-- Binoculars -->
+                          <circle cx="8.5" cy="14" r="3"/><circle cx="15.5" cy="14" r="3"/>
+                          <path d="M11 13V8l-2-2M13 13V8l2-2"/>
+                          <path d="M9.5 7h5"/>
+
+                        {% elsif lk contains 'drone' %}
+                          <!-- Drone quadcopter -->
+                          <circle cx="12" cy="12" r="1.6"/>
+                          <circle cx="6" cy="6" r="2.1"/><circle cx="18" cy="6" r="2.1"/>
+                          <circle cx="6" cy="18" r="2.1"/><circle cx="18" cy="18" r="2.1"/>
+                          <path d="M8 8l4 4M16 8l-4 4M8 16l4-4M16 16l-4-4"/>
+
+                        {% elsif lk contains 'gimbal' %}
+                          <!-- Handheld gimbal -->
+                          <rect x="13" y="6" width="6" height="8" rx="1"/>
+                          <path d="M13 10h-3l-2 2v6M8 18h4"/>
+                          <circle cx="10" cy="12" r="1"/>
+
+                        {% elsif lk contains 'tripod' %}
+                          <!-- Tripod -->
+                          <rect x="11" y="3" width="2" height="2" rx=".4"/>
+                          <path d="M12 5v3M8 8h8"/>
+                          <path d="M6 21l6-10 6 10M4 21h16"/>
+
+                        {% elsif lk contains 'bag' %}
+                          <!-- Camera bag -->
+                          <rect x="4" y="8" width="16" height="10" rx="2"/>
+                          <path d="M8 8v-1a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1M4 12h16"/>
+
+                        {% elsif lk contains 'microphone' or lk contains 'mic' %}
+                          <!-- Microphone -->
+                          <rect x="9" y="3" width="6" height="10" rx="3"/>
+                          <path d="M12 13v5M8 18h8"/>
+
+                        {% else %}
+                          <!-- Fallback grid -->
+                          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                          <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+                        {% endif %}
+                      </svg>
+                    </span>
+                    <span class="mmg-txt">{{ label }}</span>
+                  </a>
+                  <button class="mmg-go" type="button" title="Open {{ label }}" data-go="{{ url }}">→</button>
+                </li>
               {% endfor %}
             {% endif %}
           {% else %}
-            {%- assign brands_parent_title = 'brands' -%}
-            {%- assign brands_links = '' -%}
-            {%- if menu_obj and menu_obj.links -%}
-              {%- for l in menu_obj.links -%}
-                {%- assign t_norm = l.title | strip | downcase -%}
-                {%- if t_norm == brands_parent_title or t_norm contains 'brand' -%}{%- assign brands_links = l.links -%}{%- endif -%}
-              {%- endfor -%}
-            {%- endif -%}
-            {%- if brands_links != blank -%}
-              {%- for b in brands_links -%}
-                {%- assign bname = b.title | strip -%}
-                {%- assign bhandle = bname | handleize -%}
-                {%- assign subs = b.links | map: 'title' | join: '||' -%}
+            {%- assign brands_links = nil -%}
+            {% if menu_obj and menu_obj.links %}
+              {% for l in menu_obj.links %}
+                {% assign t_norm = l.title | strip | downcase %}
+                {% if t_norm == 'brands' or t_norm contains 'brand' %}{% assign brands_links = l.links %}{% break %}{% endif %}
+              {% endfor %}
+            {% endif %}
+            {% assign fallback_brands = brands_list | default: "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" | newline_to_br | split: '<br />' %}
+            {% if brands_links and brands_links.size > 0 %}
+              {% for b in brands_links %}
+                {% assign bname = b.title | strip %}
+                {%- capture deep_json_b -%}
+                [
+                  {%- for g in b.links -%}
+                    {"title": {{ g.title | json }}, "url": {{ g.url | default: '/search?type=product' | json }}, "items": [
+                      {%- for it in g.links -%}
+                        {"title": {{ it.title | json }}, "url": {{ it.url | default: '/search?type=product' | json }}}{%- unless forloop.last -%},{%- endunless -%}
+                      {%- endfor -%}
+                    ]}{%- unless forloop.last -%},{%- endunless -%}
+                  {%- endfor -%}
+                ]
+                {%- endcapture -%}
+                {%- capture flat_json_b -%}
+                [
+                  {%- for x in b.links -%}
+                    {"title": {{ x.title | json }}, "url": {{ x.url | default: '/search?type=product' | json }} }{%- unless forloop.last -%},{%- endunless -%}
+                  {%- endfor -%}
+                ]
+                {%- endcapture -%}
+                {% if b.url %}{% assign _b_href = b.url %}{% else %}{% capture _b_href %}/search?type=product&q={{ bname | url_encode }}{% endcapture %}{% endif %}
                 <li>
-                  <a class="brand" role="menuitem" tabindex="0"
-                     href="{{ b.url | default: '/search?type=product&q=' | append: bname | url_encode }}"
-                     data-brand="{{ bname | escape }}" data-brand-subs="{{ subs | escape }}" title="Preview {{ bname }}">
-                    <img src="/cdn/shop/files/{{ bhandle }}.png" alt="{{ bname }} logo" width="22" height="22" loading="lazy" decoding="async" onerror="this.style.display='none'">
-                    <span>{{ bname }}</span>
+                  <a class="mmg-pivot" href="{{ _b_href }}" data-label="{{ bname | escape }}" data-base="{{ _b_href }}" data-deep='{{ deep_json_b | strip_newlines | escape }}' data-flat='{{ flat_json_b | strip_newlines | escape }}'>
+                    <span class="mmg-txt">{{ bname }}</span>
                   </a>
+                  <button class="mmg-go" type="button" title="Open {{ bname }}" data-go="{{ _b_href }}">→</button>
                 </li>
-              {%- endfor -%}
-            {%- else -%}
-              {%- assign braw = brands_list | default: "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" | newline_to_br | split: '<br />' -%}
-              {%- for b in braw -%}
-                {%- assign bname = b | strip -%}
-                {%- assign bhandle = bname | handleize -%}
+              {% endfor %}
+            {% else %}
+              {% for b in fallback_brands %}
+                {% assign bname = b | strip %}
+                {% capture _b_href %}/search?q=vendor:%22{{ bname | url_encode }}%22&type=product{% endcapture %}
                 <li>
-                  <a class="brand" role="menuitem" tabindex="0" href="/search?q=vendor:%22{{ bname | escape }}%22&type=product"
-                     data-brand="{{ bname | escape }}" data-brand-subs="" title="Preview {{ bname }}">
-                    <img src="/cdn/shop/files/{{ bhandle }}.png" alt="{{ bname }} logo" width="22" height="22" loading="lazy" decoding="async" onerror="this.style.display='none'">
-                    <span>{{ bname }}</span>
+                  <a class="mmg-pivot" href="{{ _b_href }}" data-label="{{ bname | escape }}" data-base="{{ _b_href }}" data-deep='[]' data-flat='[]'>
+                    <span class="mmg-txt">{{ bname }}</span>
                   </a>
+                  <button class="mmg-go" type="button" title="Open {{ bname }}" data-go="{{ _b_href }}">→</button>
                 </li>
-              {%- endfor -%}
-            {%- endif -%}
+              {% endfor %}
+            {% endif %}
           {% endif %}
-        </ul>
+          </ul>
+        </div>
       </div>
 
-      <div class="prev" {% if _mode == 'brands' %}style="padding-top:6px;"{% endif %}>
-        <div class="titlebar">
-          <div class="title" {% if _mode == 'cats' %}data-cats-title{% else %}data-br-title{% endif %}>{% if _mode == 'cats' %}Popular now{% else %}Popular from brand{% endif %}</div>
-          <a class="viewall"
-            {% if _mode == 'cats' %}href="{{ categories_fallback_url | default: '/collections/all' }}" data-cats-viewall{% else %}href="{{ brands_fallback_url | default: '/search?type=product' }}" data-br-viewall{% endif %}>
-            <span class="txt">View all</span><span class="arr">→</span>
-          </a>
+      <!-- Column 2: dynamic -->
+      <div class="mmg-col" data-col="mid">
+        <div class="mmg-head">
+          <h4>{% if _mode == 'cats' %}By Type{% else %}By Category{% endif %}</h4>
+          <div data-mid-cta></div>
         </div>
+        <div class="mmg-hr"></div>
+        <ul data-slot="mid" class="mmg-anim"><li><a>Pick a category</a></li></ul>
+      </div>
 
-        <p class="ps-title" {% if _mode == 'cats' %}data-cats-help{% else %}data-br-help{% endif %}>
-          {% if _mode == 'cats' %}Sub-categories — click a chip to preview{% else %}Browse by brand category — click a chip to preview{% endif %}
-        </p>
-
-        <div class="chips" {% if _mode == 'cats' %}data-cats-subchips{% else %}data-br-subchips{% endif %}></div>
-
-        <!-- Cards area; will auto-fill with the default collection on open -->
-        <div class="cards" {% if _mode == 'cats' %}data-cats-cards{% else %}data-br-cards{% endif %} role="region" aria-live="polite" aria-atomic="true"></div>
-
-        <div class="cta-row">
-          <a class="viewall"
-            {% if _mode == 'cats' %}href="{{ categories_fallback_url | default: '/collections/all' }}" data-cats-viewall{% else %}href="{{ brands_fallback_url | default: '/search?type=product' }}" data-br-viewall{% endif %}>
-            <span class="txt">View all</span><span class="arr">→</span>
-          </a>
+      <!-- Column 3: dynamic -->
+      <div class="mmg-col" data-col="right">
+        <div class="mmg-head">
+          <h4>{% if _mode == 'cats' %}Top Brands{% else %}Top Collections{% endif %}</h4>
+          {% if _mode == 'cats' %}
+            <div><a class="mmg-btn" href="{{ brands_fallback_url | default: '/search?type=product' }}">View all brands</a></div>
+          {% endif %}
         </div>
+        <div class="mmg-hr"></div>
+        <ul data-slot="right" class="mmg-anim"><li><a>…</a></li></ul>
       </div>
     </div>
   </div>
 </div>
-
 <script>
 (() => {
   const MODE = {{ _mode | json }};
-  const script = document.currentScript;
-  let wrap = script && script.previousElementSibling;
-  if (!wrap || !wrap.matches(`[data-mega="${MODE}"]`)) wrap = document.querySelector(`[data-mega="${MODE}"]`);
+  let s = document.currentScript, wrap = s && s.parentElement;
+  while (wrap && !wrap.matches?.(`[data-mega="${MODE}"]`)) wrap = wrap.parentElement;
   if (!wrap) return;
 
-  const isMobile = () => window.matchMedia('(max-width: 991px)').matches;
-  const nf = new Intl.NumberFormat({{ request.locale.iso_code | json }} || 'en-PH', { style:'currency', currency: {{ shop.currency | json }} || 'PHP' });
-  const money = (c)=> nf.format((Number(c)||0)/100);
-  const esc = (s)=> (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
-  const widthSwap=(u,w)=> u&&u.indexOf('{width}')>-1 ? u.replace('{width}', String(w)) : (u||'').replace(/(\.(?:jpe?g|png|webp|gif))(?:\?.*)?$/i, `_${w}x$1`);
-  const srcset=(u)=> `${widthSwap(u,360)} 360w, ${widthSwap(u,540)} 540w, ${widthSwap(u,720)} 720w`;
-  const pickUrl=(p)=> (p&&((p.image&&(p.image.url||p.image))||(p.featured_image&&p.featured_image.url)))||'';
-  const saleBadge=(now, was)=> (was>now && was>0) ? `<span class="ch-badge--ribbon">-${Math.max(1, Math.round(100-(now/was)*100))}%</span>` : '';
-  const skeleton=(cards, n=6)=>{ cards.innerHTML=''; for(let i=0;i<n;i++){ const d=document.createElement('div'); d.className='ch-card'; d.innerHTML='<div class="ch-card__media"><div class="skeleton" style="width:100%;height:100%;"></div></div><div class="ch-card__body"><div class="skeleton" style="height:12px;border-radius:6px;margin-bottom:6px;"></div><div class="skeleton" style="height:14px;border-radius:6px;width:80%"></div></div>'; cards.appendChild(d);} };
+  const panel   = wrap.querySelector('.mmg');
+  const pivots  = panel?.querySelector('[data-mmg-pivots]');
+  const slotMid = panel?.querySelector('[data-slot="mid"]');
+  const slotRight = panel?.querySelector('[data-slot="right"]');
+  const midCta  = panel?.querySelector('[data-mid-cta]');
 
-  const trigger = wrap.querySelector('[data-mega-trigger]');
-  const mega   = wrap.querySelector('.mega');
-  const rail   = wrap.querySelector(MODE==='cats' ? '[data-cat-rail]' : '[data-br-rail]');
-  const title  = wrap.querySelector(MODE==='cats' ? '[data-cats-title]' : '[data-br-title]');
-  const viewAs = wrap.querySelectorAll(MODE==='cats' ? '[data-cats-viewall]' : '[data-br-viewall]');
-  const chips  = wrap.querySelector(MODE==='cats' ? '[data-cats-subchips]' : '[data-br-subchips]');
-  const help   = wrap.querySelector(MODE==='cats' ? '[data-cats-help]' : '[data-br-help]');
-  const cards  = wrap.querySelector(MODE==='cats' ? '[data-cats-cards]' : '[data-br-cards]');
-  const head   = wrap.querySelector('.sheet-head');
-
-  if(!rail || !cards || !mega) return;
-
-  const positionMega = () => {
-    if(isMobile()) return;
-    const t = trigger || wrap;
-    const r = t.getBoundingClientRect();
-    const left = Math.max(8, Math.min(r.left, window.innerWidth - mega.offsetWidth - 8));
-    const top  = r.bottom;
-    mega.style.setProperty('--mega-left', `${left}px`);
-    mega.style.setProperty('--mega-top', `${top}px`);
-  };
-  ['resize','scroll'].forEach(ev=>window.addEventListener(ev, positionMega, {passive:true}));
-
-  let openT=null, closeT=null;
-  function openMega(){
-    const anySearchOpen = document.querySelector('[data-ch-search] .ps-panel[data-open="true"], [data-ch-search] .sheet.is-open');
-    if (anySearchOpen) return;
-    positionMega();
-    wrap.setAttribute('data-open','true');
-    wrap.setAttribute('aria-expanded','true');
-    mega.setAttribute('aria-modal', String(isMobile()));
-    if(isMobile()){ head.hidden=false; document.body.style.overflow='hidden'; }
-    // Load default content the first time it opens (cats mode)
-    if(MODE==='cats' && !cards.dataset.boot){ loadDefault(); cards.dataset.boot='1'; }
+  // --- position helper (called when wrapper is toggled open from the header) ---
+  function pos(){
+    const trig = wrap.querySelector(':scope > a, :scope > button') || wrap;
+    const r=trig.getBoundingClientRect();
+    const L=Math.max(8, Math.min(r.left, innerWidth - panel.offsetWidth - 8));
+    const T=r.bottom;
+    panel.style.setProperty('--mmg-left', L+"px");
+    panel.style.setProperty('--mmg-top',  T+"px");
   }
-  function closeMega(){ wrap.setAttribute('data-open','false'); wrap.setAttribute('aria-expanded','false'); mega.setAttribute('aria-modal','false'); head.hidden=true; document.body.style.overflow=''; }
-  window.CHCloseMega = closeMega;
 
-  wrap.addEventListener('mouseenter', ()=>{ clearTimeout(closeT); openT=setTimeout(openMega, 80); });
-  wrap.addEventListener('mouseleave', ()=>{ clearTimeout(openT); closeT=setTimeout(closeMega, 500); });
-  wrap.addEventListener('focusin', openMega);
-  document.addEventListener('click', (e)=>{ if(wrap.getAttribute('data-open')!=='true') return; if(!wrap.contains(e.target)) closeMega(); });
-  trigger && trigger.addEventListener('click', (e)=>{ if(isMobile()){ e.preventDefault(); openMega(); mega.focus(); } });
-  head?.querySelector('.sheet-close')?.addEventListener('click', closeMega);
-  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeMega(); });
+  // Reposition any time the header toggles data-open="true"
+  new MutationObserver(muts=>{
+    if (wrap.getAttribute('data-open') === 'true') pos();
+  }).observe(wrap, { attributes:true, attributeFilter:['data-open'] });
 
-  let ctl=null; const cache=new Map();
-  const suggest=(q)=>{ if(ctl) ctl.abort(); ctl=new AbortController(); return fetch(`/search/suggest.json?q=${encodeURIComponent(q)}&resources[type]=product&resources[limit]=6`, {signal:ctl.signal, headers:{'Accept':'application/json'}, cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null); };
-  const byLabel=(label)=>{ const k='cat:'+label.toLowerCase(); if(cache.has(k)) return Promise.resolve(cache.get(k)); return suggest(label).then(js=>{ cache.set(k,js||{}); return js||{}; }); };
-  const byVendor=(v)=>{ const k='v:'+v.toLowerCase(); if(cache.has(k)) return Promise.resolve(cache.get(k)); return suggest(`vendor:"${v}"`).then(js=>{ cache.set(k,js||{}); return js||{}; }); };
-  const byVendorTerm=(v,t)=>{ const k='vt:'+v.toLowerCase()+'|'+t.toLowerCase(); if(cache.has(k)) return Promise.resolve(cache.get(k)); return suggest(`vendor:"${v}" ${t}`).then(js=>{ cache.set(k,js||{}); return js||{}; }); };
-  const fallbackFromCollectionUrl=(url)=>{
-    const m=(url||'').match(/\/collections\/([^\/?#]+)/); if(!m) return Promise.resolve(null);
-    const handle=m[1];
-    return fetch(`/collections/${handle}/products.json?limit=6`, {headers:{'Accept':'application/json'}, cache:'no-store'})
-      .then(r=>r.ok?r.json():null)
-      .then(js=>{
-        const list = (js && Array.isArray(js.products)) ? js.products : [];
-        return { resources:{ results:{ products: list.map(p=>({ title:p.title, url:`/products/${p.handle}`, handle:p.handle, vendor:p.vendor, price:(p.variants&&p.variants[0]?Number(p.variants[0].price||0)*100:0), compare_at_price:(p.variants&&p.variants[0]&&p.variants[0].compare_at_price?Number(p.variants[0].compare_at_price||0)*100:0), image:(p.images&&p.images[0])?(p.images[0].src||p.images[0]):(p.image&&p.image.src)||'' })) } } };
-      }).catch(()=>null);
-  };
+  // ------- (everything below is unchanged behavior INSIDE the panel) -------
+  const esc = s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const asArray = x => Array.isArray(x) ? x : [];
 
-  function renderList(js, fallbackUrl){
-    cards.innerHTML='';
-    const list = js && js.resources && js.resources.results && Array.isArray(js.resources.results.products)
-      ? js.resources.results.products : [];
-
-    if(list.length===0 && MODE==='cats' && fallbackUrl){
-      fallbackFromCollectionUrl(fallbackUrl).then(fb=>{
-        const fl = fb && fb.resources && fb.resources.results && Array.isArray(fb.resources.results.products) ? fb.resources.results.products : [];
-        if(fl.length){ renderList(fb); return; }
-        cards.innerHTML='<div style="color:#666;padding:8px;">No products yet — try <strong>View all</strong>.</div>';
-      }); return;
+  function pickGroup(groups, want){
+    const keysMid = [/type/,/device/,/by type/,/category/,/shop/];
+    const keysRightCats = MODE==='cats' ? [/brand/,/brands/,/collection/,/popular/,/best/] : [/best/,/popular/,/top/,/featured/,/hot/,/bestseller/];
+    const arr = asArray(groups);
+    if(want==='mid'){
+      let g = arr.find(x => keysMid.some(rx => rx.test((x.title||'').toLowerCase())));
+      return g || arr[0] || {title:'', url:'#', items:[]};
+    }else{
+      let g = arr.find(x => keysRightCats.some(rx => rx.test((x.title||'').toLowerCase())));
+      return g || {title:'', url:'#', items:[]};
     }
-    if(list.length===0){ cards.innerHTML='<div style="color:#666;padding:8px;">No products yet — try <strong>View all</strong>.</div>'; return; }
-
-    list.slice(0,6).forEach(p=>{
-      const u = pickUrl(p);
-      const now = Number(p.price || p.price_min || 0);
-      const was = Number(p.compare_at_price || 0);
-      const hasSale = was > now && was > 0;
-      const nowStr = money(now); const wasStr = hasSale ? money(was) : '';
-      const el = document.createElement('div'); el.className = 'ch-card';
-      el.innerHTML = `
-        <a class="ch-card__overlay" href="${p.url||'#'}" aria-label="View ${esc(p.title||'')}"></a>
-        <div class="ch-card__mediawrap" style="position:relative">
-          <a class="ch-card__media" href="${p.url||'#'}" aria-label="${esc(p.title||'')}">
-            ${hasSale ? `${saleBadge(now,was)}` : ``}
-            <img class="ch-card__img" src="${widthSwap(u,720)}" srcset="${srcset(u)}" sizes="(max-width:991px) 44vw, 360px" alt="${esc(p.title||'')}" loading="lazy" decoding="async">
-          </a>
-        </div>
-        <div class="ch-card__body">
-          ${p.vendor ? `<div class='ch-meta'>${esc(p.vendor)}</div>` : ''}
-          <h3 class="ch-card__title" title="${esc((p.vendor ? p.vendor+' · ' : '') + (p.title||''))}">
-            <a class="ch-card__titlelink" href="${p.url||'#'}">${esc(p.title||'')}</a>
-          </h3>
-          <div class="ch-price" aria-label="Price">
-            <span class="ch-price__cur">${nowStr}</span>
-            ${hasSale ? `<span class="ch-price__compare">${wasStr}</span>` : ``}
-          </div>
-        </div>
-      `;
-      cards.appendChild(el);
-    });
-
-    cards.setAttribute('aria-label', `${Math.min(6, list.length)} results loaded`);
   }
-
-  /* CLICK-ONLY SUBCHIPS */
-  function renderChips(labels, vendor, onRun){
-    chips.innerHTML=''; const list=(labels||[]).map(s=>String(s).trim()).filter(Boolean).slice(0,8);
-    if(!list.length){ chips.style.display='none'; help && (help.style.display='none'); return; }
-    chips.style.display='flex'; help && (help.style.display='');
-
-    list.forEach((t)=>{
-      const a=document.createElement('a'); a.className='chip'; a.textContent=t; a.href = MODE==='cats' ? `/search?q=${encodeURIComponent(t)}` : `/search?q=${encodeURIComponent('vendor:"'+vendor+'" '+t)}&type=product`; a.tabIndex=0;
-      const trigger = (evt) => { evt.preventDefault(); onRun(t, a); chips.querySelectorAll('.chip[aria-current]').forEach(x=>x.removeAttribute('aria-current')); a.setAttribute('aria-current','true'); a.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'}); };
-      a.addEventListener('click', trigger); a.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ trigger(e); } }); chips.appendChild(a);
-    });
+  function extractMidItems(deep, flat){
+    const groups = asArray(deep);
+    if (!groups.length) return asArray(flat);
+    const allNoItems = groups.every(g => !asArray(g.items).length);
+    if (allNoItems) return groups.map(g => ({ title: g.title, url: g.url }));
+    const gMid = pickGroup(groups,'mid');
+    const cand = asArray(gMid.items);
+    return cand.length ? cand : groups.flatMap(g => asArray(g.items));
   }
-
-  const setCTA = (text, url) => { viewAs.forEach(v=>{ if(v){ v.href=url; v.querySelector('.txt')?.replaceChildren(document.createTextNode(`View all ${text}`)); } }); };
-
-  // NEW: Default content on open — from Theme Editor collection passed as categories_fallback_url
-  function loadDefault(){
-    const catUrl = {{ categories_fallback_url | json }} || '/collections/all';
-    title && (title.textContent = 'Featured picks');
-    setCTA('featured', catUrl);
-    // Hide helper line until a category is focused
-    help && (help.style.display='none'); chips.style.display='none';
-    skeleton(cards, 6);
-    // Try collection.json to avoid empty state
-    fallbackFromCollectionUrl(catUrl).then(fb=>{ if(fb) renderList(fb, catUrl); });
+  function extractRightItems(deep){ const g = pickGroup(deep,'right'); return asArray(g.items); }
+  function animateSlot(ul){ ul.classList.remove('is-in'); [...ul.children].forEach((li,i)=> li.style.transitionDelay = (i*12)+'ms'); requestAnimationFrame(()=> ul.classList.add('is-in')); }
+  function renderList(slot, items, baseUrl){
+    slot.innerHTML = '';
+    const list = asArray(items);
+    if(!list.length){ const li=document.createElement('li'); li.innerHTML = `<a href="${baseUrl||'#'}">View all</a>`; slot.appendChild(li); animateSlot(slot); return; }
+    list.slice(0, 16).forEach(it => { const li=document.createElement('li'); li.innerHTML = `<a href="${it.url || baseUrl || '#'}">${esc(it.title || '')}</a>`; slot.appendChild(li); });
+    animateSlot(slot);
   }
-
-  /* CLICK-ONLY RAIL (CATEGORIES/BRANDS) */
-  if(MODE==='cats'){
-    rail && Array.from(rail.querySelectorAll('a[data-cat]')).forEach((a)=>{
-      const label=a.getAttribute('data-cat')||''; 
-      const subs=(a.getAttribute('data-subs')||'').split('||').map(s=>s.trim()).filter(Boolean);
-      const catUrl=a.getAttribute('href')||{{ categories_fallback_url | default: "/collections/all" | json }};
-
-      const run=(chipEl)=>{
-        title && (title.textContent = chipEl ? `Popular in ${chipEl.textContent}` : `Popular in ${label}`);
-        setCTA(chipEl ? chipEl.textContent : label, catUrl);
-        renderChips(subs, null, (t)=>{ title.textContent=`Popular in ${t}`; skeleton(cards); byLabel(t).then(js=>renderList(js, catUrl)); });
-        skeleton(cards); byLabel(label).then(js=>renderList(js, catUrl));
-        help && (help.style.display=''); chips.style.display = subs.length? 'flex':'none';
-        rail.querySelectorAll('a[aria-current]').forEach(x=>x.removeAttribute('aria-current')); a.setAttribute('aria-current','true');
-      };
-
-      const activate = (e)=>{ e.preventDefault(); run(); };
-      a.addEventListener('click', activate);
-      a.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ activate(e); } });
-    });
-  } else {
-    rail && Array.from(rail.querySelectorAll('.brand')).forEach((b)=>{
-      const vendor=b.getAttribute('data-brand')||''; 
-      const subs=(b.getAttribute('data-brand-subs')||'').split('||').map(s=>s.trim()).filter(Boolean);
-
-      const run=(chipEl)=>{
-        title && (title.textContent = chipEl ? `Popular from ${vendor} — ${chipEl.textContent}` : `Popular from ${vendor}`);
-        const base=`/search?type=product&q=${encodeURIComponent('vendor:"'+vendor+'"')}`;
-        setCTA(vendor, base);
-        renderChips(subs, vendor, (t)=>{ title.textContent = `Popular from ${vendor} — ${t}`; setCTA(`${vendor} ${t}`, `${base}%20${encodeURIComponent(t)}`); skeleton(cards); byVendorTerm(vendor,t).then(js=>renderList(js)); });
-        skeleton(cards); byVendor(vendor).then(js=>renderList(js));
-        rail.querySelectorAll('a[aria-current]').forEach(x=>x.removeAttribute('aria-current')); b.setAttribute('aria-current','true');
-      };
-
-      const activate = (e)=>{ e.preventDefault(); run(); };
-      b.addEventListener('click', activate);
-      b.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ activate(e); } });
-    });
+  function globalBrandsFallback(){
+    const list = [];
+    {% assign _brands_from_menu = nil %}
+    {% if menu_obj and menu_obj.links %}
+      {% for l in menu_obj.links %}
+        {% assign t_norm = l.title | strip | downcase %}
+        {% if t_norm == 'brands' or t_norm contains 'brand' %}{% assign _brands_from_menu = l.links %}{% break %}{% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if _brands_from_menu and _brands_from_menu.size > 0 %}
+      {% for b in _brands_from_menu limit:12 %}
+        {% assign _title = b.title | strip %}
+        {% if b.url %}{% assign _href = b.url %}{% else %}{% capture _href %}/search?type=product&q={{ _title | url_encode }}{% endcapture %}{% endif %}
+        list.push({ title: {{ _title | json }}, url: {{ _href | strip | json }} });
+      {% endfor %}
+    {% else %}
+      {% assign fb = brands_list | default: "Fujifilm\nSony\nRicoh\nDJI\nMoment\nPeak Design\nRØDE\nModule 8" | newline_to_br | split: '<br />' %}
+      {% for b in fb limit:12 %}
+        {% assign _title = b | strip %}
+        {% capture _href %}/search?type=product&q={{ 'vendor:"' | append: _title | append: '"' | url_encode }}{% endcapture %}
+        list.push({ title: {{ _title | json }}, url: {{ _href | strip | json }} });
+      {% endfor %}
+    {% endif %}
+    return list;
   }
+  function handlePivot(a){
+    const panel = wrap.querySelector('.mmg'); const pivots = panel.querySelector('[data-mmg-pivots]');
+    const slotMid = panel.querySelector('[data-slot="mid"]'); const slotRight = panel.querySelector('[data-slot="right"]'); const midCta = panel.querySelector('[data-mid-cta]');
+    pivots.querySelectorAll('a').forEach(x => x.removeAttribute('aria-current')); a.setAttribute('aria-current','true');
+    const label = a.getAttribute('data-label') || ''; const baseUrl = a.getAttribute('data-base') || a.getAttribute('href') || '#';
+    let deep=[], flat=[];
+    try{ deep = JSON.parse(a.getAttribute('data-deep')||'[]'); }catch(_){}
+    try{ flat = JSON.parse(a.getAttribute('data-flat')||'[]'); }catch(_){}
+    const midItems = extractMidItems(deep, flat);
+    if (midCta) midCta.innerHTML = `<a class="mmg-btn" href="${baseUrl}">Shop all ${label.replace(/&/g,'&amp;')}</a>`;
+    renderList(slotMid, midItems, baseUrl);
+    if(MODE==='cats'){ const rightItems = extractRightItems(deep); renderList(slotRight, rightItems.length? rightItems : globalBrandsFallback(), baseUrl); }
+    else{ renderList(slotRight, extractRightItems(deep), baseUrl); }
+  }
+  // keep HOVER inside the open panel
+  panel?.querySelectorAll('a.mmg-pivot').forEach(a=>{
+    a.addEventListener('mouseenter', ()=>handlePivot(a));
+    a.addEventListener('click', e=>{ if(e.detail>=2) return; e.preventDefault(); handlePivot(a); });
+  });
+  // select first by default
+  const first = panel?.querySelector('a.mmg-pivot') || panel?.querySelector('a'); if(first) handlePivot(first);
 })();
 </script>

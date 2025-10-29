@@ -1,14 +1,12 @@
 {%- comment -%}
-  Breadcrumbs — menu-aware (up to 4 levels)
-  Usage in templates:
-    {% render 'breadcrumbs', menu: 'main-menu' %}
+Breadcrumbs — HAVIT-style full-bleed gray bar
+Usage: {% render 'breadcrumbs', menu: 'main-menu' %}
 {%- endcomment -%}
 
 {%- if request.page_type != 'index' -%}
 {%- assign menu_handle = menu | default: 'main-menu' -%}
 {%- assign nav = linklists[menu_handle] -%}
 
-{%- comment -%} Figure out current collection context for product pages {%- endcomment -%}
 {%- assign current_collection = nil -%}
 {%- if request.page_type == 'product' -%}
   {%- assign current_collection = collection -%}
@@ -17,7 +15,6 @@
   {%- endif -%}
 {%- endif -%}
 
-{%- comment -%} Prepare path vars {%- endcomment -%}
 {%- assign p1_t = '' -%}{%- assign p1_u = '' -%}
 {%- assign p2_t = '' -%}{%- assign p2_u = '' -%}
 {%- assign p3_t = '' -%}{%- assign p3_u = '' -%}
@@ -63,51 +60,110 @@
   {%- endfor -%}
 {%- endif -%}
 
-<nav class="ch-bc" role="navigation" aria-label="Breadcrumbs">
-  <ol class="ch-bc__list">
-    <li class="ch-bc__item"><a class="ch-bc__link" href="{{ routes.root_url }}">Home</a></li>
+<nav class="hv-bc" role="navigation" aria-label="Breadcrumbs">
+  <div class="hv-bc__inner">
+    <ol class="hv-bc__list">
+      <li class="hv-bc__item"><a class="hv-bc__link" href="{{ routes.root_url }}">Home</a></li>
 
-    {%- if request.page_type == 'collection' and collection -%}
-      {%- if p1_t != '' -%}<li class="ch-bc__item"><a class="ch-bc__link" href="{{ p1_u }}">{{ p1_t }}</a></li>{%- endif -%}
-      {%- if p2_t != '' -%}<li class="ch-bc__item"><a class="ch-bc__link" href="{{ p2_u }}">{{ p2_t }}</a></li>{%- endif -%}
-      {%- if p3_t != '' -%}<li class="ch-bc__item"><a class="ch-bc__link" href="{{ p3_u }}">{{ p3_t }}</a></li>{%- endif -%}
-      <li class="ch-bc__item" aria-current="page">{{ leaf_t | default: collection.title }}</li>
+      {%- if request.page_type == 'collection' and collection -%}
+        {%- if p1_t != '' -%}<li class="hv-bc__item"><a class="hv-bc__link" href="{{ p1_u }}">{{ p1_t }}</a></li>{%- endif -%}
+        {%- if p2_t != '' -%}<li class="hv-bc__item"><a class="hv-bc__link" href="{{ p2_u }}">{{ p2_t }}</a></li>{%- endif -%}
+        {%- if p3_t != '' -%}<li class="hv-bc__item"><a class="hv-bc__link" href="{{ p3_u }}">{{ p3_t }}</a></li>{%- endif -%}
+        <li class="hv-bc__item" aria-current="page">{{ leaf_t | default: collection.title }}</li>
 
-    {%- elsif request.page_type == 'product' and product -%}
-      {%- if current_collection -%}
-        {%- if p1_t != '' -%}<li class="ch-bc__item"><a class="ch-bc__link" href="{{ p1_u }}">{{ p1_t }}</a></li>{%- endif -%}
-        {%- if p2_t != '' -%}<li class="ch-bc__item"><a class="ch-bc__link" href="{{ p2_u }}">{{ p2_t }}</a></li>{%- endif -%}
-        {%- if p3_t != '' -%}<li class="ch-bc__item"><a class="ch-bc__link" href="{{ p3_u }}">{{ p3_t }}</a></li>{%- endif -%}
-        <li class="ch-bc__item"><a class="ch-bc__link" href="{{ leaf_u | default: current_collection.url }}">{{ leaf_t | default: current_collection.title }}</a></li>
-      {%- else -%}
-        <li class="ch-bc__item"><a class="ch-bc__link" href="{{ routes.all_products_collection_url }}">All products</a></li>
+      {%- elsif request.page_type == 'product' and product -%}
+        {%- if current_collection -%}
+          {%- if p1_t != '' -%}<li class="hv-bc__item"><a class="hv-bc__link" href="{{ p1_u }}">{{ p1_t }}</a></li>{%- endif -%}
+          {%- if p2_t != '' -%}<li class="hv-bc__item"><a class="hv-bc__link" href="{{ p2_u }}">{{ p2_t }}</a></li>{%- endif -%}
+          {%- if p3_t != '' -%}<li class="hv-bc__item"><a class="hv-bc__link" href="{{ p3_u }}">{{ p3_t }}</a></li>{%- endif -%}
+          <li class="hv-bc__item"><a class="hv-bc__link" href="{{ leaf_u | default: current_collection.url }}">{{ leaf_t | default: current_collection.title }}</a></li>
+        {%- else -%}
+          <li class="hv-bc__item"><a class="hv-bc__link" href="{{ routes.all_products_collection_url }}">All Products</a></li>
+        {%- endif -%}
+        <li class="hv-bc__item" aria-current="page">{{ product.title }}</li>
+
+      {%- elsif request.page_type == 'page' and page -%}
+        <li class="hv-bc__item" aria-current="page">{{ page.title }}</li>
+
+      {%- elsif request.page_type contains 'blog' -%}
+        {%- if article and blog -%}
+          <li class="hv-bc__item"><a class="hv-bc__link" href="{{ blog.url }}">{{ blog.title }}</a></li>
+          <li class="hv-bc__item" aria-current="page">{{ article.title }}</li>
+        {%- elsif blog -%}
+          <li class="hv-bc__item" aria-current="page">{{ blog.title }}</li>
+        {%- endif -%}
       {%- endif -%}
-      <li class="ch-bc__item" aria-current="page">{{ product.title }}</li>
-
-    {%- elsif request.page_type == 'page' and page -%}
-      <li class="ch-bc__item" aria-current="page">{{ page.title }}</li>
-
-    {%- elsif request.page_type contains 'blog' -%}
-      {%- if article and blog -%}
-        <li class="ch-bc__item"><a class="ch-bc__link" href="{{ blog.url }}">{{ blog.title }}</a></li>
-        <li class="ch-bc__item" aria-current="page">{{ article.title }}</li>
-      {%- elsif blog -%}
-        <li class="ch-bc__item" aria-current="page">{{ blog.title }}</li>
-      {%- endif -%}
-    {%- endif -%}
-  </ol>
+    </ol>
+  </div>
 </nav>
 
 <style>
-  .ch-bc{font-size:.92rem;margin:.25rem 0 1rem}
-  .ch-bc__list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:.5rem}
-  .ch-bc__item{display:inline-flex;align-items:center;color:#333}
-  .ch-bc__item:not(:last-child)::after{content:"›";margin-left:.5rem;opacity:.6}
-  .ch-bc__link{text-decoration:none;color:inherit}
-  .ch-bc__link:hover{text-decoration:underline}
+/* HAVIT-style full-bleed bar under header */
+.hv-bc{
+  --bc-bg:#f5f5f5;      /* gray bar */
+  --bc-text:#000;       /* black text */
+  --bc-muted:#9e9e9e;   /* chevron color */
+
+  background:var(--bc-bg);
+  width:100vw;
+  position:relative;
+  left:50%;
+  right:50%;
+  margin-left:-50vw;
+  margin-right:-50vw;
+
+  font-family:"Roboto","Helvetica Neue",Arial,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans","Liberation Sans",sans-serif !important;
+  font-weight:400;
+  letter-spacing:0;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.hv-bc__inner{
+  /* set this CSS var once in your theme if you want: :root { --page-width: 1200px; } */
+  max-width:var(--page-width, 1200px);
+  margin-inline:auto;
+  padding:12px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.hv-bc__list{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:flex;
+  flex-wrap:wrap;
+  gap:.5rem;
+  color:var(--bc-text);
+  font-size:14px;
+  line-height:1.4;
+}
+
+.hv-bc__item{ display:inline-flex; align-items:center; color:var(--bc-text); }
+.hv-bc__item:not(:last-child)::after{
+  content:"›";
+  margin-left:.5rem;
+  color:var(--bc-muted);
+}
+
+/* links are black, no color flip */
+.hv-bc__link{ color:var(--bc-text) !important; text-decoration:none; }
+.hv-bc__link:hover{ text-decoration:underline; color:var(--bc-text) !important; }
+
+/* mobile fix to avoid 1px horizontal scroll when parents have transforms */
+@media (max-width: 768px){
+  .hv-bc{
+    width:100%;
+    left:auto; right:auto;
+    margin-left:0; margin-right:0;
+  }
+  .hv-bc__inner{ padding:12px 14px; gap:10px; }
+  .hv-bc__list{ font-size:13px; gap:.4rem; }
+}
 </style>
 
-{%- comment -%} JSON-LD (simple, no capture/replace) {%- endcomment -%}
 {%- assign pos = 1 -%}
 <script type="application/ld+json">
 {

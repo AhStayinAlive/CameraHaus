@@ -1,180 +1,345 @@
 {%- comment -%}
-snippets/ch-panel-search-mobile.liquid
-Mobile search panel body — self-contained predictive
-
-Changes in this version:
-• Text-only Quick search links (Havit-style) so products sit higher.
-• Enter key submits to /search?q=... and stores recent queries.
-• Safer fetchSuggest() with graceful fallback if endpoint fails.
-• Same scoped styles; no dependencies on global scripts.
-
-Usage:
-  {% capture body %}{% render 'ch-panel-search-mobile', section: section %}{% endcapture %}
-  {% render 'ch-side-panel', id: 'search', title: 'SEARCH OUR SITE', body: body %}
+Search — Floating “Island” (top-centered) — REVAMP v3
+• Sticky footer CTA (always visible)
+• Name truncation on result cards (2-line clamp) + no horizontal scroll
+• Truncated query in footer label for aesthetics
+• Keeps: brand chips, custom clear (×), body scroll-lock, prefill from Theme Editor collection
 {%- endcomment -%}
 
+{%- assign _locale    = request.locale.iso_code | default: 'en-PH' -%}
+{%- assign _currency  = shop.currency | default: 'PHP' -%}
+{%- assign _limit     = section.settings.search_limit_products | default: 6 -%}
+{%- assign _min_chars = section.settings.search_min_chars | default: 2 -%}
+
+/* Robustly resolve the preview collection (various setting keys) */
+{%- assign _pref = section.settings.preview_collection
+  | default: section.settings.default_preview_collection
+  | default: section.settings.default_preview_collection_no_hover
+  | default: section.settings.preview_collection_no_hover
+  | default: settings.preview_collection -%}
+{%- if _pref and _pref != blank and _pref.products_count == nil -%}
+  {%- assign _pref = collections[_pref] -%}
+{%- endif -%}
+
+{%- capture prefill_json -%}
+[
+{%- if _pref and _pref.products_count > 0 -%}
+  {%- for p in _pref.products limit: _limit -%}
+  {
+    "title": {{ p.title | json }},
+    "url": {{ p.url | json }},
+    "price": {{ p.price | json }},
+    "compare_at_price": {{ p.compare_at_price | json }},
+    "image": {{ p.featured_image | image_url | json }}
+  }{%- unless forloop.last -%},{%- endunless -%}
+  {%- endfor -%}
+{%- endif -%}
+]
+{%- endcapture -%}
+
 <style>
-/* ===== Scoped styles (search panel only) ===== */
-.ch-panel[data-ch-panel="search"] .sh-row{ padding:10px 14px; display:grid; gap:10px; }
-.ch-panel[data-ch-panel="search"] .sh-inp{
-  height:46px; background:#fff; border:1px solid var(--line,#e8e8e8); border-radius:12px;
-  display:flex; align-items:center; gap:8px; padding:0 12px;
-  box-shadow: inset 0 0 0 1px transparent;
+/* ===== Disable legacy drawer ===== */
+.ch-panel[data-ch-panel="search"]{ display:none !important; }
+
+/* ===== Tokens & type ===== */
+:root{
+  --ms-font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --brand:#E03A2F; --brand-600:#D12F24; --ink:#111; --muted:#6b7280; --line:#E5E7EB;
 }
-.ch-panel[data-ch-panel="search"] .sh-inp:focus-within{ border-color:var(--brand,#E0302A); box-shadow: inset 0 0 0 1px var(--brand,#E0302A); }
-.ch-panel[data-ch-panel="search"] .sh-inp input{
-  width:100%; border:0; outline:0; background:transparent; color:var(--ink,#161616);
-  font:600 16px/1.25 var(--font-body,inherit);
-}
-.ch-panel[data-ch-panel="search"] .sh-inp .btn{ min-width:auto; min-height:auto; background:transparent; border:0; padding:0; color:#6b7280; }
-.ch-panel[data-ch-panel="search"] .ico{ width:20px; height:20px; }
-
-.ch-panel[data-ch-panel="search"] .sh-live{ position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden; }
-.ch-panel[data-ch-panel="search"] .sh-sec{ padding:8px 14px; }
-.ch-panel[data-ch-panel="search"] .sh-sec__title{ margin:0 0 8px; font:800 12px/1 var(--font-body,inherit); color:#666; letter-spacing:.02em; }
-
-/* Text-only quick links */
-.ch-panel[data-ch-panel="search"] .qs-inline{ font:600 14px/1.55 var(--font-body,inherit); color:var(--ink,#161616); }
-.ch-panel[data-ch-panel="search"] .qs-inline a{ color:inherit; text-decoration:none; opacity:.92; }
-.ch-panel[data-ch-panel="search"] .qs-inline a:hover{ color:var(--brand,#E0302A); opacity:1; }
-.ch-panel[data-ch-panel="search"] .qs-inline .sep{ opacity:.35; padding:0 6px; }
-
-.ch-panel[data-ch-panel="search"] .chips{ display:flex; flex-wrap:wrap; gap:8px; }
-.ch-panel[data-ch-panel="search"] .chip{
-  display:inline-flex; align-items:center; height:32px; padding:0 12px; border-radius:999px;
-  border:1px solid var(--chip-bd,#E5E7EB); background:var(--chip-bg,#fff); color:var(--chip-txt,#111);
-  text-decoration:none; font-weight:700; font-size:12px; max-width:100%;
-}
-.ch-panel[data-ch-panel="search"] .chip:hover{ background:var(--chip-bg-hover,#FFF4F3); border-color:var(--brand,#E0302A); }
-
-.ch-panel[data-ch-panel="search"] .lst{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
-.ch-panel[data-ch-panel="search"] .srow{
-  display:grid; grid-template-columns:20px 1fr; align-items:center; gap:8px; padding:10px;
-  border:1px solid var(--line,#e8e8e8); border-radius:12px; background:#fff; cursor:pointer;
-}
-.ch-panel[data-ch-panel="search"] .srow svg{ width:16px; height:16px; color:#6b7280; }
-
-.ch-panel[data-ch-panel="search"] .it{
-  display:grid; grid-template-columns:56px 1fr auto; gap:10px; align-items:center; padding:10px;
-  border-radius:12px; border:1px solid var(--line,#e8e8e8); background:#fff; position:relative;
-}
-.ch-panel[data-ch-panel="search"] .mthumb{ width:56px; height:56px; object-fit:contain; border-radius:8px; background:#f4f4f4; }
-.ch-panel[data-ch-panel="search"] .mtitle{ font:700 13px/1.3 var(--font-body,inherit); color:var(--ink,#161616); }
-.ch-panel[data-ch-panel="search"] .mprice{ font:800 13px/1 var(--font-body,inherit); color:#111; white-space:nowrap; }
-.ch-panel[data-ch-panel="search"] .price-was{ color:#8b8b8b; text-decoration:line-through; margin-left:6px; font-weight:700; }
-
-.ch-panel[data-ch-panel="search"] .sh-ft{ padding:10px 14px 18px; border-top:1px solid var(--line,#e8e8e8); margin-top:auto; text-align:center; }
-.ch-panel[data-ch-panel="search"] .cta-all--mobile{
-  display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 14px; border-radius:999px;
-  background:#111; color:#fff; text-decoration:none; font-weight:800;
+.ms-portal, .ms-portal *:not(svg):not(style){
+  font-family: var(--ms-font);
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
 }
 
-/* lightweight skeleton */
-.ch-panel[data-ch-panel="search"] .skeleton{ background:linear-gradient(90deg,#eee,#f7f7f7,#eee); animation:ch-sh 1.2s infinite; }
-@keyframes ch-sh{ 0%{background-position:-120px 0} 100%{background-position:120px 0} }
-/* ===== Havit-style mobile rows ========================================== */
-.ch-panel[data-ch-panel="search"] .it{
-  border:1px solid #E5E7EB; background:#fff; border-radius:12px;
-  grid-template-columns:64px 1fr auto; padding:10px; gap:10px;
+/* ===== Backdrop / portal ===== */
+.ms-portal{
+  position: fixed; inset: 0; z-index: 999999;
+  pointer-events: none; overscroll-behavior: contain;
 }
-.ch-panel[data-ch-panel="search"] .mthumb{
-  width:64px;height:64px;border-radius:10px;background:#fff; border:1px solid #F1F5F9; object-fit:contain;
+.ms-portal::before{
+  content:""; position:absolute; inset:0; background: rgba(17,24,39,.52);
+  opacity: 0; transition: opacity .24s ease; pointer-events: none;
 }
-.ch-panel[data-ch-panel="search"] .mtitle{ font:600 13px/1.35 var(--font-body); color:#111; }
-.ch-panel[data-ch-panel="search"] .mprice{ font:800 13px/1 var(--font-body); color:var(--brand); }
-.ch-panel[data-ch-panel="search"] .price-was{ color:#6B7280; text-decoration:line-through; margin-left:6px; }
+.ms-portal[data-open]{ pointer-events: auto; }
+.ms-portal[data-open]::before{ opacity: 1; pointer-events: auto; }
+
+/* ===== Island card (scroll container) ===== */
+.ms-island{
+  position: fixed; left: 50%;
+  top: clamp(12px, 6vh, 56px);
+  transform: translate3d(-50%,-12px,0) scale(.985);
+  transform-origin: top center;
+  width: min(96vw, 760px);
+  max-height: calc(100dvh - 2 * clamp(12px, 6vh, 56px));
+  overflow: auto; overscroll-behavior: contain;
+
+  background:#fff; color:#111; border-radius:18px;
+  border:1px solid var(--line); box-shadow:0 28px 72px rgba(0,0,0,.18);
+
+  opacity:0; transition: transform .28s cubic-bezier(.22,.98,.36,.99), opacity .2s ease;
+}
+.ms-portal[data-open] .ms-island{ transform: translate3d(-50%,0,0) scale(1); opacity:1; }
+
+/* Close (panel) X */
+.ms-x{
+  position:absolute; top:10px; right:10px; width:32px; height:32px;
+  display:grid; place-items:center; border-radius:999px; border:1px solid var(--line);
+  background:#fff; color:#111; cursor:pointer;
+  transition:transform .12s ease, background-color .15s ease, border-color .15s ease;
+}
+.ms-x:hover{ background:#f9fafb; border-color:#dfe3e8; transform:scale(1.02); }
+.ms-x:active{ transform:scale(.96); }
+.ms-x svg{ width:18px; height:18px; stroke:currentColor; stroke-width:2; fill:none; vector-effect:non-scaling-stroke; }
+
+/* ===== Sections ===== */
+.ms-island .sh-row{ padding:12px 14px; display:grid; gap:10px; }
+.ms-island .sh-sec{ padding:8px 14px; }
+.ms-island .sh-sec__title{ margin:0 0 8px; font:700 12px/1 var(--ms-font); color:#666; letter-spacing:.02em; }
+.ms-island .sh-live{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+
+/* Input group */
+.ms-island .sh-inp{
+  position:relative; height:44px; background:#fff;
+  border:1px solid var(--line); border-radius:12px; display:flex; align-items:center;
+  padding:0 118px 0 14px; /* room for clear + button */
+}
+.ms-island .sh-inp:focus-within{ border-color:#D1D5DB; }
+.ms-island .sh-inp input{
+  width:100%; border:0; outline:0; background:transparent; color:#111;
+  font:600 16px/1.25 var(--ms-font);
+}
+/* Hide UA clear and use custom one */
+.ms-island .sh-inp input::-webkit-search-cancel-button{ -webkit-appearance:none; height:0; width:0; }
+.ms-island .sh-clear{
+  position:absolute; right:110px; top:50%; transform:translateY(-50%);
+  width:24px;height:24px; border-radius:999px; display:none; place-items:center;
+  background:#f3f4f6; color:#6b7280; border:1px solid #e5e7eb; z-index:2;
+}
+.ms-island .sh-clear svg{ width:14px;height:14px; }
+.ms-island .sh-clear:hover{ background:#eee; color:#111; }
+
+/* Square red search button */
+.ms-island .sh-go{
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  height:32px; padding:0 14px;
+  border-radius:8px; border:1px solid var(--brand); background: var(--brand); color:#fff;
+  font:600 13px/1 var(--ms-font); text-transform: lowercase;
+  display:inline-flex; align-items:center; justify-content:center; cursor:pointer; user-select:none;
+}
+.ms-island .sh-go:hover{ background:var(--brand-600); border-color:var(--brand-600); }
+.ms-island .sh-go:focus-visible{ outline:2px solid #111; outline-offset:2px; }
+
+/* Quick search (inline) */
+.ms-island .qs-inline{ display:flex; flex-wrap:wrap; gap:0; font:600 14px/1.6 var(--ms-font); color:#111; }
+.ms-island .qs-inline a{ color:#111 !important; text-decoration:none; opacity:.92; }
+.ms-island .qs-inline a:hover{ color:var(--brand) !important; opacity:1; }
+.ms-island .qs-inline .sep{ opacity:.35; padding:0 6px; }
+
+/* Brands chips */
+.ms-island .qs-chips{ display:flex; flex-wrap:wrap; gap:8px; }
+.ms-island .qs-chips a{
+  display:inline-flex; align-items:center; height:28px; padding:0 10px;
+  border:1px solid #d1d5db; border-radius:999px; color:#111; text-decoration:none; font:600 12px/1 var(--ms-font);
+  background:#fff; white-space:nowrap;
+}
+.ms-island .qs-chips a:hover{ border-color:var(--brand); color:var(--brand); }
+
+/* Results list */
+.ms-island .lst{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.ms-island .it{
+  position:relative;
+  border:1px solid var(--line); background:#fff; border-radius:12px;
+  display:grid; grid-template-columns:64px minmax(0,1fr) auto; /* prevent horizontal scroll */
+  align-items:center; gap:10px; padding:10px;
+}
+.ms-island .it > a{ position:absolute; inset:0; border-radius:12px; }
+.ms-island .mthumb{ width:64px; height:64px; border-radius:10px; background:#fff; border:1px solid #F1F5F9; object-fit:contain; }
+.ms-island .mtitle{
+  font:600 13px/1.35 var(--ms-font); color:#111;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; text-overflow:ellipsis;
+}
+.ms-island .mprice{ font:800 13px/1 var(--ms-font); color:var(--brand); white-space:nowrap; }
+.ms-island .price-was{ color:#6B7280; text-decoration:line-through; margin-left:6px; font-weight:700; }
+
+/* ===== Sticky footer CTA (always visible) ===== */
+.ms-island .sh-ft{
+  position:sticky; bottom:0; z-index:3;
+  padding:10px 14px calc(18px + env(safe-area-inset-bottom));
+  background:#fff; border-top:1px solid var(--line);
+  backdrop-filter:saturate(140%) blur(2px);
+}
+.ms-island .cta-all--mobile{
+  display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 14px; border-radius:8px;
+  background:#fff; color:#111; text-decoration:none; font:600 13px/1 var(--ms-font);
+  border:1px solid #111; box-shadow:0 1px 0 rgba(0,0,0,.04);
+}
+.ms-island .cta-all--mobile:hover{ background:var(--brand); color:#fff; border-color:var(--brand); }
+
+/* Add extra bottom space to results so last card isn't hidden behind sticky footer */
+.ms-island .sh-sec--results{ padding-bottom:96px; }
+
+/* Skeleton */
+.ms-island .skeleton{ background:linear-gradient(90deg,#eee,#f7f7f7,#eee); background-size:120px 100%; animation:ms-sh 1.2s infinite; }
+@keyframes ms-sh{ 0%{background-position:-120px 0} 100%{background-position:120px 0} }
+
+@media (min-width:768px){ .ms-island{ width:min(90vw,760px); } }
+<style>
+/* === SEARCH island: consistent truncation & layout === */
+
+/* 1) Fix the grid so the title area is predictable and can truncate */
+.ms-island .it{
+  /* thumb | title | price */
+  grid-template-columns: 64px 1fr 112px;   /* reserve a stable price column */
+  column-gap: 10px;
+}
+@media (max-width: 420px){
+  .ms-island .it{ grid-template-columns: 56px 1fr 98px; }
+}
+
+/* Allow the middle column to actually shrink; otherwise ellipsis fails */
+.ms-island .it > div:not(.mprice){ min-width: 0; }
+
+/* 2) Rock-solid 2-line clamp on titles (with max-height fallback) */
+.ms-island .mtitle{
+  --lh: 1.3;
+  line-height: var(--lh);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+  max-height: calc(2 * 1em * var(--lh)); /* fallback for non-webkit */
+}
+
+/* 3) Price column: stack, right-align, predictable width */
+.ms-island .mprice{
+  min-width: 112px;            /* matches grid third column */
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+}
+@media (max-width: 420px){
+  .ms-island .mprice{ min-width: 98px; }
+}
+
+/* compare-at / “was” stays below the main price */
+.ms-island .mprice .price-was{
+  display: block;
+  margin-top: 4px;
+}
+
+/* Optional: prevent any outside rule from forcing single-line title */
+.ms-island .mtitle, .ms-island .mtitle *{ white-space: normal !important; }
+</style>
 
 </style>
 
-<div class="sh-row">
-  <div class="sh-inp">
-    <input type="search" placeholder="Search products & brands" autocomplete="off"
-           aria-controls="m-list-{{ section.id }}" aria-expanded="false" data-ms-input>
-    <button class="btn" type="button" aria-label="Clear" data-ms-clear style="display:none;">
-      <svg class="ico" viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3L16.9 4.3z"/></svg>
-    </button>
-    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8L20 21.5 21.5 20l-6-6zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>
+<!-- ============== Markup ============== -->
+<div class="ms-island" data-ms-island role="dialog" aria-modal="true" aria-label="Search">
+  <button class="ms-x" data-ms-close aria-label="Close search">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+    </svg>
+  </button>
+
+  <div class="sh-row">
+    <div class="sh-inp">
+      <input type="search" placeholder="Search" autocomplete="off"
+             aria-controls="m-list-{{ section.id }}" aria-expanded="false" data-ms-input>
+      <button class="sh-clear" type="button" data-ms-clear aria-label="Clear search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+      </button>
+      <button class="sh-go" type="button" data-ms-go aria-label="Submit search">search</button>
+    </div>
+    <span class="sh-live" aria-live="polite" data-ms-live></span>
   </div>
-  <span class="sh-live" aria-live="polite" data-ms-live></span>
-</div>
 
-<!-- Text-only Quick search -->
-<div class="sh-sec">
-  <p class="sh-sec__title">Quick search</p>
-  <div class="qs-inline">
-    <a href="/search?q=Instant">Instant</a><span class="sep">·</span>
-    <a href="/search?q=Mirrorless">Mirrorless</a><span class="sep">·</span>
-    <a href="/search?q=Film">Film</a><span class="sep">·</span>
-    <a href="/search?q=Action">Action</a><span class="sep">·</span>
-    <a href="/search?q=Lens">Lens</a><span class="sep">·</span>
-    <a href="/search?q=Drones">Drones</a><span class="sep">·</span>
-    <a href="/search?q=360">360</a><span class="sep">·</span>
-    <a href="/search?q=Gimbals">Gimbals</a>
+  <div class="sh-sec">
+    <p class="sh-sec__title">Quick search</p>
+    <div class="qs-inline">
+      {%- assign quick_links = section.settings.quick_list | default: "Instant\nMirrorless\nFilm\nAction\nLens\nDrones\n360\nGimbals" -%}
+      {%- assign ql = quick_links | split: '\n' -%}
+      {%- for q in ql -%}
+        {%- assign q_trim = q | strip -%}
+        {%- if q_trim != blank -%}
+          <a href="/search?q={{ q_trim | url_encode }}">{{ q_trim }}</a>{% unless forloop.last %}<span class="sep">·</span>{% endunless %}
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
   </div>
-</div>
 
-<div class="sh-sec">
-  <p class="sh-sec__title">Brands</p>
-  <div class="chips" data-ms-brands></div>
-</div>
+  <div class="sh-sec">
+    <p class="sh-sec__title">Brands</p>
+    <div class="qs-chips">
+      {%- assign brands = section.settings.brands_list | default: "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" | split: '\n' -%}
+      {%- assign shown = 0 -%}
+      {%- for b in brands -%}
+        {%- assign bb = b | strip -%}
+        {%- if bb != blank -%}
+          <a href="/search?type=product&q={{ 'vendor:"' | append: bb | append: '"' | url_encode }}">{{ bb }}</a>
+          {%- assign shown = shown | plus: 1 -%}
+          {%- if shown >= 24 -%}{% break %}{%- endif -%}
+        {%- endif -%}
+      {%- endfor -%}
+    </div>
+  </div>
 
-<div class="sh-sec">
-  <p class="sh-sec__title">Suggestions</p>
-  <ul id="m-list-{{ section.id }}" class="lst" role="listbox" aria-label="Search results" data-ms-list></ul>
-</div>
+  <div class="sh-sec sh-sec--results">
+    <p class="sh-sec__title">Results</p>
+    <ul id="m-list-{{ section.id }}" class="lst" role="listbox" aria-label="Product results" data-ms-list></ul>
+  </div>
 
-<div class="sh-ft">
-  <a class="cta-all--mobile" href="/search?q=" data-ms-viewall>View all results</a>
+  <div class="sh-ft">
+    <a class="cta-all--mobile" href="{{ _pref.url | default: '/search?q=' }}" data-ms-viewall>View all results</a>
+  </div>
 </div>
 
 <script>
-/* ===== Scoped controller (search panel only) ===== */
 (() => {
-  const shell = document.querySelector('.ch-panel[data-ch-panel="search"]');
-  if (!shell) return;
+  /* ---------- Mount into body portal ---------- */
+  const sec = document.currentScript.closest('section, .shopify-section') || document.body;
+  const island = sec.querySelector('[data-ms-island]');
+  if (!island) return;
 
-  const input   = shell.querySelector('[data-ms-input]');
-  const list    = shell.querySelector('[data-ms-list]');
-  const chipsB  = shell.querySelector('[data-ms-brands]');
-  const live    = shell.querySelector('[data-ms-live]');
-  const clear   = shell.querySelector('[data-ms-clear]');
-  const viewAll = shell.querySelector('[data-ms-viewall]');
+  let portal = document.querySelector('.ms-portal');
+  if (!portal){
+    portal = document.createElement('div'); portal.className = 'ms-portal'; document.body.appendChild(portal);
+  }
+  portal.appendChild(island);
+
+  const input    = island.querySelector('[data-ms-input]');
+  const clearBtn = island.querySelector('[data-ms-clear]');
+  const list     = island.querySelector('[data-ms-list]');
+  const live     = island.querySelector('[data-ms-live]');
+  const viewAll  = island.querySelector('[data-ms-viewall]');
+  const btnGo    = island.querySelector('[data-ms-go]');
 
   let ctl = null, debounce = null;
 
-  /* helpers */
-  const nf = new Intl.NumberFormat({{ request.locale.iso_code | json }} || 'en-PH',
-    { style:'currency', currency: {{ shop.currency | json }} || 'PHP' });
+  const nf = new Intl.NumberFormat({{ _locale | json }}, { style:'currency', currency: {{ _currency | json }} });
   const money = c => nf.format((Number(c)||0)/100);
   const esc   = s => (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const widthSwap = (u,w)=> u&&u.indexOf('{width}')>-1 ? u.replace('{width}', String(w))
-                       : (u||'').replace(/(\.(?:jpe?g|png|webp|gif))(?:\?.*)?$/i, `_${w}x$1`);
+  const widthSwap = (u,w)=> u&&u.indexOf('{width}')>-1 ? u.replace('{width}', String(w)) : (u||'').replace(/(\.(?:jpe?g|png|webp|gif))(?:\?.*)?$/i, `_${w}x$1`);
   const srcset = (u)=> `${widthSwap(u,112)} 112w, ${widthSwap(u,224)} 224w, ${widthSwap(u,336)} 336w`;
 
-  /* Brands chips from settings */
-  function paintBrands(){
-    if (!chipsB) return; chipsB.innerHTML='';
-    ({{ section.settings.brands_list | default: "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" | json }}||'')
-      .split('\n').map(s=>s.trim()).filter(Boolean).slice(0,10)
-      .forEach(b => {
-        const a = document.createElement('a');
-        a.className = 'chip';
-        a.href = `/search?type=product&q=${encodeURIComponent('vendor:"'+b+'"')}`;
-        a.innerHTML = `<span>${esc(b)}</span>`;
-        chipsB.appendChild(a);
-      });
-  }
-  paintBrands();
+  const prefill = {{ prefill_json | strip | replace: "\n", "" }};
+  const defaultCollectionUrl = {{ _pref.url | default: '/search?q=' | json }};
 
-  /* skeleton rows while fetching */
+  /* Truncate helper for footer label */
+  const trunc = (s, n=28) => { s = String(s||''); return s.length > n ? s.slice(0, n-1) + '…' : s; };
+
   function skeleton(){
     if (!list) return;
     list.innerHTML = '';
-    for (let i=0;i<{{ section.settings.search_limit_products | default: 6 }}; i++){
+    for (let i=0;i<{{ _limit }}; i++){
       const li = document.createElement('li');
       li.className = 'it';
       li.innerHTML = `
-        <div class="mthumb skeleton" style="width:56px;height:56px;border-radius:8px;"></div>
+        <div class="mthumb skeleton" style="width:64px;height:64px;border-radius:10px;"></div>
         <div>
           <div class="skeleton" style="height:14px;border-radius:6px;margin-bottom:6px;"></div>
           <div class="skeleton" style="width:64px;height:12px;border-radius:6px;"></div>
@@ -185,105 +350,117 @@ Usage:
     live && (live.textContent = 'Loading…');
   }
 
-  /* Safer fetch with fallback */
   function fetchSuggest(q){
     if (ctl) ctl.abort();
     ctl = new AbortController();
-    return fetch(
-      `/search/suggest.json?q=${encodeURIComponent(q)}&resources[type]=product,query&resources[limit]={{ section.settings.search_limit_products | default: 6 }}`,
-      { signal: ctl.signal, headers:{'Accept':'application/json'}, cache:'no-store' }
-    ).then(r => r.ok ? r.json() : null)
-     .catch(()=>null)
-     .then(js => js || { resources: { results: { products: [], queries: [] } } });
+    return fetch(`/search/suggest.json?q=${encodeURIComponent(q)}&resources[type]=product&resources[limit]={{ _limit }}`,
+      { signal: ctl.signal, headers:{'Accept':'application/json'}, cache:'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .catch(()=>null)
+      .then(js => js || { resources: { results: { products: [] } } });
   }
 
-  function render(js, q){
-    if (!list) return;
-    list.innerHTML = '';
-    const res   = js && js.resources && js.resources.results ? js.resources.results : {};
-    const prods = Array.isArray(res.products) ? res.products : [];
-    const sugs  = Array.isArray(res.queries)  ? res.queries  : [];
-
-    /* text suggestions first */
-    sugs.slice(0,6).forEach(s => {
-      const t = String(s.title || s.text || '');
-      const li = document.createElement('li');
-      li.className = 'srow';
-      const safeQ = (q||'').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const marked = q ? esc(t).replace(new RegExp('(' + safeQ + ')','ig'), '<mark>$1</mark>') : esc(t);
-      li.innerHTML = `<svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8L20 21.5 21.5 20l-6-6zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg><div>${marked}</div>`;
-      li.addEventListener('click', () => { window.location.href = `/search?q=${encodeURIComponent(t)}`; });
-      list.appendChild(li);
-    });
-
-    /* product rows */
-    prods.forEach(p => {
+  function renderProducts(items){
+    items.forEach(p => {
       const u   = (p && ((p.image&&(p.image.url||p.image))||(p.featured_image&&p.featured_image.url))) || '';
       const now = (p.price||p.price_min||0), was=(p.compare_at_price||0);
       const li  = document.createElement('li');
       li.className = 'it';
       li.innerHTML = `
-        <a href="${p.url||'#'}" aria-label="${esc(p.title||'')}"
-           style="position:absolute;inset:0;border-radius:12px;"></a>
-        <img class="mthumb" src="${widthSwap(u,168)}" srcset="${srcset(u)}" sizes="56px"
-             alt="${esc(p.title||'')}" width="56" height="56" loading="lazy" decoding="async">
+        <a href="${p.url||'#'}" aria-label="${esc(p.title||'')}"></a>
+        <img class="mthumb" src="${widthSwap(u,168)}" srcset="${srcset(u)}" sizes="64px"
+             alt="${esc(p.title||'')}" width="64" height="64" loading="lazy" decoding="async">
         <div><div class="mtitle">${esc(p.title||'')}</div></div>
         <div class="mprice">${money(now)}${was>now?` <span class="price-was">${money(was)}</span>`:''}</div>`;
       list.appendChild(li);
     });
+  }
 
-    live && (live.textContent = (sugs.length + prods.length) + ' results');
+  function render(js){
+    if (!list) return;
+    list.innerHTML = '';
+    const res   = js && js.resources && js.resources.results ? js.resources.results : {};
+    const prods = Array.isArray(res.products) ? res.products : [];
+    renderProducts(prods);
+    live && (live.textContent = prods.length + ' products');
   }
 
   function showPrefill(){
-    if (list) list.innerHTML = '';
-    live && (live.textContent = '');
+    if (!list) return;
+    list.innerHTML = '';
+    if (Array.isArray(prefill) && prefill.length){
+      renderProducts(prefill);
+      live && (live.textContent = prefill.length + ' products');
+    } else {
+      live && (live.textContent = '');
+    }
+    if (viewAll) {
+      viewAll.href = defaultCollectionUrl || '/collections/all';
+      viewAll.textContent = 'View all results';
+    }
   }
 
-  /* wire input */
-  input && input.addEventListener('focus', () => {
-    if (!input.value.trim()) showPrefill();
-  });
+  function goSearch(){
+    const q = (input.value || '').trim();
+    if (!q) { window.location.href = (defaultCollectionUrl || '/collections/all'); return; }
+    window.location.href = `/search?q=${encodeURIComponent(q)}`;
+  }
 
-  input && input.addEventListener('input', () => {
+  /* ---------- Open / Close ---------- */
+  function setOpen(isOpen){
+    portal.toggleAttribute('data-open', !!isOpen);
+    island.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+    // Lock body scroll while open
+    document.documentElement.style.overflow = isOpen ? 'hidden' : '';
+    if (isOpen){
+      setTimeout(()=> input && input.focus(), 50);
+      if (!input.value.trim()) showPrefill();
+    }
+  }
+
+  // Theme bus + fallbacks
+  document.addEventListener('ch:panel', (e)=>{ const d=e && e.detail; if (d && d.name === 'search') setOpen(!!d.open); });
+  document.addEventListener('click', (e)=>{
+    const t = e.target.closest('[data-ch-open="search"],[data-action="open-search"],[data-search-toggle],[data-ms-open="search"],a[href="#search"]');
+    if (t){ e.preventDefault(); setOpen(true); }
+  });
+  portal.addEventListener('click', (ev)=>{ if (!portal.hasAttribute('data-open')) return;
+    if (ev.target.closest('[data-ms-island]')) return; setOpen(false); });
+  island.addEventListener('click', (ev)=>{ if (ev.target.closest('[data-ms-close]')) setOpen(false); });
+  document.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && portal.hasAttribute('data-open')) setOpen(false); });
+
+  /* ---------- Input behaviors ---------- */
+  function updateViewAllLabel(){
+    const q = (input.value || '').trim();
+    if (!viewAll) return;
+    if (q){
+      viewAll.href = `/search?q=${encodeURIComponent(q)}`;
+      viewAll.textContent = `View results for “${trunc(q)}”`;
+    }else{
+      viewAll.href = defaultCollectionUrl || '/collections/all';
+      viewAll.textContent = 'View all results';
+    }
+  }
+
+  const onInput = () => {
     const q = input.value.trim();
-    clear && (clear.style.display = q ? 'inline-flex' : 'none');
-    viewAll && (viewAll.href = `/search?q=${encodeURIComponent(q)}`);
+    updateViewAllLabel();
+    clearBtn.style.display = q ? 'grid' : 'none';
     clearTimeout(debounce);
     debounce = setTimeout(() => {
-      if (!q || q.length < {{ section.settings.search_min_chars | default: 2 }}) { showPrefill(); return; }
-      skeleton();
-      fetchSuggest(q).then(js => render(js, q));
+      if (!q || q.length < {{ _min_chars }}) { showPrefill(); return; }
+      skeleton(); fetchSuggest(q).then(js => render(js));
     }, 180);
-  });
+  };
 
-  /* Enter submits to /search and saves recent query */
-  input && input.addEventListener('keydown', (e)=>{
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const q = (input.value || '').trim();
-      if (!q) return;
-      try{
-        const key = 'ch_recent_queries';
-        const cap = {{ section.settings.recent_max | default: 6 }};
-        const arr = (JSON.parse(localStorage.getItem(key) || '[]') || []).filter(x=>x!==q);
-        arr.unshift(q);
-        localStorage.setItem(key, JSON.stringify(arr.slice(0, cap)));
-      }catch(_){}
-      window.location.href = `/search?q=${encodeURIComponent(q)}`;
-    }
-  });
+  input && input.addEventListener('focus', () => { if (!input.value.trim()) showPrefill(); });
+  input && input.addEventListener('input', onInput);
+  input && input.addEventListener('keydown', (e)=>{ if (e.key === 'Enter') { e.preventDefault(); goSearch(); } });
 
-  clear && clear.addEventListener('click', () => {
-    input.value=''; input.focus(); clear.style.display='none'; showPrefill();
-  });
+  btnGo   && btnGo.addEventListener('click', goSearch);
+  clearBtn&& clearBtn.addEventListener('click', () => { input.value=''; input.focus(); showPrefill(); clearBtn.style.display='none'; updateViewAllLabel(); });
 
-  /* focus input when panel opens */
-  document.addEventListener('ch:panel', (e)=>{
-    const d = e && e.detail;
-    if (d && d.name === 'search' && d.open) {
-      setTimeout(()=> input && input.focus(), 50);
-    }
-  });
+  /* ---------- Initial prefill ---------- */
+  showPrefill();
 })();
 </script>

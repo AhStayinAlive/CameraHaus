@@ -1,0 +1,20 @@
+{%- comment -%}
+  Inline payment icons list.
+  Usage:
+  {% render 'payment-icons-inline', icons: 'visa,master,amex,jcb,bpi,gcash,maya,shopeepay' %}
+{%- endcomment -%}
+
+{%- assign csv = icons | default: 'visa,master,amex,jcb,bpi,gcash,maya,shopeepay' -%}
+{%- assign items = csv | split: ',' -%}
+
+<ul class="hv-payments" role="list">
+  {%- for raw in items -%}
+    {%- assign key = raw | strip | downcase -%}
+    {%- assign label = key | replace: 'master', 'Mastercard' | upcase -%}
+    {%- assign src = 'icon-' | append: key | append: '.svg' | asset_url -%}
+    <li>
+      <img src="{{ src }}" alt="{{ label }}" height="30" loading="lazy"
+           onerror="this.outerHTML='<span class=&quot;hv-payments__fallback&quot;>{{ label }}</span>'">
+    </li>
+  {%- endfor -%}
+</ul>

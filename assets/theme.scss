@@ -228,23 +228,23 @@ $grid-breakpoint-has-push: ($medium-up);
 /*================ Color Variables ================*/
 
 // Button colors
-$color-btn-primary: #ee1b24;
+$color-btn-primary: #d12f24;
 $color-btn-primary-hover: adaptive-color($color-btn-primary, 10%);
 $color-btn-primary-active: adaptive-color($color-btn-primary-hover, 10%);
 $color-btn-primary-text: #ffffff;
 
-$color-btn-secondary: #6f0409;
+$color-btn-secondary: #d12f24;
 $color-btn-secondary-hover: adaptive-color($color-btn-secondary, 5%);
 $color-btn-secondary-active: adaptive-color($color-btn-secondary-hover, 10%);
 $color-btn-secondary-text: color-control($color-btn-secondary);
 
-$color-btn-secondary-accent: #ee1b24;
+$color-btn-secondary-accent: #d12f24;
 $color-btn-secondary-accent-hover: adaptive-color($color-btn-secondary-accent, 10%);
 $color-btn-secondary-accent-active: adaptive-color($color-btn-secondary-accent-hover, 10%);
 
 // Accent color (nav and links)
-$color-accent: #ee1b24;
-$color-accent-hover: darken(#ee1b24, 15%);
+$color-accent: #d12f24;
+$color-accent-hover: darken(#d12f24, 15%);
 $color-accent-text: #ffffff;
 
 // General colors
@@ -256,11 +256,11 @@ $color-border-body-darken: darken($color-body, 10%);
 $color-heading: #000000;
 
 // Header and footer
-$color-header: #ee1b24;
+$color-header: #d12f24;
 $color-header-border: adaptive-color($color-header, 5%);
 $color-header-links: #ffffff;
 $color-header-links-rgba: rgba($color-header-links, 0.6);
-$color-footer: #6f0409;
+$color-footer: #d12f24;
 $color-footer-text: #ffffff;
 $color-footer-text-rgba: rgba(#ffffff, 0.6);
 $color-footer-border: adaptive-color($color-footer, 5%);
@@ -354,60 +354,60 @@ $collection-card-height: $product-card-height + $product-image-margin-bottom;
 
 
 @font-face {
-  font-family: "Titillium Web";
+  font-family: Inter;
   font-weight: 400;
   font-style: normal;
-  src: url("//camerahaus.com/cdn/fonts/titillium_web/titilliumweb_n4.dc3610b1c7b7eb152fc1ddefb77e83a0b84386b3.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=22ca0323a2c4683af1e0055347ba8790760815ac7cf61853071494e40f8e32fe") format("woff2"),
-       url("//camerahaus.com/cdn/fonts/titillium_web/titilliumweb_n4.24dc69d5a89277f2854e112bddfd2c5420fd3973.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=09aa77d74f90e5357eb82e6e72fa1427c475820ea2224bf005c4bc0e9fcaa298") format("woff");
+  src: url("//camerahaus.com/cdn/fonts/inter/inter_n4.b2a3f24c19b4de56e8871f609e73ca7f6d2e2bb9.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=1fb6c4b07ea9fa7397757f6e051ab4518dfb3284c95c65cf2efab07ae687c489") format("woff2"),
+       url("//camerahaus.com/cdn/fonts/inter/inter_n4.af8052d517e0c9ffac7b814872cecc27ae1fa132.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=38fe7379802085d7ab5308bf6d044424b924d32db251b96106130daf7b0dc9ba") format("woff");
 }
 
 @font-face {
-  font-family: "Source Sans Pro";
+  font-family: Inter;
   font-weight: 400;
   font-style: normal;
-  src: url("//camerahaus.com/cdn/fonts/source_sans_pro/sourcesanspro_n4.50ae3e156aed9a794db7e94c4d00984c7b66616c.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=acf349bb75eaab4fabb485405a98fe9f18906bef20e3a581731ff33b776f0eb7") format("woff2"),
-       url("//camerahaus.com/cdn/fonts/source_sans_pro/sourcesanspro_n4.d1662e048bd96ae7123e46600ff9744c0d84502d.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=4e22017e0b02f6076f84cfc290463ed4f1175012a970eb7dfb8001401faf1085") format("woff");
+  src: url("//camerahaus.com/cdn/fonts/inter/inter_n4.b2a3f24c19b4de56e8871f609e73ca7f6d2e2bb9.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=1fb6c4b07ea9fa7397757f6e051ab4518dfb3284c95c65cf2efab07ae687c489") format("woff2"),
+       url("//camerahaus.com/cdn/fonts/inter/inter_n4.af8052d517e0c9ffac7b814872cecc27ae1fa132.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=38fe7379802085d7ab5308bf6d044424b924d32db251b96106130daf7b0dc9ba") format("woff");
 }
 
 @font-face {
-  font-family: "Source Sans Pro";
+  font-family: Inter;
   font-weight: 700;
   font-style: normal;
-  src: url("//camerahaus.com/cdn/fonts/source_sans_pro/sourcesanspro_n7.41cbad1715ffa6489ec3aab1c16fda6d5bdf2235.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=bce8d454f44cf5c1cd038c24470de48ec3ce3058168cc5d5b6ce0b19fd7bbb64") format("woff2"),
-       url("//camerahaus.com/cdn/fonts/source_sans_pro/sourcesanspro_n7.01173495588557d2be0eb2bb2ecdf8e4f01cf917.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=3df0e721d6a40d34c5bc6eceb8cd8e50020742a8153e1da749c12ec7c7a063c9") format("woff");
+  src: url("//camerahaus.com/cdn/fonts/inter/inter_n7.02711e6b374660cfc7915d1afc1c204e633421e4.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=98a66e28023f144b9f441a044b84192d14cfa3d83e69a60ba01c9be674134a21") format("woff2"),
+       url("//camerahaus.com/cdn/fonts/inter/inter_n7.6dab87426f6b8813070abd79972ceaf2f8d3b012.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=5c6e4d37a34580b969565e7d92c0c32baa19e3a7b1b7116360453494ccc018cd") format("woff");
 }
 
 @font-face {
-  font-family: "Source Sans Pro";
+  font-family: Inter;
   font-weight: 400;
   font-style: italic;
-  src: url("//camerahaus.com/cdn/fonts/source_sans_pro/sourcesanspro_i4.130f29b9baa0095b80aea9236ca9ef6ab0069c67.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=bc2b17cadaa1b1944b31b4b091496872317dcd4003dca2829cd82dc3998c11eb") format("woff2"),
-       url("//camerahaus.com/cdn/fonts/source_sans_pro/sourcesanspro_i4.6146c8c8ae7b8853ccbbc8b859fcf805016ee743.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=82137c63419c70c5592729f7612dc3f98449ed28d54e7e1f20ba9d3502e119cc") format("woff");
+  src: url("//camerahaus.com/cdn/fonts/inter/inter_i4.feae1981dda792ab80d117249d9c7e0f1017e5b3.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=2bc8b476d4a0a1052dbeca7be9d04fe0c265118d2f339971b3b222ec01de12d9") format("woff2"),
+       url("//camerahaus.com/cdn/fonts/inter/inter_i4.62773b7113d5e5f02c71486623cf828884c85c6e.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=c461fecdb7ccfb88df60a1109b77da2c6ffb27512b8e5408b0ef5f4f3fd77ad3") format("woff");
 }
 
 @font-face {
-  font-family: "Source Sans Pro";
+  font-family: Inter;
   font-weight: 700;
   font-style: italic;
-  src: url("//camerahaus.com/cdn/fonts/source_sans_pro/sourcesanspro_i7.98bb15b3a23880a6e1d86ade6dbb197526ff768d.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=ed5c1709998ae0dd4d4a0813b0f225a15974ec07e222ab67c185bcd694de30e6") format("woff2"),
-       url("//camerahaus.com/cdn/fonts/source_sans_pro/sourcesanspro_i7.6274cea5e22a575d33653322a4399caadffb1338.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=0ba68291ceb5c34b367aaa75d4a21e0bef2abe1d77e6bdebb66745f6c463f509") format("woff");
+  src: url("//camerahaus.com/cdn/fonts/inter/inter_i7.b377bcd4cc0f160622a22d638ae7e2cd9b86ea4c.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=c732b7c52a35d35ebf837b67b8cf473e2289b28e69db94ef40427d8262a4a123") format("woff2"),
+       url("//camerahaus.com/cdn/fonts/inter/inter_i7.7c69a6a34e3bb44fcf6f975857e13b9a9b25beb4.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=5fd0fd934ec196ea94bf59e086372cbab900a934cf42c37f8f5b9e13b3b7cf8c") format("woff");
 }
 
 
 // Accent text
-$font-stack-accent: "Titillium Web", sans-serif;
+$font-stack-accent: Inter, sans-serif;
 $font-style-accent: normal;
 $font-weight-accent: 400;
 
 // Body text
-$font-stack-body: "Source Sans Pro", sans-serif;
+$font-stack-body: Inter, sans-serif;
 $font-style-body: normal;
 $font-weight-body: 400;
 $font-weight-body-bold: 700;
 
 $font-size-base: 16px; // Henceforth known as 1em
-$font-size-nav: em(14px);
-$font-size-button: em(14px - 1);
+$font-size-nav: em(15px);
+$font-size-button: em(15px - 1);
 
 // Header type settings
 
@@ -6859,3 +6859,4 @@ ul#tabs-nav li.active {
   border: 0px;
   background-color: #FFF;  
 }
+
