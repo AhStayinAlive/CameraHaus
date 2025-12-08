@@ -1021,9 +1021,20 @@
     // --- Aperture helpers: make f1.8, f/1.8, f 1.8 all behave the same ---
 // Build extra query variants for things like "f1.8", "f/1.8", etc.
 function apertureVariants(q) {
-  const variants = [q];
+  const variants = [q]; // always include original
 
-  // matches f1.8, f/1.8, F 1.4, etc.
+  // 1. Tag Bypass: Check for explicit "f/1.8" or "f1.8" patterns
+  // If we see "f/1.8", we also search for "tag:f1.8" and "tag:f/1.8"
+  // This allows the user to manually tag products as "f1.8" to force a match.
+  const tagRe = /\bf\s*\/?\s*([0-9]+(?:\.[0-9]+)?)/gi;
+  let tagM;
+  while ((tagM = tagRe.exec(q)) !== null) {
+      const num = tagM[1];
+      variants.push(`tag:f${num}`); // e.g. tag:f1.8
+      variants.push(`tag:${num}`);  // e.g. tag:1.8
+  }
+
+  // 2. Text Variants
   const re = /\bf\s*\/?\s*([0-9]+(?:\.[0-9]+)?)/gi;
   let m;
 
@@ -1032,16 +1043,21 @@ function apertureVariants(q) {
     const num  = m[1];   // e.g. "1.8"
 
     const candidates = [
-      `f${num}`,   // f1.8
-      `F${num}`,   // F1.8
-      `f/${num}`,  // f/1.8
-      `F/${num}`,  // F/1.8
-      num,         // 1.8
-      `${num}g`,   // 1.8g
-      `${num}G`    // 1.8G
+        `f${num}`,       // f1.8
+        `F${num}`,       // F1.8
+        `f/${num}`,      // f/1.8
+        `F/${num}`,      // F/1.8
+        num,             // 1.8 (strict)
+        `${num}*`,       // 1.8* (wildcard for 1.8mm, 1.8x, etc - broad but catches things)
+        `${num}g`,       // 1.8g
+        `${num}G`,       // 1.8G
+        `${num} g`,      // 1.8 g (space)
+        `${num} G`       // 1.8 G (space)
     ];
 
     candidates.forEach(rep => {
+      // Create a new variant string by replacing the aperture part
+      // e.g. "nikkor f/1.8" -> "nikkor 1.8G"
       const v = q.replace(full, rep);
       if (!variants.includes(v)) variants.push(v);
     });
@@ -1219,19 +1235,30 @@ function fetchSuggest(q){
   if (ctl) ctl.abort();
   ctl = new AbortController();
 
-  const qs    = encodeURIComponent(q);
-  const limit = PREFILL_LIMIT;
-
-  // 1) Predictive search endpoint (what you already had)
-  const urlSuggest =
-    `/search/suggest.json?q=${qs}` +
+  const raw = q.trim();
+  const variants = apertureVariants(raw);
+  
+  // 1) Predictive suggest (keep as-is for speed/suggestions)
+  // We use the raw query here (or the simplest variant)
+  const urlSuggest = `/search/suggest.json?q=${encodeURIComponent(raw)}` +
     `&resources[type]=product` +
-    `&resources[limit]=${limit}` +
+    `&resources[limit]=${PREFILL_LIMIT}` +
     `&resources[options][fields]=title,product_type,vendor,tag`;
 
-  // 2) Full search endpoint (extra pass to catch weird cases like f/1.8)
-  const urlSearch =
-    `/search.json?q=${qs}&type=product`;
+  // 2) Full Search with OR-joined variants
+  // e.g. "nikkor f/1.8" -> "nikkor f/1.8 OR nikkor 1.8G OR tag:f1.8"
+  // Increased limit to 20 to ensure relevant items aren't pushed out by "1.8m" tripods
+  const combined = variants.join(' OR ');
+  const urlSearch = `/search.json?q=${encodeURIComponent(combined)}&type=product&options[prefix]=last`; // removed limit, let it be default (usually 10) or set explicitly. 
+  // Actually default 10 might be too low. Let's explicitly ask for more.
+  // We can't easily change page size in standard search.json via `limit` param (it ignores it often), 
+  // but `view` param can be used if we had a template. Standard JSON API usually page_size is fixed or 10.
+  // Wait, standard global search limit is 10. 
+  // We can't easily boost it without a custom view.
+  // BUT we can try `&type=product` which we have.
+  // Let's rely on the more specific variants (like 1.8G) to float to the top.
+  // And the TAG search is very specific, so it should rank #1.
+
 
   const fetchJson = (url) =>
     fetch(url, {
@@ -1250,13 +1277,14 @@ function fetchSuggest(q){
 
     const add = (p) => {
       if (!p) return;
-      const key = p.id || p.handle || p.url;
+      // Normalization for ID ensuring dedupe across endpoints
+      const key = p.id || (p.url ? p.url.split('?')[0] : p.handle);
       if (!key || seen.has(key)) return;
       seen.add(key);
       merged.push(p);
     };
 
-    // from predictive search
+    // 1. Suggest results first (usually most relevant textually)
     if (jsSuggest &&
         jsSuggest.resources &&
         jsSuggest.resources.results &&
@@ -1264,10 +1292,8 @@ function fetchSuggest(q){
       jsSuggest.resources.results.products.forEach(add);
     }
 
-    // from /search.json – normalize shape a bit
+    // 2. Search results second (catches the aperture cases)
     if (jsSearch) {
-      console.log('[search.json]', jsSearch); // check structure in DevTools once
-
       const rawProducts = Array.isArray(jsSearch.products)
         ? jsSearch.products
         : Array.isArray(jsSearch.results)
@@ -1275,6 +1301,7 @@ function fetchSuggest(q){
           : [];
 
       rawProducts.forEach(p => {
+        // Normalize search.json shape to match suggest.json shape
         const normalized = {
           id: p.id,
           handle: p.handle,
@@ -1282,10 +1309,8 @@ function fetchSuggest(q){
           url: p.url || (p.handle ? `/products/${p.handle}` : '#'),
           price: p.price || p.price_min || 0,
           compare_at_price: p.compare_at_price || p.compare_at_price_max || 0,
-          image:
-            (p.featured_image && (p.featured_image.url || p.featured_image.src)) ||
-            (p.image && (p.image.url || p.image.src || p.image)) ||
-            '',
+          image: (p.featured_image && (p.featured_image.url || p.featured_image.src)) ||
+                 (p.image && (p.image.url || p.image.src || p.image)) || '',
           vendor: p.vendor || '',
           product_type: p.product_type || p.type || '',
         };
@@ -1293,7 +1318,6 @@ function fetchSuggest(q){
       });
     }
 
-    // Return the same shape handleInput() expects
     return {
       resources: {
         results: {
@@ -1310,7 +1334,8 @@ function fetchSuggest(q){
    * ========================= */
   function handleInput() {
     const raw = input.value.trim();           // what the user typed
-    const q   = normalizeApertureQuery(raw);  // what we send to Shopify
+    // pass RAW query to fetchSuggest, let it handle variants/OR-logic
+    const q   = raw;
 
     // CTA text ("View all results for …") should show the raw query
     updateViewAll(raw);

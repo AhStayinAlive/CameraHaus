@@ -1,8 +1,5 @@
-{% comment %} 
-CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
-{% endcomment %}
 
-<section id="catc-{{ section.id }}" class="catc catc--pre" role="region" aria-labelledby="catc-heading-{{ section.id }}">
+<section id="catc-{{ section.id }}" class="catc chb--pre" role="region" aria-labelledby="catc-heading-{{ section.id }}">
   <div class="page-width">
     <div class="catc__top">
       <h2 id="catc-heading-{{ section.id }}" class="catc__heading">
@@ -10,12 +7,14 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
       </h2>
     </div>
 
-    <!-- Viewport (arrows live INSIDE here so they center on items) -->
+    <!-- Viewport -->
     <div class="catc__viewport" aria-roledescription="carousel" aria-label="{{ section.settings.heading | default: 'Shop by Category' }}">
-      <div class="catc__strip" role="list" tabindex="0" data-strip>
+      <!-- Added data-track for shared slider -->
+      <div class="catc__strip" role="list" tabindex="0" data-strip data-track>
         {% for block in section.blocks %}
           {% assign t = block.settings %}
-          <div role="listitem" class="catc__item" {{ block.shopify_attributes }}>
+          <!-- Added data-tile for shared intro animation -->
+          <div role="listitem" class="catc__item" data-tile {{ block.shopify_attributes }}>
             <a class="catc-chip" href="{{ t.link | default: '#' }}" aria-label="Browse {{ t.title | escape }}">
               <span class="catc-chip__icon" aria-hidden="true">
                 {% if t.image != blank %}
@@ -157,35 +156,23 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
 
     /* === animation states === */
 
-    /* 1) pre-load: keep items invisible so they don't "flash" before observer fires */
+    /* 1) pre-load: keep items invisible */
+    .catc.chb--pre .catc__item,
     #catc-{{ section.id }}.catc--pre .catc__item{
       opacity:0;
-      transform:translateY(22px);
+      transform:translateY(16px);
     }
 
-    /* 2) animating: simplified, GPU-friendly, shorter */
-    #catc-{{ section.id }}.catc--animating .catc__item{
-      opacity:0;
-      transform:translateY(18px);
-      animation: catc-float-in .42s cubic-bezier(.22,.61,.36,1) forwards;
+    /* 2) animating: map shared class */
+    .catc__item.chb-tile--intro,
+    .catc__item.chpc-slide--intro {
+      opacity: 0;
+      animation: ch-fade-up .42s cubic-bezier(.22,.61,.36,1) forwards;
       will-change: transform, opacity;
     }
 
-    /* Reduce/disable stagger on mobile to avoid jank */
-    @media (max-width:739.98px){
-      #catc-{{ section.id }}.catc--animating .catc__item{ animation-delay:0s !important; }
-    }
-
-    /* Mild stagger on larger screens */
-    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(2){ animation-delay:.04s; }
-    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(3){ animation-delay:.08s; }
-    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(4){ animation-delay:.12s; }
-    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(5){ animation-delay:.16s; }
-    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(6){ animation-delay:.20s; }
-    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(7){ animation-delay:.24s; }
-    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(8){ animation-delay:.28s; }
-
-    /* 3) done: normal layout (no more re-animating) */
+    /* 3) done */
+    .catc.chb--done .catc__item,
     #catc-{{ section.id }}.catc--done .catc__item{
       opacity:1;
       transform:none;
@@ -194,126 +181,30 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
 
     /* Prefers-reduced-motion support */
     @media (prefers-reduced-motion: reduce){
-      #catc-{{ section.id }}.catc--animating .catc__item{ animation:none; opacity:1; transform:none; }
+      .catc__item.chb-tile--intro,
+      .catc__item.chpc-slide--intro { animation:none; opacity:1; transform:none; }
+      .catc.chb--pre .catc__item,
       #catc-{{ section.id }}.catc--pre .catc__item{ opacity:1; transform:none; }
     }
-
-    @keyframes catc-float-in{
-      0%{ opacity:0; transform:translateY(18px); }
-      100%{ opacity:1; transform:translateY(0); }
-    }
-
-
   </style>
+
+  {{ 'ch-slider.js' | asset_url | script_tag }}
 
   <script>
   (function(){
     var root = document.getElementById('catc-{{ section.id }}'); if(!root) return;
 
-    var track    = root.querySelector('[data-strip]');
-    var btnPrev  = root.querySelector('.chpc__arrow--prev');
-    var btnNext  = root.querySelector('.chpc__arrow--next');
-    var mqDesktop= window.matchMedia('(min-width:1100px)');
-    var currentPage = 0;
-    var hasAnimated = false; // single-run guard
+    // Use Shared Slider Class
+    // map correct selectors
+    new ChHorizontalSlider(root, {
+      trackSel: '[data-track]',
+      prevSel: '.chpc__arrow--prev',
+      nextSel: '.chpc__arrow--next',
+      dotsSel: null // no dots here
+    });
 
-    function playIntro(){
-      if(hasAnimated) return;
-      hasAnimated = true;
-
-      // Defer class changes to next frame to avoid mid-layout jank
-      requestAnimationFrame(function(){
-        root.classList.remove('catc--pre');
-        root.classList.add('catc--animating');
-
-        // When the LAST item's animation ends, mark as done
-        var last = track && track.querySelector('.catc__item:last-child');
-        var onDone = function(){
-          root.classList.remove('catc--animating');
-          root.classList.add('catc--done');
-        };
-        if(last){
-          last.addEventListener('animationend', onDone, { once:true });
-        }
-
-        // Fallback in case events don't fire
-        setTimeout(function(){
-          if(!root.classList.contains('catc--done')){
-            root.classList.remove('catc--animating');
-            root.classList.add('catc--done');
-          }
-        }, 800);
-      });
-    }
-
-    function pageWidth(){ return track ? track.clientWidth : 1; }
-    function pagesCount(){ return !track ? 1 : Math.max(1, Math.ceil((track.scrollWidth||1) / (track.clientWidth||1))); }
-
-    function updateArrows(){
-      if(!btnPrev || !btnNext || !track) return;
-
-      if(!mqDesktop.matches){
-        btnPrev.style.display='none';
-        btnNext.style.display='none';
-        return;
-      }
-
-      var sl = track.scrollLeft || 0;
-      var cw = track.clientWidth || 1;
-      var sw = track.scrollWidth || 1;
-
-      var atStart = sl <= 1;
-      var atEnd   = (sl + cw) >= (sw - 1);
-
-      btnPrev.disabled = atStart;
-      btnNext.disabled = atEnd;
-
-      var need = (sw - cw) > 1;
-      btnPrev.style.display = need ? 'grid' : 'none';
-      btnNext.style.display = need ? 'grid' : 'none';
-    }
-
-    function scrollToPage(idx, smooth){
-      if(!track) return;
-      var total = pagesCount();
-      idx = Math.max(0, Math.min(idx, total - 1));
-      var left = idx * (pageWidth() || 1);
-      track.scrollTo({ left:left, behavior: smooth ? 'smooth' : 'auto' });
-      currentPage = idx;
-      updateArrows();
-      // do NOT reanimate if already done
-    }
-
-    function onScroll(){ updateArrows(); }
-
-    if(track){
-      track.addEventListener('scroll', onScroll, { passive:true });
-      if(btnPrev) btnPrev.addEventListener('click', function(){ scrollToPage(currentPage - 1, true); });
-      if(btnNext) btnNext.addEventListener('click', function(){ scrollToPage(currentPage + 1, true); });
-      window.addEventListener('resize', updateArrows);
-      (mqDesktop.addEventListener ? mqDesktop.addEventListener('change', updateArrows) : mqDesktop.addListener(updateArrows));
-      updateArrows();
-    }
-
-    /* Animate once, a bit earlier to avoid jank while user scrolls */
-    if('IntersectionObserver' in window){
-      var io = new IntersectionObserver(function(entries){
-        entries.forEach(function(entry){
-          if(entry.isIntersecting){
-            playIntro();
-            io.unobserve(entry.target);
-          }
-        });
-      }, {
-        threshold: 0.2,
-        rootMargin: '0px 0px -20% 0px' // pre-trigger before fully in view
-      });
-      io.observe(root);
-    } else {
-      // no IO support -> just show (no pop)
-      root.classList.remove('catc--pre');
-      root.classList.add('catc--done');
-    }
+    // Shared animation logic handles chb--pre / chpc--pre automatically
+    
   })();
   </script>
 </section>

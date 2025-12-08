@@ -53,7 +53,15 @@
         for (const cb of boxes) {
             const label = cb.closest('label') || panel.querySelector(`label[for="${cb.id}"]`);
             const txt = (label?.innerText || label?.textContent || '').toLowerCase();
-            if (txt.includes('terms of service') || txt.includes('terms and conditions') || txt.includes('terms of use')) {
+            // Broader check for terms/agree/accept
+            if (
+                txt.includes('terms of service') ||
+                txt.includes('terms and conditions') ||
+                txt.includes('terms of use') ||
+                txt.includes('i agree') ||
+                txt.includes('agree to') ||
+                txt.includes('accept')
+            ) {
                 agree = cb;
                 if (label) label.classList.add('terms');
                 return agree;
@@ -130,6 +138,10 @@
 
         alertBar.style.setProperty('--durMs', String(ms) + 'ms');
         alertBar.classList.add('is-shown');
+        // STRICT: Never show drawer alerts or open drawer on /cart
+        if (window.location.pathname === '/cart') return;
+
+        alertBar.classList.add('is-shown');
         panel.setAttribute('data-open', '');
         alertBar.scrollIntoView({ block: 'start', behavior: 'smooth' });
 
@@ -161,7 +173,6 @@
         showAlert(detail.message, 6000);
         panel.setAttribute('data-open', '');
     });
-
 
     function updateHeaderCount(n) {
         document.querySelectorAll('[data-cart-count]').forEach(b => { b.textContent = String(n || 0); });
@@ -486,7 +497,7 @@
             showAlert('You must agree to the Terms of Service to check out.', 4000, { sticky: true });
             return;
         }
-    });
+    }, true); // USE CAPTURE PHASE
 
     // SCROLL LOCK MANAGER
     // Restored to ensure body scroll is unlocked when drawer closes
@@ -513,6 +524,7 @@
 
     // Global open
     document.addEventListener('cart:open', () => {
+        if (window.location.pathname === '/cart') return;
         panel.setAttribute('data-open', '');
         refresh();
     });

@@ -104,6 +104,29 @@
           {%- elsif blog -%}
             <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ blog.title }}</li>
           {%- endif -%}
+
+        {%- elsif request.page_type == 'customers/login' -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.login.title' | t }}</li>
+
+        {%- elsif request.page_type == 'customers/account' -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.account.title' | t }}</li>
+
+        {%- elsif request.page_type == 'customers/addresses' -%}
+          <li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ routes.account_url }}">{{ 'customer.account.title' | t }}</a></li>
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.addresses.title' | t }}</li>
+
+        {%- elsif request.page_type == 'customers/order' -%}
+          <li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ routes.account_url }}">{{ 'customer.account.title' | t }}</a></li>
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.order.title' | t: name: order.name }}</li>
+
+        {%- elsif request.page_type == 'customers/register' -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.register.title' | t }}</li>
+
+        {%- elsif request.page_type == 'customers/activate_account' -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.activate_account.title' | t }}</li>
+
+        {%- elsif request.page_type == 'customers/reset_password' -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.reset_password.title' | t }}</li>
         {%- endif -%}
       </ol>
 

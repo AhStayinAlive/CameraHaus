@@ -339,13 +339,10 @@
     }
 
     #ch-deck-{{ section.id }} .ch-deck-text-anim {
-      animation: ch-deck-text-fade-{{ section.id }} 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+      animation: ch-fade-up 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
     }
 
-    @keyframes ch-deck-text-fade-{{ section.id }} {
-      0% { opacity: 0; transform: translateY(6px); }
-      100% { opacity: 1; transform: translateY(0); }
-    }
+
 
     /* TABS
        ----------------------------------------------- */
@@ -730,15 +727,11 @@
     } 
 
     #ch-deck-{{ section.id }} .ch-deck__cell--intro {
-      animation: ch-deck-float-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+      animation: ch-fade-up 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
       will-change: opacity, transform;
     }
 
-    @keyframes ch-deck-float-in {
-      0% { opacity: 0; transform: translate3d(0, 22px, 0); }
-      55% { opacity: 1; transform: translate3d(0, 2px, 0); }
-      100% { opacity: 1; transform: translate3d(0, 0, 0); }
-    }
+
 
     #ch-deck-{{ section.id }}.ch-deck--done .ch-deck__cell {
       opacity: 1;

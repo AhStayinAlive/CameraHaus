@@ -561,11 +561,26 @@ applyFiltersDebounced(0);
   // ---------- STICKY/COLLAPSE ----------
   const $collectionRoot = $root.closest('.ch-collection');
   function syncCollectionCollapse() {
-    if (!$collectionRoot) return;
-    if (isMobile()) { $collectionRoot.classList.remove('is-filter-collapsed'); return; }
-    if ($panel && $panel.classList.contains('is-collapsed')) {
+    if (!$collectionRoot) {
+        console.warn('[CH Filters] syncCollectionCollapse: No collection root found');
+        return;
+    }
+    if (isMobile()) {
+        $collectionRoot.classList.remove('is-filter-collapsed');
+        return; 
+    }
+    
+    if (!$panel) {
+        console.error('[CH Filters] syncCollectionCollapse: Panel not found!');
+        // If panel is missing, do not force remove class, just return
+        return;
+    }
+
+    if ($panel.classList.contains('is-collapsed')) {
+      console.log('[CH Filters] Panel is collapsed -> Adding is-filter-collapsed to root');
       $collectionRoot.classList.add('is-filter-collapsed');
     } else {
+      console.log('[CH Filters] Panel is OPEN -> Removing is-filter-collapsed from root');
       $collectionRoot.classList.remove('is-filter-collapsed');
     }
   }
@@ -801,10 +816,13 @@ document.addEventListener('click', (e) => {
     // 2) Reset price slider via single helper
     resetPriceToDefault();
 
-    // 3) Update chips instantly
+    // 3) Force clear price params in serializer (robustness)
+    forceClearPrice = true;
+
+    // 4) Update chips instantly
     buildChips();
 
-    // 4) Apply filters (will reload the grid with no filters)
+    // 5) Apply filters (will reload the grid with no filters)
     applyFilters();
   });
 
@@ -1002,6 +1020,8 @@ document.addEventListener('click', (e) => {
       x.type = 'button';
       x.setAttribute('aria-label', `Remove ${label}`);
       x.addEventListener('click', () => {
+        console.log('[CH Filters] Standard chip remove clicked', { label, name: cb.name, value: cb.value });
+        console.log('[CH Filters] Standard chip remove clicked', { label, name: cb.name, value: cb.value });
         // 1) Uncheck the underlying filter so applyFilters() sees the new state
         cb.checked = false;
 
@@ -1462,6 +1482,25 @@ if (e.target.matches('input[type="checkbox"]')) {
   // init
   buildChips();
   syncCollectionCollapse();
+
+  // Reset price listener (moved from secondary IIFE to access resetPriceToDefault)
+  document.addEventListener('ch:reset-price', () => {
+    // 1) Reset slider + inputs to full range
+    resetPriceToDefault();
+
+    // 2) Tell serializer to completely drop all price params
+    forceClearPrice = true;
+
+    // 3) Rebuild chips AFTER the new state is applied
+    if (isMobile()) {
+      showGridMask();
+      closeDrawer();
+      closeOverlay();
+    }
+
+    applyFilters(); // not debounced, we want this to fire once
+  });
+
   limitAllLists($form);
 })();
 </script>
@@ -1570,22 +1609,6 @@ if (e.target.matches('input[type="checkbox"]')) {
     return ensureBarInstance();
   }
 // Reset price only (from header chipline)
-document.addEventListener('ch:reset-price', () => {
-  // 1) Reset slider + inputs to full range
-  resetPriceToDefault();
-
-  // 2) Tell serializer to completely drop all price params
-  forceClearPrice = true;
-
-  // 3) Rebuild chips AFTER the new state is applied
-  if (isMobile()) {
-    showGridMask();
-    closeDrawer();
-    closeOverlay();
-  }
-
-  applyFilters(); // not debounced, we want this to fire once
-});
 
   function makeClearAll(bar, hasChips) {
     var root = bar || ensureGlobalChipBar();

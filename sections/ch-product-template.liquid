@@ -324,12 +324,12 @@ Current tweaks:
       {% endform %}
 
       {%- comment -%} TRUST CARD (grouped) {%- endcomment -%}
-      <div class="ch-trust-card" data-open="true">
+      <div class="ch-trust-card">
         <div class="ch-trust-head">
           <p class="ch-trust-title">Why buy from Camerahaus</p>
-          <button type="button" class="ch-trust-toggle" aria-expanded="true">
-            <span class="ch-trust-toggle__text">Hide</span>
-            <span class="ch-trust-toggle__ico" aria-hidden="true">▲</span>
+          <button type="button" class="ch-trust-toggle" aria-expanded="false">
+            <span class="ch-trust-toggle__text">Show</span>
+            <span class="ch-trust-toggle__ico" aria-hidden="true">▼</span>
           </button>
         </div>
         <div class="ch-trust-body">
@@ -794,11 +794,13 @@ Current tweaks:
         }
 
         // ⚠️ Inventory / 422 – too many requested
-        if (status === 422){
+        if (status === 422) {
+          console.log('ATC 422 Error caught');
           var variant  = variantId ? getVariantById(variantId) : null;
           var maxQty   = determineMaxAllowedQty(variant, requestedQty, data);
           var message  = buildInventoryMessage(variant, requestedQty, maxQty, data);
 
+          // Reverted to global drawer/notification per user request
           showCartErrorNotification(message);
 
           // Try to clamp the cart to the max allowed quantity
@@ -928,6 +930,7 @@ Current tweaks:
   }
 
   if (trustCard && trustBody){
+    // Default OPEN
     setTrust(true);
     window.addEventListener('resize', function(){
       if (!trustCard.classList.contains('is-collapsed')){
@@ -1325,14 +1328,10 @@ Current tweaks:
   opacity:1;
 }
 
-@keyframes ch-spin{to{transform:rotate(360deg);}}
+
 
 .ch-atc-btn.is-added{animation:ch-pulse .6s ease;}
-@keyframes ch-pulse{
-  0%{transform:scale(1);}
-  40%{transform:scale(1.02);}
-  100%{transform:scale(1);}
-}
+
 
 /* TRUST CARD */
 .ch-trust-card{

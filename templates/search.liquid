@@ -207,7 +207,7 @@
     }
     @media(min-width:990px){
       #ch-search-template.is-filter-collapsed .ch-side{
-        max-width:0; flex-basis:0; opacity:0; pointer-events:none;
+        max-width:0; flex-basis:0; opacity:0; pointer-events:none; display:none;
       }
       #ch-search-template.is-filter-collapsed .ch-body{ gap:20px; }
       #ch-search-template.is-filter-collapsed #CollectionProductGrid{
@@ -246,8 +246,7 @@
     /* =======================
        SIMPLE ANIM
     ======================== */
-    .ch-float-in{ animation:chFloatIn .5s cubic-bezier(.21,.61,.35,1) both; }
-    @keyframes chFloatIn{ from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:none;} }
+    .ch-float-in{ animation:ch-fade-up .5s cubic-bezier(.21,.61,.35,1) both; }
 
     /* =======================
        PAGINATION (numbers only)
@@ -382,7 +381,7 @@
 
     <header class="ch-header">
       <h1 class="ch-title">
-        {% if search.performed %}Results for “{{ display_terms }}”{% else %}Search{% endif %}
+        {% if search.performed %}Results for {{ display_terms }}{% else %}Search{% endif %}
       </h1>
       {% if search.performed %}
         <p class="ch-sub">{{ search.results_count }} result{% if search.results_count != 1 %}s{% endif %}</p>
@@ -403,6 +402,7 @@
             </span>
             Filters
           </button>
+
         </div>
 
         <div class="ch-toolbar-right">
@@ -454,7 +454,7 @@
         </div>
       </div>
 
-      <div id="ChFilterChips-search" class="ch-chipline" aria-live="polite"></div>
+      <div id="ChFilterChips-search" class="ch-chipline active-facets" aria-live="polite"></div>
     </header>
 
     <div class="ch-body">
@@ -470,7 +470,7 @@
               {%- if item.object_type == 'product' -%}
                 {%- assign has_products = true -%}
                 <div class="ch-cell">
-                  {% render 'product-card', product: item %}
+                  {% render 'ch-product-card', product: item %}
                 </div>
               {%- endif -%}
             {%- endfor -%}
@@ -513,54 +513,25 @@
   <script src="{{ 'ch-collection-grid.js' | asset_url }}" defer></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
-      console.log('[Search] DOMContentLoaded fired. search.filters size: {{ search.filters.size }}');
       const root = document.getElementById('ch-search-template');
-      
-      if (!root) {
-        console.error('[Search] Root element #ch-search-template not found');
-        return;
-      }
+      if (!root) return;
 
-      // Debug: Check if button exists
-      const btn = root.querySelector('[data-ch-toolbar-filter]');
-      console.log('[Search] Filter button found:', !!btn);
-
-      if (btn) {
-        // Fallback listener in case Module fails
-        btn.addEventListener('click', function() {
-          console.log('[Search] Filter button clicked (fallback listener)');
-          // Manually dispatch if needed, though module should handle it
-          window.dispatchEvent(new CustomEvent('ch:toggle-filters', { detail: { id: 'search' } }));
-        });
-      }
-
-      if (typeof window.ChCollectionGrid === 'undefined') {
-        console.error('[Search] window.ChCollectionGrid is undefined! Script may not have loaded.');
-        return;
-      }
-
-      console.log('[Search] Initializing ChCollectionGrid...');
-      try {
-        window.ChCollectionGrid.init(root, {
-          sid: 'search',
-          gridSelector: '#CollectionProductGrid',
-          paginationSelector: 'nav.pagination',
-          chipsBarSelector: '#ChFilterChips-search',
-          sorter: {
-            containerSelector: '[data-ch-sorter]',
-            labelSelector: '.ch-sorter-label',
-            itemSelector: '.ch-sorter-item',
-            selectSelector: '#ChSortSelect-search',
-            getSortFromUrl: () => new URL(window.location.href).searchParams.get('sort_by') || '{{ current_sort }}'
-          },
-          fetch: {
-            resolveSectionRoot: (frag) => frag.querySelector('#ch-search-template') || frag
-          }
-        });
-        console.log('[Search] ChCollectionGrid initialized successfully');
-      } catch (e) {
-        console.error('[Search] Error initializing ChCollectionGrid:', e);
-      }
+      window.ChCollectionGrid.init(root, {
+        sid: 'search',  
+        gridSelector: '#CollectionProductGrid',
+        paginationSelector: 'nav.pagination',
+        chipsBarSelector: '#ChFilterChips-search',
+        sorter: {
+          containerSelector: '[data-ch-sorter]',
+          labelSelector: '.ch-sorter-label',
+          itemSelector: '.ch-sorter-item',
+          selectSelector: '#ChSortSelect-search',
+          getSortFromUrl: () => new URL(window.location.href).searchParams.get('sort_by') || '{{ current_sort }}'
+        },
+        fetch: {
+          resolveSectionRoot: (frag) => frag.querySelector('#ch-search-template') || frag
+        }
+      });
     });
   </script>
 </section>

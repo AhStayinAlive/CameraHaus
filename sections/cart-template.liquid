@@ -146,9 +146,9 @@
       border-radius:999px;
       border:2.6px solid rgba(209,47,36,.25);
       border-top-color:#D12F24;
-      animation:cart-spin .6s linear infinite;
+      animation:ch-spin .6s linear infinite;
     }
-    @keyframes cart-spin{to{transform:rotate(360deg);}}
+
 
     /* Swipe-away animation when removing */
     [data-section-id="{{ section.id }}"] .cart-row.is-removing{
@@ -186,7 +186,8 @@
       text-decoration:none;
     }
     [data-section-id="{{ section.id }}"] .prod-title a:hover{
-      text-decoration:underline;
+      color:var(--brand);
+      text-decoration:none;
     }
     [data-section-id="{{ section.id }}"] .prod-variant{
       font-size:12px;
@@ -578,48 +579,57 @@
     margin-bottom:10px;
   }
 
-  [data-section-id="{{ section.id }}"] .summary{
-    max-width:none;
-    margin-left:auto;                 /* push to the right */
-    text-align:right;                 /* text right aligned */
-    display:flex;
-    flex-direction:column;
-    align-items:flex-end;             /* content hugs right edge */
+  [data-section-id="{{ section.id }}"] .sum-val{
+    font-size:20px;
   }
 
+  /* Mobile Summary: Full width, split lines */
+  [data-section-id="{{ section.id }}"] .summary{
+    max-width:none;
+    margin-left:0;
+    width:100%;
+    text-align:left;
+    display:block; /* use block or flex col with stretch */
+  }
+
+  /* Subtotal | Price */
   [data-section-id="{{ section.id }}"] .sum-line{
     display:flex;
-    justify-content:flex-end;         /* label + value right side */
+    justify-content:space-between;
     align-items:baseline;
-    gap:8px;
     margin-bottom:6px;
   }
 
   [data-section-id="{{ section.id }}"] .sum-label{
-    font-size:13px;
+    font-size:15px;
+    font-weight:600;
+    color:var(--heading-color);
   }
-
   [data-section-id="{{ section.id }}"] .sum-val{
-    font-size:22px;
+    font-size:20px;
   }
 
+  /* Help text Left aligned (under label) */
   [data-section-id="{{ section.id }}"] .help{
-    text-align:right;
+    text-align:left;
+    font-size:13px;
+    color:var(--muted);
     margin-top:2px;
   }
 
+  /* TOS Left aligned */
   [data-section-id="{{ section.id }}"] .terms-relentless{
-    justify-content:flex-end;         /* checkbox row also right */
-    margin-top:6px;
+    justify-content:flex-start;
+    margin-top:12px;
   }
-
   [data-section-id="{{ section.id }}"] .terms-relentless label{
-    white-space:normal;               /* allow wrapping on small screens */
+    white-space:normal;
+    text-align:left;
   }
 
   [data-section-id="{{ section.id }}"] .summary .btn{
     width:100%;
-    margin-top:10px;
+    margin-top:12px;
   }
 }
 

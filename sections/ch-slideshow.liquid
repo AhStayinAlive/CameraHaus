@@ -162,11 +162,11 @@
       }
 
       /* Float-in on first show */
-      @keyframes floatUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-      #Slideshow-{{ section.id }} .hero__slide.is-active .hero__title{ animation: floatUp .6s cubic-bezier(.2,.8,.2,1) .05s both; }
-      #Slideshow-{{ section.id }} .hero__slide.is-active .hero__subtitle{ animation: floatUp .6s cubic-bezier(.2,.8,.2,1) .15s both; }
-      #Slideshow-{{ section.id }} .hero__slide.is-active .hero__btn{ animation: floatUp .6s cubic-bezier(.2,.8,.2,1) .25s both; }
-      #Slideshow-{{ section.id }} .hero__slide.is-active .hero__block-logo{ animation: floatUp .6s cubic-bezier(.2,.8,.2,1) .35s both; }
+
+      #Slideshow-{{ section.id }} .hero__slide.is-active .hero__title{ animation: ch-fade-up .6s cubic-bezier(.2,.8,.2,1) .05s both; }
+      #Slideshow-{{ section.id }} .hero__slide.is-active .hero__subtitle{ animation: ch-fade-up .6s cubic-bezier(.2,.8,.2,1) .15s both; }
+      #Slideshow-{{ section.id }} .hero__slide.is-active .hero__btn{ animation: ch-fade-up .6s cubic-bezier(.2,.8,.2,1) .25s both; }
+      #Slideshow-{{ section.id }} .hero__slide.is-active .hero__block-logo{ animation: ch-fade-up .6s cubic-bezier(.2,.8,.2,1) .35s both; }
       @media (prefers-reduced-motion: reduce){
         #Slideshow-{{ section.id }} .hero__title,
         #Slideshow-{{ section.id }} .hero__subtitle,

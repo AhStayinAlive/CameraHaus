@@ -32,6 +32,7 @@
     document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
   </script>
 
+  {{ 'ch-animations.css' | asset_url | stylesheet_tag }}
   {{ 'theme.scss.css' | asset_url | stylesheet_tag }}
 
   <script>
@@ -352,6 +353,8 @@
   {% render 'ch-side-panel', id: 'cart', title: 'YOUR CART', aria_label: 'Your cart', body: cart_body %}
   {{ 'ch-cart-drawer.css' | asset_url | stylesheet_tag }}
   <script src="{{ 'ch-cart-drawer.js' | asset_url }}" defer="defer"></script>
+  <script src="{{ 'ch-quick-view-api.js' | asset_url }}" defer="defer"></script>
+  {{ 'ch-quick-view.css' | asset_url | stylesheet_tag }}
   {% render 'ch-panels-controller' %}
 
 </body>

@@ -65,7 +65,7 @@ CH PRODUCT TABS — SNIPPET (v4.3.2)
     <div id="tab-details" class="ch-tabpane is-active" role="tabpanel" aria-labelledby="tabbtn-details">
       <div class="ch-tabpane__body ch-pane-details">
         <!-- loader overlay -->
-        <div class="ch-hl-loader" aria-hidden="true"><div class="ch-spinner" role="status" aria-label="Loading"></div></div>
+
 
         <div class="ch-details" aria-live="polite">
           {%- if has_highlights -%}
@@ -73,7 +73,7 @@ CH PRODUCT TABS — SNIPPET (v4.3.2)
 {%- for img in mf_highlights.value -%}
   <figure class="ch-highlight">
     <img
-      loading="{% if forloop.first %}eager{% else %}lazy{% endif %}"
+      loading="{% if forloop.index <= 2 %}eager{% else %}lazy{% endif %}"
       decoding="async"
       src="{{ img | image_url: width: 1200 }}"
       srcset="
@@ -506,8 +506,13 @@ CH PRODUCT TABS — SNIPPET (v4.3.2)
     });
   }
 
+  var wasMobile = null;
   function sync(){
-    if(isMobile()){
+    var nowMobile = isMobile();
+    if (wasMobile === nowMobile) return;
+    wasMobile = nowMobile;
+
+    if(nowMobile){
       placePanelsMobile();
       // open last active accordion
       var accEl = root.querySelector('.ch-acc');
@@ -627,41 +632,7 @@ CH PRODUCT TABS — SNIPPET (v4.3.2)
     }
   });
 
-  // ---- Highlights Loader (white overlay + red spinner)
-(function setupHighlightsLoader(){
-  var pane = root.querySelector('.ch-pane-details'); if(!pane) return;
-  var grid = root.querySelector('.ch-highlights-grid'); if(!grid) return;
-  var imgs = Array.from(grid.querySelectorAll('img')); if(!imgs.length) return;
 
-  var overlay = root.querySelector('.ch-hl-loader');
-  var doneCalled = false;
-  var guard;
-
-  function done(){
-    if (doneCalled) return;
-    doneCalled = true;
-    pane.classList.remove('ch-hl-loading');
-    if (overlay) overlay.style.display = 'none';
-    if (guard) clearTimeout(guard);
-  }
-
-  // show overlay immediately
-  pane.classList.add('ch-hl-loading');
-  if (overlay) overlay.style.display = 'flex';
-
-  // safety: kill overlay after 8s max
-  guard = setTimeout(done, 8000);
-
-  // hide overlay as soon as the *first* image finishes
-  imgs.forEach(function(img){
-    if (img.complete) {
-      done();
-    } else {
-      img.addEventListener('load', done, { once: true });
-      img.addEventListener('error', done, { once: true });
-    }
-  });
-})();
 
 
   // Star filter (dummy reviews)
@@ -709,7 +680,7 @@ CH PRODUCT TABS — SNIPPET (v4.3.2)
 .ch-tabs{
   box-sizing:border-box;
   display:grid;
-  grid-template-columns:1fr;
+  grid-template-columns:minmax(0,1fr);
   background:#f3f4f6;
   width:100%; /* NEW: prevent shrink-to-content in flex/grid parents */
   padding:var(--ch-padding-top-desktop,24px) 0 var(--ch-padding-bottom-desktop,24px);
@@ -759,11 +730,8 @@ CH PRODUCT TABS — SNIPPET (v4.3.2)
 .ch-highlight img{ width:100%; height:auto; display:block; border-radius:10px; margin:0 auto; }
 .ch-highlight__cap{ margin-top:6px; font-size:13px; color:#374151; }
 
-/* Highlights loader overlay */
-.ch-hl-loader{ position:absolute; inset:0; background:rgba(255,255,255,.95); display:none; align-items:center; justify-content:center; z-index:2; }
-.ch-hl-loading .ch-hl-loader{ display:flex; }
-.ch-spinner{ width:48px; height:48px; border-radius:50%; border:4px solid transparent; border-top-color:var(--brand); border-right-color:var(--brand); animation:ch-spin .8s linear infinite; }
-@keyframes ch-spin{ to{ transform:rotate(360deg); } }
+
+
 
 /* SPECS */
 .ch-specs-body{
@@ -788,10 +756,10 @@ CH PRODUCT TABS — SNIPPET (v4.3.2)
 .ch-spec-table th,.ch-spec-table td{
   padding:11px 14px;
   border-bottom:1px solid #111;
-  word-break:break-word; /* NEW: prevent super-long strings from expanding width */
+  white-space: normal; /* NEW: default wrapping */
 }
 .ch-spec-table tr:last-child th,.ch-spec-table tr:last-child td{ border-bottom:0; }
-.ch-spec-table th{ width:37%; font-weight:700; color:#111; background:#fff; text-align:left; border-right:1px solid #111; }
+.ch-spec-table th{ min-width:140px; width:35%; font-weight:700; color:#111; background:#fff; text-align:left; border-right:1px solid #111; }
 .ch-spec-table td{ font-weight:400; color:#111; }
 
 /* MOBILE */
@@ -805,7 +773,8 @@ CH PRODUCT TABS — SNIPPET (v4.3.2)
   .ch-acc{
     display:block !important;
     width:100%;
-    max-width:none;
+    max-width:100%;
+    overflow-x:hidden;
   }
   .ch-acc__btn{
     position:relative;

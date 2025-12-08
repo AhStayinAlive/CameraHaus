@@ -239,8 +239,13 @@ CH PRODUCT TABS
   }
 
   // Mode sync
+  var wasMobile = null;
   function syncMode(){
-    if(isMobile()){
+    var nowMobile = isMobile();
+    if (wasMobile === nowMobile) return; // No change in mode, do nothing (prevents scroll resize issues)
+    wasMobile = nowMobile;
+
+    if(nowMobile){
       root.classList.add('is-accordion');
       placePanelsMobile();
     }else{
@@ -249,7 +254,10 @@ CH PRODUCT TABS
     }
   }
   syncMode();
-  window.addEventListener('resize', function(){ syncMode(); refreshHeights(); });
+  window.addEventListener('resize', function(){
+    syncMode();
+    if(isMobile()) refreshHeights();
+  });
 
   // Hash deep-link support (#tab-reviews, etc.)
   if(location.hash === '#tab-reviews'){

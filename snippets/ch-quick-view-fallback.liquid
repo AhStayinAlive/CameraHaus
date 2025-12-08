@@ -1,0 +1,47 @@
+{%- assign current_variant = product.selected_or_first_available_variant -%}
+<!-- DEBUG: QV Start {{ product.id }} -->
+{% layout none %}
+
+<!-- Pre-computation to ensure logic runs -->
+{%- assign compare_val = 0 -%}
+{%- if current_variant.compare_at_price > current_variant.price -%}
+  {%- assign compare_val = current_variant.compare_at_price -%}
+{%- endif -%}
+
+<script type="text/template" id="qv-template-{{ product.id }}">
+  <div class="stand-qv" id="qv-{{ product.id }}" data-product-handle="{{ product.handle }}">
+    <div class="stand-qv__overlay" data-ch-qv-close></div>
+    <div class="stand-qv__panel ch-qv-panel" role="dialog" aria-modal="true" aria-label="Quick view: {{ product.title }}">
+      <button type="button" class="stand-qv__close" data-ch-qv-close aria-label="Close">×</button>
+      
+      <div class="ch-qv-grid">
+         <!-- Force content basics if logic fails -->
+         <div class="ch-qv-media-col">
+            <div class="ch-qv-media-main">
+              <img src="{{ product.featured_image | img_url: '600x600' }}" class="ch-qv-img">
+            </div>
+         </div>
+         <div class="ch-qv-info-col">
+            <h2>{{ product.title }}</h2>
+            <p>{{ current_variant.price | money }}</p>
+            <form method="post" action="/cart/add" data-ch-qv-form>
+               <input type="hidden" name="id" value="{{ current_variant.id }}">
+               <button type="submit" class="ch-atc-btn">Add to Cart</button>
+            </form>
+         </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<script>
+  // Inline JS to ensure registry works
+  (function(){
+      window.CHQV_SNIPPETS = window.CHQV_SNIPPETS || {};
+      window.CHQV_SNIPPETS["qv-{{ product.id }}"] = function(root){
+         console.log('QV Init', root);
+          // Auto-init basic listeners here just in case API fails to look up registry
+          root.querySelector('[data-ch-qv-close]')?.addEventListener('click', ()=>root.remove());
+      };
+  })();
+</script>

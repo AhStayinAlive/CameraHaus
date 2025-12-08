@@ -1,6 +1,7 @@
-{{ 'customer-auth.css' | asset_url | stylesheet_tag }}
+<link rel="stylesheet" href="{{ 'customer-shared.css' | asset_url }}">
+{% include 'breadcrumbs' %}
 
-<div class="page-width">
+<div class="page-width customer-page">
   <div class="grid">
     <div class="grid__item medium-up--one-half medium-up--push-one-quarter">
       <div class="auth-card">

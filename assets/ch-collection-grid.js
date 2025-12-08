@@ -305,13 +305,10 @@ window.ChCollectionGrid = (function () {
             // --- Filter Toggle ---
 
             function initFilterToggle() {
-                const btn = rootEl.querySelector('[data-ch-toolbar-filter]');
-                if (btn) {
-                    btn.addEventListener('click', () => {
-                        rootEl.classList.toggle('is-filter-collapsed');
-                        window.dispatchEvent(new CustomEvent('ch:toggle-filters', { detail: { id: sid } }));
-                    });
-                }
+                // The filter button is already handled by collection-filters.liquid
+                // which listens for click AND ch:toggle-filters.
+                // We do NOT need to attach a listener here, otherwise we get a double-toggle.
+                console.log('[ChCollectionGrid] initFilterToggle: Skipping listener attachment to avoid double-toggle.');
             }
 
             // --- Header Chips ---
@@ -336,10 +333,13 @@ window.ChCollectionGrid = (function () {
 
                         btn.addEventListener('click', () => {
                             if (ch.name && ch.value) {
+                                console.log('[ChCollectionGrid] Standard chip remove clicked:', ch.label);
                                 document.querySelectorAll('.ch-form input[name="' + CSS.escape(ch.name) + '"][value="' + CSS.escape(ch.value) + '"]')
                                     .forEach((cb) => (cb.checked = false));
                                 if (window.applyFilters) window.applyFilters();
                             } else {
+                                console.log('[ChCollectionGrid] Price reset clicked. Dispatching ch:reset-price');
+                                // Do NOT call resetPriceToDefault() directly here.
                                 document.dispatchEvent(new CustomEvent('ch:reset-price'));
                             }
                         });

@@ -302,14 +302,8 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
 
   /* tiles that are actively animating in */
   #ch-brands-{{ section.id }} .chb-tile--intro{
-    animation: chb-float-in .6s cubic-bezier(.22,.61,.36,1) forwards;
+    animation: ch-fade-up .6s cubic-bezier(.22,.61,.36,1) forwards;
     will-change: opacity, transform;
-  }
-
-  @keyframes chb-float-in{
-    0%{ opacity:0; transform:translate3d(0,22px,0); }
-    55%{ opacity:1; transform:translate3d(0,2px,0); }
-    100%{ opacity:1; transform:translate3d(0,0,0); }
   }
 
   #ch-brands-{{ section.id }}.chb--done .chb-tile{
@@ -330,99 +324,26 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
 </style>
 
 
+
+{{ 'ch-slider.js' | asset_url | script_tag }}
+
 <script>
   (function(){
     var root = document.getElementById('ch-brands-{{ section.id }}');
     if(!root) return;
 
-    var azWrap   = root.querySelector('[data-az]');
-    var track    = root.querySelector('[data-track]');
-    var btnPrev  = root.querySelector('.chpc__arrow--prev');
-    var btnNext  = root.querySelector('.chpc__arrow--next');
-    var dotsWrap = root.querySelector('[data-dots]');
-    var tiles    = root.querySelectorAll('[data-tile]');
-    var mqDesktop= window.matchMedia('(min-width:1100px)');
-    var mqMobile = window.matchMedia('(max-width:739.98px)');
-    var hasIntro = false;
-    var isReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // A-Z Filter Logic (Specific to this section, kept separate)
+    var azWrap = root.querySelector('[data-az]');
+    var tiles  = root.querySelectorAll('[data-tile]');
+    
+    // Initialize shared slider
+    var slider = new ChHorizontalSlider(root, {
+      trackSel: '[data-track]',
+      prevSel: '.chpc__arrow--prev',
+      nextSel: '.chpc__arrow--next',
+      dotsSel: '[data-dots]'
+    });
 
-    /* 🔥 One-time, card-by-card float-in when section first enters viewport */
-    function runIntroOnce(){
-      if(hasIntro) return;
-      hasIntro = true;
-
-      var visible = Array.prototype.filter.call(tiles, function(tile){
-        return !tile.hidden;
-      });
-
-      if(!visible.length){
-        root.classList.remove('chb--pre');
-        root.classList.add('chb--done');
-        return;
-      }
-
-      if(isReduced){
-        // No animation: just show them
-        root.classList.remove('chb--pre');
-        root.classList.add('chb--done');
-        visible.forEach(function(t){
-          t.style.opacity = '1';
-          t.style.transform = 'translate3d(0,0,0)';
-        });
-        return;
-      }
-
-      var isMobile = mqMobile && mqMobile.matches;
-
-      // Reset any previous intro state
-      visible.forEach(function(t){
-        t.classList.remove('chb-tile--intro');
-        t.style.animationDelay = '';
-      });
-
-      // We KEEP chb--pre here so initial frame is empty (opacity:0)
-      // Then we add tile intro classes with staggered delays
-      requestAnimationFrame(function(){
-        requestAnimationFrame(function(){
-          visible.forEach(function(t, i){
-            t.style.animationDelay = isMobile ? '0ms' : (i * 70) + 'ms';
-            t.classList.add('chb-tile--intro');
-          });
-
-          var last = visible[visible.length - 1];
-
-          var onDone = function(){
-            // Mark section as fully done; tiles now live with normal styles
-            root.classList.remove('chb--pre');
-            root.classList.add('chb--done');
-
-            visible.forEach(function(t){
-              t.classList.remove('chb-tile--intro');
-              t.style.animationDelay = '';
-            });
-
-            if(last){
-              last.removeEventListener('animationend', onDone);
-            }
-          };
-
-          if(last){
-            last.addEventListener('animationend', onDone, { once: true });
-
-            // Fallback in case animationend doesn't fire
-            setTimeout(function(){
-              if(!root.classList.contains('chb--done')){
-                onDone();
-              }
-            }, 900);
-          } else {
-            onDone();
-          }
-        });
-      });
-    }
-
-    /* A–Z filter (no intro replay here to avoid glitch) */
     function applyFilters(){
       var letter = root.getAttribute('data-letter') || 'all';
       tiles.forEach(function(tile){
@@ -430,8 +351,9 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
         var show = (letter === 'all' || first === letter);
         tile.hidden = !show;
       });
-
-      rebuildPager();
+      // Refresh slider logic (dots/arrows/pages) after visibility changes
+      slider.refresh();
+      // Optional: re-trigger intro if desired, or just let it be
     }
 
     if(azWrap){
@@ -450,124 +372,7 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
       });
     }
 
-    var currentPage = 0;
-    function pageWidth(){ return track ? track.clientWidth : 1; }
-    function pagesCount(){ return !track ? 1 : Math.max(1, Math.ceil((track.scrollWidth||1) / (track.clientWidth||1))); }
-
-    function updateArrows(){
-      if(!btnPrev || !btnNext || !track) return;
-      if(!mqDesktop.matches){
-        btnPrev.style.display = 'none';
-        btnNext.style.display = 'none';
-        return;
-      }
-      var n = pagesCount();
-      var w = pageWidth() || 1;
-      currentPage = Math.round((track.scrollLeft||0) / w);
-      btnPrev.disabled = (currentPage <= 0);
-      btnNext.disabled = (currentPage >= n - 1);
-      var need = n > 1;
-      btnPrev.style.display = need ? 'grid' : 'none';
-      btnNext.style.display = need ? 'grid' : 'none';
-    }
-
-    function scrollToPage(idx, smooth){
-      if(!track) return;
-      var total = pagesCount();
-      if(idx < 0) idx = 0;
-      if(idx > total - 1) idx = total - 1;
-      var left = idx * (pageWidth() || 1);
-      track.scrollTo({ left:left, behavior: smooth ? 'smooth' : 'auto' });
-      currentPage = idx;
-      updateDots();
-      updateArrows();
-    }
-
-    function onScroll(){
-      updateDots();
-      updateArrows();
-    }
-
-    var MAX_DOTS = 5;
-    function windowStartFor(page, total, maxDots){
-      if (total <= maxDots) return 0;
-      var half = Math.floor(maxDots/2), start = page - half;
-      if (start < 0) start = 0;
-      if (start > total - maxDots) start = total - maxDots;
-      return start;
-    }
-
-    function buildDots(){
-      if(!dotsWrap) return;
-      var total = pagesCount();
-      dotsWrap.innerHTML = '';
-      if(total <= 1){
-        dotsWrap.style.display = 'none';
-        return;
-      }
-      dotsWrap.style.display = 'flex';
-      var start = windowStartFor(currentPage, total, MAX_DOTS);
-      var count = Math.min(total, MAX_DOTS);
-      for (var i=0;i<count;i++){
-        var real = start + i;
-        var b = document.createElement('button');
-        b.type='button';
-        b.className='chpc__dot';
-        b.setAttribute('role','tab');
-        b.dataset.page = String(real);
-        b.setAttribute('aria-label','Go to page ' + (real+1));
-        b.addEventListener('click', function(e){
-          var p = parseInt(e.currentTarget.dataset.page,10);
-          scrollToPage(p, true);
-        });
-        dotsWrap.appendChild(b);
-      }
-      updateDots();
-    }
-
-    function updateDots(){
-      if(!dotsWrap) return;
-      var total = pagesCount();
-      if(total <= 1){
-        dotsWrap.style.display = 'none';
-        return;
-      }
-      var start = windowStartFor(currentPage, total, MAX_DOTS);
-      var dots = dotsWrap.querySelectorAll('.chpc__dot');
-      if(dots.length !== Math.min(total, MAX_DOTS)){
-        buildDots();
-        return;
-      }
-      dots.forEach(function(b, i){
-        var real = start + i;
-        b.dataset.page = String(real);
-        b.setAttribute('aria-current', real === currentPage ? 'true' : 'false');
-        b.setAttribute('aria-label','Go to page ' + (real+1));
-      });
-    }
-
-    function rebuildPager(){
-      if(track){
-        var needPages = pagesCount() > 1;
-        if(!needPages){
-          track.scrollLeft = 0;
-          currentPage = 0;
-        }
-      }
-      buildDots();
-      updateDots();
-      updateArrows();
-    }
-
-    if(track){
-      track.addEventListener('scroll', onScroll, { passive:true });
-      if(btnPrev) btnPrev.addEventListener('click', function(){ scrollToPage(currentPage - 1, true); });
-      if(btnNext) btnNext.addEventListener('click', function(){ scrollToPage(currentPage + 1, true); });
-      window.addEventListener('resize', function(){ rebuildPager(); });
-      (mqDesktop.addEventListener ? mqDesktop.addEventListener('change', updateArrows) : mqDesktop.addListener(updateArrows));
-      rebuildPager();
-    }
-
+    // Analytics
     root.addEventListener('click', function(e){
       var link = e.target.closest('.chb-photo-card'); if(!link) return;
       var tile = link.closest('[data-tile]'); if(!tile) return;
@@ -583,24 +388,9 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
       }
     });
 
-    // initial filter (no animation yet)
+    // Initial filter apply
     applyFilters();
 
-    // animate on scroll into view ONCE (card by card)
-    if('IntersectionObserver' in window){
-      var io = new IntersectionObserver(function(entries){
-        entries.forEach(function(entry){
-          if(entry.isIntersecting){
-            runIntroOnce();
-            io.unobserve(entry.target);
-          }
-        });
-      }, { threshold: 0.35, rootMargin: '0px 0px -20% 0px' });
-      io.observe(root);
-    } else {
-      root.classList.remove('chb--pre');
-      root.classList.add('chb--done');
-    }
   })();
 </script>
 </section>
