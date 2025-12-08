@@ -1,5 +1,5 @@
 {%- comment -%}
-  Havit-style slideshow (mobile tuned)
+  -style slideshow (mobile tuned)
   - Edge-to-edge hero on mobile; arrows hidden on mobile
   - Mobile caption X/Y overrides (header, subtitle, CTA move together)
   - Separate alignment controls for title/subtitle/CTA (desktop vs mobile)
@@ -103,6 +103,16 @@
 
       /* Slideshow root */
       #Slideshow-{{ section.id }}{ position:relative; overflow:hidden; width:100%; }
+
+      /* Fade-in once first slide is ready */
+      #Slideshow-{{ section.id }}.is-loading{
+        opacity:0;
+      }
+      #Slideshow-{{ section.id }}.is-ready{
+        opacity:1;
+        transition: opacity .45s ease-out;
+      }
+
       #Slideshow-{{ section.id }} .hero__track{ display:flex; width:100%; height:100%; transition:transform .5s ease; will-change: transform; }
       #Slideshow-{{ section.id }} .hero__slide{ position:relative; flex:0 0 100%; width:100%; height:100%; }
 
@@ -115,6 +125,7 @@
       #shopify-section-{{ section.id }} .hero--custom{ height:var(--hero-h, 86vh); min-height:var(--hero-min, 420px); }
 
       /* Image layers */
+      #Slideshow-{{ section.id }} picture,
       #Slideshow-{{ section.id }} .hero__image,
       #Slideshow-{{ section.id }} .hero__image-bg{
         position:absolute; inset:0; width:100%; height:100%;
@@ -146,7 +157,7 @@
       }
       #Slideshow-{{ section.id }} .hero__subtitle{
         font: 500 clamp(var(--subtitle-size-m, 12px), 3vw, var(--subtitle-size, 20px))/1.35 var(--subtitle-font);
-        margin:2px 0 0; /* removed opacity so text stays crisp */
+        margin:2px 0 0;
         color: var(--subtitle-ink, var(--cap-ink)); text-align: var(--subtitle-align, inherit);
       }
 
@@ -210,10 +221,6 @@
       #Slideshow-{{ section.id }} .hero__block-logo{ position:absolute; z-index:6; display:block; filter: drop-shadow(0 4px 14px rgba(0,0,0,.25)); left: var(--logo-x, auto); top: var(--logo-y, auto); }
       #Slideshow-{{ section.id }} .hero__block-logo img{ width:var(--logo-w, 160px); height:auto; opacity:var(--logo-opacity, 1); }
 
-      /* Arrows + dots */
-      #Slideshow-{{ section.id }} .hero__arrow{ position:absolute; top:50%; transform:translateY(-50%); z-index:6; width:44px; height:44px; border-radius:50%; border:0; cursor:pointer; background:#fff; box-shadow:0 4px 18px rgba(0,0,0,.18); display:flex; align-items:center; justify-content:center; }
-      #shopify-section-{{ section.id }} .hero__arrow--prev{ left:12px; }
-      #shopify-section-{{ section.id }} .hero__arrow--next{ right:12px; }
 
       /* Dots reverted: grey squares; active = red rectangle */
       #Slideshow-{{ section.id }} .hero__dots{ position:absolute; left:50%; bottom: var(--dots-offset, 12px); transform:translateX(-50%); display:flex; gap:8px; z-index:6; }
@@ -421,30 +428,94 @@
   padding-top:0 !important;
   border-top:0 !important;
 }
-/* === Slideshow arrows: bigger + not at the very edge === */
+/* === Slideshow arrows – standard Camerahaus style === */
 #Slideshow-{{ section.id }}{
-  --arrow-size: 46px;       /* was 38px */
-  --arrow-inset: 24px;      /* was 12px from edge */
-  --arrow-icon-scale: .5;   /* icon = 50% of circle */
+  --arrow-size: 38px;        /* same as product carousel */
+  --arrow-inset: 24px;       /* distance from edge; tweak if you want */
+  --arrow-icon-scale: 0.5;   /* SVG size inside the circle */
 }
 
 #Slideshow-{{ section.id }} .hero__arrow{
-  width: var(--arrow-size);
-  height: var(--arrow-size);
-  min-width: var(--arrow-size);
-  min-height: var(--arrow-size);
-  display: grid; place-items: center;
-  border-radius: 9999px;
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  z-index:6;
 
-  background: transparent;
-  color: {{ section.settings.brand | default: '#E0302A' }};
-  border: 2px solid {{ section.settings.brand | default: '#E0302A' }}; /* slightly thicker for bigger button */
-  box-shadow: none !important;
+  width:var(--arrow-size);
+  height:var(--arrow-size);
+  min-width:var(--arrow-size);
+  min-height:var(--arrow-size);
 
-  position: absolute; top: 50%; transform: translateY(-50%);
-  z-index: 6;
-  transition: background .15s ease, color .15s ease, transform .08s ease, border-color .15s ease;
+  display:grid;
+  place-items:center;
+
+  border-radius:9999px;
+  background:transparent;
+  color:{{ section.settings.brand | default: '#E0302A' }};
+  border:1.5px solid {{ section.settings.brand | default: '#E0302A' }};
+  box-shadow:none !important;
+
+  cursor:pointer;
+  transition:
+    background .15s ease,
+    color .15s ease,
+    transform .08s ease,
+    border-color .15s ease,
+    opacity .15s ease;
 }
+
+/* left/right positioning – like product carousel, just inset instead of negative */
+#shopify-section-{{ section.id }} .hero__arrow--prev{
+  left:var(--arrow-inset);
+}
+#shopify-section-{{ section.id }} .hero__arrow--next{
+  right:var(--arrow-inset);
+}
+
+/* hover / active / disabled – same behavior as product carousel */
+#Slideshow-{{ section.id }} .hero__arrow:hover,
+#Slideshow-{{ section.id }} .hero__arrow:focus-visible{
+  background:{{ section.settings.brand | default: '#E0302A' }};
+  color:#fff;
+}
+#Slideshow-{{ section.id }} .hero__arrow:active{
+  transform:translateY(-50%) scale(.96);
+}
+#Slideshow-{{ section.id }} .hero__arrow[disabled]{
+  opacity:.35;
+  filter:grayscale(1);
+  pointer-events:none;
+}
+
+/* make sure the SVG icon follows the color + scales nicely */
+#Slideshow-{{ section.id }} .hero__arrow svg{
+  width:calc(var(--arrow-size) * var(--arrow-icon-scale));
+  height:calc(var(--arrow-size) * var(--arrow-icon-scale));
+}
+#Slideshow-{{ section.id }} .hero__arrow svg [stroke]{
+  stroke:currentColor !important;
+}
+#Slideshow-{{ section.id }} .hero__arrow svg [fill]:not([fill="none"]){
+  fill:currentColor !important;
+}
+
+/* still hidden on mobile */
+@media (max-width: 768px){
+  #Slideshow-{{ section.id }} .hero__arrow{
+    display:none !important;
+  }
+}
+
+/* remove any legacy pseudo-element bars / background images */
+#Slideshow-{{ section.id }} .hero__arrow::before,
+#Slideshow-{{ section.id }} .hero__arrow::after{
+  content:none !important;
+  display:none !important;
+}
+#Slideshow-{{ section.id }} .hero__arrow{
+  background-image:none !important;
+}
+
 
 /* inset from edges */
 #shopify-section-{{ section.id }} .hero__arrow--prev{ left: var(--arrow-inset); }
@@ -511,7 +582,7 @@
     {%- endcapture -%}
 
     <div id="Slideshow-{{ section.id }}"
-         class="hero hero--{{ section.settings.hero_home_height }}"
+         class="hero hero--{{ section.settings.hero_home_height }} is-loading"
          style="{{ hero_style | strip }}"
          data-autoplay="{{ section.settings.hero_home_auto }}"
          data-speed="{{ section.settings.hero_home_auto_speed | times: 1000 }}"
@@ -530,11 +601,6 @@
           <div class="hero__slide hero__slide--{{ block.id }}" data-index="{{ forloop.index0 }}" style="--slide-ar: {{ mobile_ar }}; --ov: {% assign ov_raw = block.settings.overlay_opacity_b_select | default: block.settings.overlay_opacity_b %}{% if block.settings.overlay_enable_b %}{{ ov_raw | default: section.settings.overlay_opacity | default: 0.3 }}{% else %}{% if section.settings.overlay_enable %}{{ section.settings.overlay_opacity | default: 0.3 }}{% else %}0{% endif %}{% endif %}; --ov-color: {{ block.settings.overlay_color_b | default: section.settings.overlay_color | default: '#000000' }};" {{ block.shopify_attributes }}>
 
             {%- if block.settings.image != blank -%}
-              <div class="hero__image-bg"
-                   style="background-image:url('{{ block.settings.image | image_url: width: 2048 }}');
-                          background-position: {{ block.settings.image_position }};">
-              </div>
-
               {%- assign loading_attr = 'lazy' -%}
               {%- assign fetch_attr = 'auto' -%}
               {%- if forloop.first -%}
@@ -542,28 +608,34 @@
                 {%- assign fetch_attr = 'high' -%}
               {%- endif -%}
 
-              {{ block.settings.image
-                 | image_url: width: 2048
-                 | image_tag:
-                    widths: '540,720,900,1080,1296,1512,1728,1944,2048',
-                    sizes: '100vw',
-                    class: 'hero__image',
-                    alt: block.settings.alt | default: '',
-                    loading: loading_attr,
-                    fetchpriority: fetch_attr }}
-            {%- endif -%}
+              {%- assign desktop_pos = block.settings.image_position | default: 'center center' -%}
+              {%- assign mobile_pos = block.settings.image_position_m | default: 'center center' -%}
 
-            {%- comment -%} Optional mobile-specific image {%- endcomment -%}
-            {%- if block.settings.image_m != blank -%}
               <style>
-                @media (max-width: 768px){
-                  #Slideshow-{{ section.id }} .hero__slide--{{ block.id }} .hero__image-bg{
-                    background-image:url('{{ block.settings.image_m | image_url: width: 1600 }}') !important;
-                    background-position: {{ block.settings.image_position_m | default: 'center center' }};
+                #Slideshow-{{ section.id }} .hero__slide--{{ block.id }} .hero__image {
+                  object-position: {{ desktop_pos }};
+                }
+                @media (max-width: 768px) {
+                  #Slideshow-{{ section.id }} .hero__slide--{{ block.id }} .hero__image {
+                    object-position: {{ mobile_pos }};
                   }
-                  #Slideshow-{{ section.id }} .hero__slide--{{ block.id }} .hero__image{ display:none !important; }
                 }
               </style>
+
+              <picture>
+                {%- if block.settings.image_m != blank -%}
+                  <source media="(max-width: 768px)" srcset="{{ block.settings.image_m | image_url: width: 1200 }}">
+                {%- endif -%}
+                {{ block.settings.image
+                   | image_url: width: 2048
+                   | image_tag:
+                      widths: '540,720,900,1080,1296,1512,1728,1944,2048',
+                      sizes: '100vw',
+                      class: 'hero__image',
+                      alt: block.settings.alt | default: '',
+                      loading: loading_attr,
+                      fetchpriority: fetch_attr }}
+              </picture>
             {%- endif -%}
 
             {%- if block.settings.scrim_enabled -%}
@@ -690,74 +762,132 @@
     </div>
 
     <script>
-      /* Slideshow controls */
+      /* Slideshow controls with image-first fade-in */
       (function(){
-        const root  = document.getElementById('Slideshow-{{ section.id }}');
-        if(!root) return;
+        const root = document.getElementById('Slideshow-{{ section.id }}');
+        if (!root) return;
 
-        const track = root.querySelector('[data-track]');
-        const slides = Array.from(track.children);
-        if (slides.length) { requestAnimationFrame(() => slides[0].classList.add('is-active')); }
+        const track   = root.querySelector('[data-track]');
+        const slides  = track ? Array.from(track.children) : [];
         const prevBtn = root.querySelector('[data-prev]');
         const nextBtn = root.querySelector('[data-next]');
-        const dots = Array.from(root.querySelectorAll('[data-dot]'));
+        const dots    = Array.from(root.querySelectorAll('[data-dot]'));
 
         let index = 0;
-        let auto  = root.dataset.autoplay === 'true';
-        let speed = parseInt(root.dataset.speed || 5000, 10);
+        const auto  = root.dataset.autoplay === 'true';
+        const speed = parseInt(root.dataset.speed || 5000, 10) || 5000;
         let timer;
 
         function go(i){
-          index = (i + slides.length) % slides.length;
-          track.style.transform = `translateX(-${index*100}%)`;
-          dots.forEach((d,di)=> d.setAttribute('aria-current', di===index ? 'true':'false'));
-          slides.forEach((s,si)=> s.classList.toggle('is-active', si===index));
-        }
-        function nextSlide(){ go(index+1); }
-        function prevSlide(){ go(index-1); }
+          if (!slides.length || !track) return;
 
-        nextBtn && nextBtn.addEventListener('click', nextSlide);
-        prevBtn && prevBtn.addEventListener('click', prevSlide);
-        dots.forEach(d => d.addEventListener('click', e => go(parseInt(e.currentTarget.dataset.dot,10))));
+          index = (i + slides.length) % slides.length;
+
+          track.style.transform = 'translateX(-' + (index * 100) + '%)';
+
+          dots.forEach(function(d, di){
+            d.setAttribute('aria-current', di === index ? 'true' : 'false');
+          });
+
+          slides.forEach(function(s, si){
+            s.classList.toggle('is-active', si === index);
+          });
+        }
+
+        function nextSlide(){ go(index + 1); }
+        function prevSlide(){ go(index - 1); }
 
         function start(){
-          if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-          if(!auto || slides.length < 2) return;
-          stop(); timer = setInterval(nextSlide, speed);
+          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+          if (!auto || slides.length < 2) return;
+          stop();
+          timer = setInterval(nextSlide, speed);
         }
-        function stop(){ if(timer) clearInterval(timer); }
+
+        function stop(){
+          if (timer) clearInterval(timer);
+          timer = null;
+        }
+
+        // Called once the first image is ready
+        function markReady(){
+          if (root.classList.contains('is-ready')) return;
+
+          root.classList.remove('is-loading');
+          root.classList.add('is-ready');
+
+          if (slides.length){
+            go(0);   // activate first slide so text animation runs
+          }
+
+          start();
+        }
+
+        // Wire up controls
+        nextBtn && nextBtn.addEventListener('click', nextSlide);
+        prevBtn && prevBtn.addEventListener('click', prevSlide);
+        dots.forEach(function(d){
+          d.addEventListener('click', function(e){
+            var idx = parseInt(e.currentTarget.getAttribute('data-dot') || '0', 10);
+            go(idx);
+          });
+        });
 
         root.addEventListener('mouseenter', stop);
         root.addEventListener('mouseleave', start);
         root.addEventListener('focusin', stop);
         root.addEventListener('focusout', start);
-        document.addEventListener('visibilitychange', ()=> document.hidden ? stop() : start());
+        document.addEventListener('visibilitychange', function(){
+          document.hidden ? stop() : start();
+        });
 
-        /* Swipe */
-        let sx = 0, sy = 0, dx = 0, dy = 0, swiping = false;
-        const THRESH = 40;
+        // Touch/swipe
+        var sx = 0, sy = 0, dx = 0, dy = 0, swiping = false;
+        var THRESH = 40;
 
-        root.addEventListener('touchstart', (e)=>{
-          if(e.touches.length !== 1) return;
-          sx = e.touches[0].clientX; sy = e.touches[0].clientY;
-          dx = dy = 0; swiping = true; stop();
-        }, {passive:true});
+        root.addEventListener('touchstart', function(e){
+          if (e.touches.length !== 1) return;
+          sx = e.touches[0].clientX;
+          sy = e.touches[0].clientY;
+          dx = dy = 0;
+          swiping = true;
+          stop();
+        }, { passive: true });
 
-        root.addEventListener('touchmove', (e)=>{
-          if(!swiping) return;
+        root.addEventListener('touchmove', function(e){
+          if (!swiping) return;
           dx = e.touches[0].clientX - sx;
           dy = e.touches[0].clientY - sy;
-        }, {passive:true});
+        }, { passive: true });
 
-        root.addEventListener('touchend', ()=>{
-          if(!swiping) return;
-          if(Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > THRESH){
+        root.addEventListener('touchend', function(){
+          if (!swiping) return;
+          if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > THRESH){
             dx < 0 ? nextSlide() : prevSlide();
           }
-          swiping = false; start();
-        }, {passive:true});
+          swiping = false;
+          start();
+        }, { passive: true });
 
-        start();
+        // Wait for the first slide image before revealing hero
+        if (!slides.length){
+          markReady();
+          return;
+        }
+
+        var firstImg = slides[0].querySelector('img.hero__image');
+
+        if (firstImg){
+          if (firstImg.complete && firstImg.naturalWidth){
+            requestAnimationFrame(markReady);
+          } else {
+            firstImg.addEventListener('load',  markReady, { once: true });
+            firstImg.addEventListener('error', markReady, { once: true });
+          }
+        } else {
+          // No image found (edge case)
+          markReady();
+        }
       })();
     </script>
   </div>
@@ -769,7 +899,7 @@
 
 {% schema %}
 {
-  "name": "Havit Slideshow",
+  "name": " Slideshow",
   "class": "shopify-section--slideshow",
   "max_blocks": 20,
   "settings": [
@@ -937,25 +1067,13 @@
         { "type":"checkbox", "id":"overlay_enable_b", "label":"Enable overlay on this slide", "default": true },
         { "type":"color", "id":"overlay_color_b", "label":"Overlay color (this slide)" },
         { "type":"range", "id":"overlay_opacity_b", "label":"Overlay strength (this slide)", "min": 0, "max": 0.8, "step": 0.1, "default": 0 },
-        { "type":"select","id":"overlay_opacity_b_select","label":"Overlay strength (quick picks)","options":[{"value":"0","label":"0% (no overlay)"},{"value":"0.1","label":"10%"},{"value":"0.2","label":"20%"},{"value":"0.3","label":"30%"},{"value":"0.4","label":"40%"},{"value":"0.5","label":"50%"},{"value":"0.6","label":"60%"},{"value":"0.7","label":"70%"},{"value":"0.8","label":"80%"}],"default":"0.3" },
-
-        { "type":"header", "content":"Overlay logo (inside this slide)" },
-        { "type":"image_picker","id":"block_logo","label":"Logo" },
-        { "type":"text","id":"block_logo_alt","label":"Logo alt text","default":"CameraHaus" },
-        { "type":"range","id":"block_logo_w_d","label":"Logo width — desktop (px)","min":80,"max":300,"step":4,"default":160 },
-        { "type":"text","id":"block_logo_x_d","label":"Logo X desktop (e.g., 84% or 24px)","default":"auto" },
-        { "type":"text","id":"block_logo_y_d","label":"Logo Y desktop (e.g., 8% or 24px)","default":"auto" },
-        { "type":"range","id":"block_logo_w_m","label":"Logo width — mobile (px)","min":60,"max":220,"step":4,"default":120 },
-        { "type":"text","id":"block_logo_x_m","label":"Logo X mobile (e.g., 84% or 24px)","default":"auto" },
-        { "type":"text","id":"block_logo_y_m","label":"Logo Y mobile (e.g., 8% or 24px)","default":"auto" },
-
-        { "type":"text","id":"alt","label":"Alt text (SEO)" }
+        { "type":"select","id":"overlay_opacity_b_select","label":"Overlay strength (quick picks)","options":[{"value":"0","label":"0% (no overlay)"},{"value":"0.1","label":"10%"},{"value":"0.2","label":"20%"},{"value":"0.3","label":"30%"},{"value":"0.4","label":"40%"},{"value":"0.5","label":"50%"},{"value":"0.6","label":"60%"},{"value":"0.7","label":"70%"},{"value":"0.8","label":"80%"}],"default":"0.3" }
       ]
     }
   ],
   "presets": [
     {
-      "name": "Slideshow (Havit-style, island)",
+      "name": "Slideshow",
       "settings": {
         "layout": "contained",
         "hero_home_auto": true,

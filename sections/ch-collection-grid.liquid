@@ -1,0 +1,290 @@
+{%- comment -%}
+  ch-collection-grid.liquid
+
+  Required params:
+  - mode: 'collection' or 'search'
+  - section_id: unique string (e.g. section.id or 'search')
+  - current_sort: value like 'best-selling' or 'relevance'
+  Optional:
+  - sub: collection subtitle text (for collection mode)
+  - display_terms: processed search.terms (for search mode)
+{%- endcomment -%}
+
+<section id="ch-collection-{{ section_id }}" class="ch-collection" data-section-id="{{ section_id }}">
+
+  <div class="page-width">
+    <!-- HEADER -->
+    <header class="ch-header">
+      {% if mode == 'search' %}
+        <h1 class="ch-title">
+          {% if search.performed %}
+            Results for “{{ display_terms }}”
+          {% else %}
+            Search
+          {% endif %}
+        </h1>
+
+        {% if search.performed %}
+          <p class="ch-sub">
+            {{ search.results_count }} result{% if search.results_count != 1 %}s{% endif %}
+          </p>
+        {% endif %}
+      {% else %}
+        <h1 class="ch-title">
+          {{ collection.title }}{% if current_tags %} – {{ current_tags | join: ', ' }}{% endif %}
+        </h1>
+        {% if sub != blank %}
+          <p class="ch-sub">{{ sub }}</p>
+        {% endif %}
+      {% endif %}
+
+      <!-- TOOLBAR -->
+      <div class="ch-toolbar" id="ChToolbar-{{ section_id }}">
+        <div class="ch-toolbar-left">
+          <button type="button" class="ch-toolbar-filter" data-ch-toolbar-filter>
+            <span class="ch-filter-icon ch-filter-icon--open">
+              <!-- same icon as before -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>
+                <path d="M11 12h4"/><path d="M11 16h7"/><path d="M11 20h10"/>
+              </svg>
+            </span>
+            <span class="ch-filter-icon ch-filter-icon--closed">
+              <!-- same closed icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                   viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round"
+                   stroke-linejoin="round">
+                <path d="m3 16 4 4 4-4"/><path d="M7 20V4"/>
+                <path d="M11 4h4"/><path d="M11 8h7"/><path d="M11 12h10"/>
+              </svg>
+            </span>
+            Filters
+          </button>
+        </div>
+
+        <div class="ch-toolbar-right">
+          {% if mode == 'search' %}
+            {%- assign sort_pairs = 'relevance:Relevance|best-selling:Best selling|price-ascending:Price, low to high|price-descending:Price, high to low|created-descending:Newest|created-ascending:Oldest|title-ascending:A–Z|title-descending:Z–A' | split: '|' -%}
+
+            <div class="ch-sorter" data-ch-sorter>
+              <button type="button" class="ch-sorter-btn" aria-haspopup="listbox" aria-expanded="false">
+                <span class="ch-sorter-label">
+                  {%- assign active_label = '' -%}
+                  {%- for p in sort_pairs -%}
+                    {%- assign kv = p | split: ':' -%}
+                    {%- if kv[0] == current_sort -%}
+                      {%- assign active_label = kv[1] -%}
+                    {%- endif -%}
+                  {%- endfor -%}
+                  {{ active_label | default: 'Relevance' }}
+                </span>
+                <span class="ch-sorter-arrow">
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="none"
+                       stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                       stroke-linejoin="round">
+                    <path d="m5 8 5 5 5-5"></path>
+                  </svg>
+                </span>
+              </button>
+
+              <div class="ch-sorter-pop" role="listbox" tabindex="-1">
+                <ul class="ch-sorter-list">
+                  {%- for p in sort_pairs -%}
+                    {%- assign kv = p | split: ':' -%}
+                    <li class="ch-sorter-item {% if kv[0] == current_sort %}is-active{% endif %}"
+                        data-value="{{ kv[0] }}"
+                        role="option"
+                        aria-selected="{% if kv[0] == current_sort %}true{% else %}false{% endif %}">
+                      {{ kv[1] }}
+                    </li>
+                  {%- endfor -%}
+                </ul>
+              </div>
+
+              <form method="get" id="ChSortForm-{{ section_id }}">
+                {% if mode == 'search' %}
+                  <input type="hidden" name="q" value="{{ search.terms | escape }}">
+                  <input type="hidden" name="type" value="product">
+                {% endif %}
+                <select name="sort_by"
+                        id="ChSortSelect-{{ section_id }}"
+                        class="ch-sorter-select"
+                        aria-hidden="true"
+                        tabindex="-1">
+                  {%- for p in sort_pairs -%}
+                    {%- assign kv = p | split: ':' -%}
+                    <option value="{{ kv[0] }}"
+                      {% if kv[0] == current_sort %}selected{% endif %}>
+                      {{ kv[1] }}
+                    </option>
+                  {%- endfor -%}
+                </select>
+              </form>
+            </div>
+          {% else %}
+            {% if collection.sort_options.size > 1 %}
+              <div class="ch-sorter" data-ch-sorter>
+                <button type="button" class="ch-sorter-btn" aria-haspopup="listbox" aria-expanded="false">
+                  <span class="ch-sorter-label">
+                    {% assign active_label = '' %}
+                    {% for option in collection.sort_options %}
+                      {% if option.value == current_sort %}
+                        {% assign active_label = option.name %}
+                      {% endif %}
+                    {% endfor %}
+                    {{ active_label | default: 'Best selling' }}
+                  </span>
+                  <span class="ch-sorter-arrow">
+                    <svg width="14" height="14" viewBox="0 0 20 20" fill="none"
+                         stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+                         stroke-linejoin="round">
+                      <path d="m5 8 5 5 5-5" />
+                    </svg>
+                  </span>
+                </button>
+
+                <div class="ch-sorter-pop" role="listbox" tabindex="-1">
+                  <ul class="ch-sorter-list">
+                    {% for option in collection.sort_options %}
+                      <li class="ch-sorter-item {% if option.value == current_sort %}is-active{% endif %}"
+                          data-value="{{ option.value }}"
+                          role="option"
+                          aria-selected="{% if option.value == current_sort %}true{% else %}false{% endif %}">
+                        {{ option.name }}
+                      </li>
+                    {% endfor %}
+                  </ul>
+                </div>
+
+                <form method="get" id="ChSortForm-{{ section_id }}">
+                  <select name="sort_by"
+                          id="ChSortSelect-{{ section_id }}"
+                          class="ch-sorter-select"
+                          aria-hidden="true"
+                          tabindex="-1">
+                    {% for option in collection.sort_options %}
+                      <option value="{{ option.value }}"
+                        {% if option.value == current_sort %}selected{% endif %}>
+                        {{ option.name }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </form>
+              </div>
+            {% endif %}
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- dynamic chips -->
+      <div id="ChFilterChips-{{ section_id }}" class="ch-chipline" aria-live="polite"></div>
+    </header>
+
+    <div class="ch-body">
+      <aside class="ch-side">
+        {%- comment -%}
+          If your filters are a section, keep this:
+        {%- endcomment -%}
+        {% section 'collection-filters' %}
+        {%- comment -%}
+          Or if you convert filters to a snippet:
+          {% render 'collection-filters' %}
+        {%- endcomment -%}
+      </aside>
+
+      <div class="ch-main">
+        <div class="ch-grid-wrap">
+          <div class="ch-grid-overlay" aria-hidden="true">
+            <span class="ch-loader" aria-hidden="true"></span>
+          </div>
+
+          <!-- GRID -->
+          <div id="CollectionProductGrid">
+            {% if mode == 'search' %}
+              {%- assign has_products = false -%}
+              {%- for item in search.results -%}
+                {%- if item.object_type == 'product' -%}
+                  {%- assign has_products = true -%}
+                  <div class="ch-cell">
+                    {% render 'product-card', product: item %}
+                  </div>
+                {%- endif -%}
+              {%- endfor -%}
+
+              {%- unless has_products -%}
+                <div class="ch-cell" style="grid-column:1/-1;text-align:center">
+                  <p>No matching products.</p>
+                </div>
+              {%- endunless -%}
+            {% else %}
+              {%- for product in collection.products -%}
+                <div class="ch-cell">
+                  {% render 'product-card', product: product %}
+                </div>
+              {%- else -%}
+                {% if shop.products_count == 0 %}
+                  {%- for i in (1..10) -%}
+                    <div class="ch-cell">
+                      <!-- your placeholder card -->
+                    </div>
+                  {%- endfor -%}
+                {% else %}
+                  <div class="ch-cell" style="grid-column:1/-1;text-align:center">
+                    <p>{{ 'collections.general.no_matches' | t }}</p>
+                  </div>
+                {% endif %}
+              {%- endfor -%}
+            {% endif %}
+          </div>
+
+          <!-- PAGINATION (shared) -->
+          {% if paginate.pages > 1 %}
+            <nav class="pagination numbers-only" role="navigation" aria-label="Pagination">
+              <ol class="pag-list" role="list">
+                {%- for part in paginate.parts -%}
+                  {%- if part.is_link -%}
+                    <li>
+                      <a href="{{ part.url }}"
+                         data-page="{{ part.title }}"
+                         aria-label="Go to page {{ part.title }}">
+                        {{ part.title }}
+                      </a>
+                    </li>
+                  {%- elsif part.title == paginate.current_page -%}
+                    <li class="is-current">
+                      <span aria-current="page">{{ part.title }}</span>
+                    </li>
+                  {%- else -%}
+                    <li class="ellipsis" aria-hidden="true"><span>&hellip;</span></li>
+                  {%- endif -%}
+                {%- endfor -%}
+              </ol>
+            </nav>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ 'ch-collection-grid.js' | asset_url }}" defer="defer"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.ChCollectionGrid) {
+        ChCollectionGrid.init(document.getElementById('ch-collection-{{ section_id }}'), {
+          sid: '{{ section_id }}',
+          gridSelector: '#CollectionProductGrid',
+          paginationSelector: 'nav.pagination',
+          chipsBarSelector: '#ChFilterChips-{{ section_id }}',
+          sorter: {
+            containerSelector: '[data-ch-sorter]',
+            selectSelector: '#ChSortSelect-{{ section_id }}'
+          }
+        });
+      }
+    });
+  </script>
+</section>

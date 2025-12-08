@@ -1,0 +1,1336 @@
+{%- liquid
+  assign media         = product.featured_media | default: product.featured_image
+  assign second_media  = product.media[1] | default: product.images[1]
+  assign available     = product.available
+  assign v             = product.selected_or_first_available_variant
+  assign only_default  = product.has_only_default_variant
+
+  assign price_min     = product.price_min
+  assign price_max     = product.price_max
+  assign price_varies  = product.price_varies
+  assign is_range      = false
+  if price_varies and price_max > price_min
+    assign is_range = true
+  endif
+
+  assign compare_val = 0
+  assign pct_save    = 0
+  assign save_amt    = 0
+  if v and v.compare_at_price and v.compare_at_price > v.price
+    assign compare_val = v.compare_at_price
+    assign save_amt    = compare_val | minus: v.price
+    assign pct_save    = save_amt | times: 100.0 | divided_by: compare_val | floor
+  endif
+
+  assign vendor_clean = product.vendor | strip
+  assign title_clean  = product.title  | strip
+  if vendor_clean != blank
+    assign vendor_space = vendor_clean | append: ' '
+    assign vendor_dash  = vendor_clean | append: ' - '
+    assign vendor_mdash = vendor_clean | append: ' — '
+    assign vendor_colon = vendor_clean | append: ': '
+    assign vendor_pipe  = vendor_clean | append: ' | '
+    assign title_clean = title_clean | replace_first: vendor_space, '' | replace_first: vendor_dash, '' | replace_first: vendor_mdash, '' | replace_first: vendor_colon, '' | replace_first: vendor_pipe, '' | strip
+  endif
+
+  assign current_price_text = price_min | money_without_trailing_zeros
+  assign compare_text_long  = ''
+  if compare_val > 0
+    assign compare_text_long = compare_val | money_without_trailing_zeros
+  endif
+
+  # ---- misc flags from tags / metafields ----
+  assign badge_forced = product.metafields.camerahaus.badge | default: ''
+  assign tag_str      = product.tags | join: ',' | downcase
+  assign has_bundle   = false
+  assign has_new      = false
+  assign has_best     = false
+  if tag_str contains 'bundle' or tag_str contains 'bundle:'
+    assign has_bundle = true
+  endif
+  if tag_str contains 'new'
+    assign has_new = true
+  endif
+  if tag_str contains 'bestseller' or tag_str contains 'featured'
+    assign has_best = true
+  endif
+
+  # ---- inventory info ----
+  assign inv_tracked = false
+  assign inv_qty     = 0
+  if v and v.inventory_management and v.inventory_management != ''
+    assign inv_tracked = true
+    assign inv_qty     = v.inventory_quantity | default: 0
+  endif
+
+  # ===========================================================
+  # BADGE DECISION: choose the most attractive pill to show
+  # - sale pill when discount is attractive enough
+  # - stock pill when low quantity is more persuasive
+  # ===========================================================
+  assign MIN_SALE_PCT = 8     
+  assign THRESH_3LEFT = 15 
+  assign THRESH_2LEFT = 25   
+  assign THRESH_1LEFT = 40    
+
+  assign badge_kind = ''       
+  assign badge_text = ''
+  assign stock_state = ''   
+
+  if available == false
+    assign badge_kind = 'stock'
+    assign badge_text = 'Out of stock'
+    assign stock_state = 'is-out'
+  else
+    if inv_tracked and inv_qty > 0 and inv_qty <= 3
+      assign stock_threshold = THRESH_3LEFT
+      if inv_qty == 2
+        assign stock_threshold = THRESH_2LEFT
+      endif
+      if inv_qty == 1
+        assign stock_threshold = THRESH_1LEFT
+      endif
+
+      if pct_save >= stock_threshold
+        assign badge_kind = 'sale'
+        assign badge_text = '−' | append: pct_save | append: '%'
+      else
+        assign badge_kind = 'stock'
+        assign badge_text = inv_qty | append: ' left'
+        assign stock_state = 'is-crit'
+      endif
+    else
+      if pct_save >= MIN_SALE_PCT
+        assign badge_kind = 'sale'
+        assign badge_text = '−' | append: pct_save | append: '%'
+      endif
+    endif
+  endif
+
+  # ---- (compat) legacy variables so existing markup won't break ----
+  assign show_stock_badge = false
+  assign stock_badge = ''
+  if badge_kind == 'stock'
+    assign show_stock_badge = true
+    assign stock_badge = badge_text
+  endif
+
+  assign product_url = product.url
+
+-%}
+
+
+
+
+<article class="ch-card ch-card--elev"
+  data-product-id="{{ product.id }}"
+  data-product-url="{{ product_url }}"
+  data-product-title="{{ title_clean | escape }}">
+
+  
+  <a
+    class="ch-card__overlay"
+    href="{{ product_url }}"
+    data-product-url="{{ product_url }}"
+    aria-label="View {{ product.title | escape }}">
+  </a>
+
+  <!-- MEDIA -->
+  <div class="ch-card__mediawrap">
+    <a
+      class="ch-card__media{% if second_media %} has-alt{% endif %}"
+      href="{{ product_url }}"
+      data-product-url="{{ product_url }}"
+      aria-label="{{ product.title | escape }}"
+      data-media-link>
+      
+      {% if media %}
+        <!-- Primary -->
+        <img class="ch-card__img"
+             src="{{ media | image_url: width: 900 }}"
+             srcset="{{ media | image_url: width: 540 }} 540w, {{ media | image_url: width: 720 }} 720w, {{ media | image_url: width: 900 }} 900w, {{ media | image_url: width: 1200 }} 1200w"
+             sizes="(min-width:1100px) 22vw, (min-width:768px) 30vw, 46vw"
+             alt="{{ product.title | escape }}"
+             loading="lazy" decoding="async"
+             width="{{ media.width }}" height="{{ media.height }}"
+             data-img-main
+             onload="this.closest('.ch-card__media')?.setAttribute('data-loaded','true')"
+             onerror="this.closest('.ch-card__media')?.setAttribute('data-loaded','true')">
+
+        {% if second_media %}
+          <!-- Secondary: shows on hover (desktop only) -->
+          <img class="ch-card__img ch-card__img--alt"
+               src="{{ second_media | image_url: width: 900 }}"
+               srcset="{{ second_media | image_url: width: 540 }} 540w, {{ second_media | image_url: width: 720 }} 720w, {{ second_media | image_url: width: 900 }} 900w, {{ second_media | image_url: width: 1200 }} 1200w"
+               sizes="(min-width:1100px) 22vw, (min-width:768px) 30vw, 46vw"
+               alt="{{ product.title | escape }} — alternate view"
+               loading="lazy" decoding="async" aria-hidden="true">
+        {% endif %}
+      {% else %}
+        {{ 'image' | placeholder_svg_tag: 'ch-card__ph' }}
+      {% endif %}
+    </a>
+
+
+<!-- BADGES (top-left) – unified -->
+<div class="ch-badgestack-left">
+  {% if badge_kind != '' %}
+    <span class="ch-badge ch-badge--pill {% if badge_kind == 'stock' %}is-stock{% else %}is-sale{% endif %} {{ stock_state }}">
+      {{ badge_text }}
+    </span>
+  {% endif %}
+</div>
+
+
+    <!-- ACTIONS (fixed top-right:quick view) -->
+    <div class="ch-actions-tr">
+      <button
+        type="button"
+        class="ch-iconbtn ch-iconbtn--qv"
+        data-standalone-qv
+        data-product-handle="{{ product.handle }}"
+        data-product-url="{{ product_url }}"
+        aria-label="Quick view {{ product.title | escape }}"
+        aria-describedby="tt-qv-{{ product.id }}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+             viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <span id="tt-qv-{{ product.id }}" class="ch-pop" role="tooltip">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span>Quick view</span>
+        </span>
+      </button>
+    </div>
+  </div> <!-- /mediawrap -->
+
+  <!-- BODY -->
+  <div class="ch-card__body">
+    <div class="ch-card__vendor" aria-label="Brand">{{ product.vendor }}</div>
+
+    <h3 class="ch-card__title" title="{{ title_clean | escape }}">
+      <a class="ch-card__titlelink"
+         href="{{ product_url }}"
+         data-title-link>
+        {{ title_clean }}
+      </a> 
+    </h3>
+
+
+    <!-- PRICE -->
+    <div class="ch-price" itemprop="offers" itemscope itemtype="https://schema.org/Offer" aria-label="Price" data-range="{% if is_range %}true{% else %}false{% endif %}">
+      <meta itemprop="priceCurrency" content="{{ cart.currency.iso_code }}">
+      <meta itemprop="availability" content="https://schema.org/{% if available %}InStock{% else %}OutOfStock{% endif %}">
+      <div class="ch-price__row">
+        <span class="ch-price__cur" itemprop="price">{{ current_price_text }}</span>
+       {% if compare_val > 0 %}
+  <span class="ch-price__compare" data-compare-cents="{{ compare_val }}">{{ compare_text_long }}</span>
+{% endif %}
+
+      </div>
+    </div>
+
+    <!-- Rating -->
+    <div class="ch-rating" data-rating>
+      <div class="ch-rating__oke" data-oke-star-rating data-oke-reviews-product-id="{{ product.id }}"></div>
+    </div>
+
+  <div class="ch-cta">
+    {% if available %}
+{% if only_default and v %}
+  <form method="post" action="/cart/add" class="ch-atc" aria-label="Add {{ product.title | escape }} to cart">
+    <input type="hidden" name="id" value="{{ v.id }}">
+    <button
+      type="submit"
+      class="sbtn ch-atcbtn"
+      data-variant-id="{{ v.id }}"
+      {% if inv_tracked %}data-max-qty="{{ inv_qty }}"{% endif %}
+    >
+      <span class="ch-atcbtn__txt">Add to cart</span>
+    </button>
+  </form>
+{% else %}
+  <button
+    type="button"
+    class="sbtn ch-atcbtn"
+    data-standalone-qv
+    data-product-handle="{{ product.handle }}"
+    data-product-url="{{ product_url }}">
+    <span class="ch-atcbtn__txt">Select options</span>
+  </button>
+{% endif %}
+
+    {% else %}
+<a class="sbtn ch-atcbtn ch-atcbtn--oos"
+   href="{{ product_url }}">
+  <span class="ch-atcbtn__txt">Out of stock</span>
+</a>    {% endif %}
+  </div>
+
+
+
+  </div>
+</article>
+{{ 'ch-card.css' | asset_url | stylesheet_tag }}
+
+
+<!-- ✅ CARD INIT -->
+<script>
+(function(){
+  if(window.CHCARD_LOCAL_INIT_V3) return; window.CHCARD_LOCAL_INIT_V3=true;
+  function init(scope){
+    (scope||document).querySelectorAll('.ch-card').forEach(card=>{
+      const img=card.querySelector('[data-img-main]'); const wrap=card.querySelector('.ch-card__media');
+      if(img && wrap){ if(img.complete) wrap.setAttribute('data-loaded','true'); }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', ()=>init());
+  document.addEventListener('shopify:section:load', e=>init(e.target));
+})();
+
+
+<!-- Quick View Data Logic -->
+
+
+(function(){
+  if(window.CH_BIND_CARD_V11) return; window.CH_BIND_CARD_V11=true;
+
+  function chApplyMaxStateFromCart(cart) {
+    if (!cart || !cart.items) return;
+
+    // Build map: variantId -> qty in cart
+    const qtyMap = {};
+    cart.items.forEach(item => {
+      const id = String(item.id);
+      qtyMap[id] = (qtyMap[id] || 0) + Number(item.quantity || 0);
+    });
+
+    document.querySelectorAll('.ch-atc .ch-atcbtn').forEach(btn => {
+      const form = btn.closest('.ch-atc');
+      if (!form) return;
+
+      const idInput = form.querySelector('input[name="id"]');
+      if (!idInput) return;
+
+      const variantId = String(idInput.value || '');
+      const maxQty = parseInt(btn.dataset.maxQty || '0', 10);
+
+      // Store original label once
+      const labelEl = btn.querySelector('.ch-atcbtn__txt');
+      if (labelEl && !labelEl.dataset.originalLabel) {
+        labelEl.dataset.originalLabel = labelEl.textContent.trim();
+      }
+
+      // If no max qty (inventory not tracked), always keep clickable
+      if (!maxQty || maxQty <= 0) {
+        btn.disabled = false;
+        btn.removeAttribute('aria-disabled');
+        btn.dataset.maxed = 'false';
+        if (labelEl && labelEl.dataset.originalLabel) {
+          labelEl.textContent = labelEl.dataset.originalLabel;
+        }
+        return;
+      }
+
+      const inCart = qtyMap[variantId] || 0;
+
+      if (inCart >= maxQty) {
+        // 🔒 Maxed: lock button
+        btn.disabled = true;
+        btn.setAttribute('aria-disabled', 'true');
+        btn.dataset.maxed = 'true';
+        if (labelEl) labelEl.textContent = 'Max in cart';
+      } else {
+        // Still allow adding
+        btn.disabled = false;
+        btn.removeAttribute('aria-disabled');
+        btn.dataset.maxed = 'false';
+        if (labelEl && labelEl.dataset.originalLabel) {
+          labelEl.textContent = labelEl.dataset.originalLabel;
+        }
+      }
+    });
+  }
+
+  async function chFetchCartAndApplyMax() {
+    try {
+      const res = await fetch('/cart.js', {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store',
+        credentials: 'same-origin'
+      });
+      if (!res.ok) return;
+      const cart = await res.json();
+      chApplyMaxStateFromCart(cart);
+    } catch (e) {
+      // fail silently; no hard break
+    }
+  }
+
+  /* ATC */
+document.addEventListener('click', async function(e){
+  const btn = e.target.closest('.ch-atcbtn');
+  if (!btn) return;
+
+  const form = btn.closest('.ch-atc');
+  if (!form) return; // skips "Select options" buttons
+
+  // 🔒 If this card ATC is maxed, do nothing
+  if (btn.dataset.maxed === 'true' || btn.disabled) {
+    return;
+  }
+
+  e.preventDefault();
+
+  btn.classList.add('is-adding');
+  btn.setAttribute('aria-busy','true');
+  if ('disabled' in btn) btn.disabled = true;
+
+  const fd      = new FormData(form);
+  const payload = {
+    id: fd.get('id'),
+    quantity: Number(fd.get('quantity') || 1)
+  };
+
+  try{
+    const r = await fetch('/cart/add.js',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify(payload),
+      credentials:'same-origin',
+      cache:'no-store'
+    });
+    if(!r.ok) throw 0;
+
+    try{
+      const cartRes = await fetch('/cart.js', {
+        headers:{'Accept':'application/json'},
+        cache:'no-store'
+      });
+      const cart = await cartRes.json();
+
+      const bubble = document.querySelector('[data-cart-count]');
+      if (bubble) bubble.textContent = String(cart.item_count || 0);
+      const live = document.querySelector('[data-cart-live]');
+      if (live) live.textContent = (cart.item_count || 0) + ' items in cart';
+
+      // 🔒 Re-apply max logic after this add
+      chApplyMaxStateFromCart(cart);
+    }catch(_){}
+
+
+    document.dispatchEvent(new Event('open-mini-cart'));
+
+    btn.classList.remove('is-adding');
+    btn.classList.add('is-added');
+    btn.removeAttribute('aria-busy');
+    if ('disabled' in btn) btn.disabled = false;
+    setTimeout(()=>{ btn.classList.remove('is-added'); }, 800);
+  }catch(_){
+    btn.classList.remove('is-adding');
+    btn.removeAttribute('aria-busy');
+    if ('disabled' in btn) btn.disabled = false;
+    location.href='/cart';
+  }
+}, false);
+
+
+  /* Hide fallback stars once Okendo paints */
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.ch-rating').forEach(function(r){
+      const oke=r.querySelector('.ch-rating__oke'); const fb=r.querySelector('.ch-rating__fallback'); if(!oke || !fb) return;
+      const check=()=>{ if(oke.innerHTML && oke.innerHTML.trim().length>0){ fb.style.display='none'; } };
+      new MutationObserver(check).observe(oke,{childList:true,subtree:true}); setTimeout(check,600);
+    });
+    chFetchCartAndApplyMax();
+  });
+
+  /* Mini gallery */
+  /* Mini gallery */
+    document.addEventListener('click', function(e){
+      const t = e.target.closest('.ch-mini__thumb'); if(!t) return;
+      const card = t.closest('.ch-card');
+      const main = card?.querySelector('[data-img-main]'); if(!main) return;
+
+      const src    = t.getAttribute('data-src');
+      const srcset = t.getAttribute('data-srcset');
+      if(srcset) main.setAttribute('srcset', srcset);
+      if(src)    main.setAttribute('src', src);
+
+      const group = t.closest('[data-mini]');
+      const all   = group?.querySelectorAll('.ch-mini__thumb') || [];
+      all.forEach(b=>{
+        const on = b === t;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+
+      // NEW: reflect active state on dots (mobile)
+      updateDots(card, Array.from(all).indexOf(t));
+    }, false);
+
+    document.addEventListener('mouseover', function(e){
+      const t = e.target.closest('.ch-mini__thumb'); if(!t) return;
+      if(window.matchMedia('(hover:hover)').matches){ t.click(); }
+    }, false);
+
+    // NEW: helper to update dots
+    function updateDots(card, idx){
+      const dotsWrap = card?.querySelector('[data-dots]'); if(!dotsWrap) return;
+      const dots = dotsWrap.querySelectorAll('.ch-dot');
+      dots.forEach((d,i)=> d.classList.toggle('is-active', i === idx));
+    }
+
+})();
+</script>
+<script>
+document.addEventListener('open-mini-cart', () => {
+  // Dawn / cart-drawer custom element
+  const drawer = document.querySelector('cart-drawer');
+  if (drawer && typeof drawer.open === 'function') { drawer.open(); return; }
+
+  // Generic drawer toggle (adapt selectors to your theme)
+  const mini = document.querySelector('[data-mini-cart], .mini-cart, #mini-cart');
+  if (mini) mini.classList.add('is-open');
+});
+</script>
+
+<!-- ✅ STANDALONE QV STYLES – updated -->
+<style id="standalone-qv-styles">
+  .stand-qv {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    background: rgba(0,0,0,.12);
+  }
+  .stand-qv__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(1px);
+  }
+  .stand-qv__panel {
+    position: relative;
+    background: #fff;
+    border-radius: 20px;
+    max-width: 1080px;
+    width: min(1080px, 96vw);
+    max-height: 92vh;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
+    z-index: 1;
+    transform-origin: center;
+    animation: qvIn .16s ease;
+  }
+  .stand-qv__panel.is-closing {
+    animation: qvOut .13s ease forwards;
+  }
+  @keyframes qvIn {
+    from { transform: translateY(8px) scale(.97); opacity:0; }
+    to { transform: translateY(0) scale(1); opacity:1; }
+  }
+  @keyframes qvOut {
+    from { transform: translateY(0) scale(1); opacity:1; }
+    to { transform: translateY(8px) scale(.97); opacity:0; }
+  }
+
+  .stand-qv__close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    background: rgba(248, 250, 252, 0.65);
+    border-radius: 999px;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    color: #0f172a;
+    transition: transform .12s ease;
+    z-index: 20;
+  }
+  .stand-qv__close:hover { transform: scale(1.04); }
+
+  .ch-qv-panel { flex-direction: row; }
+
+  .ch-qv-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+    gap: 1.8rem;
+    align-items: flex-start;
+    width: 100%;
+    padding: 1.6rem 1.6rem 1.2rem;
+  }
+  .ch-qv-media-col, .ch-qv-info-col { min-width: 0; }
+
+  .ch-qv-media { display: flex; flex-direction: column; gap: 1rem; }
+  .ch-qv-media-main {
+    position: relative;
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    min-height: 420px;
+  }
+  .ch-qv-media-main__item {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .22s ease;
+  }
+  .ch-qv-media-main__item.is-shown {
+    opacity: 1;
+    visibility: visible;
+    z-index: 2;
+  }
+  .ch-qv-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .ch-qv-media-nav {
+    position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px;
+    border-radius: 999px; border: 1px solid rgba(0,0,0,.05); background: rgba(255,255,255,.75);
+    display: grid; place-items: center; cursor: pointer; z-index: 5;
+  }
+  .ch-qv-media-nav--prev { left: 10px; }
+  .ch-qv-media-nav--next { right: 10px; }
+
+  .ch-qv-thumbs { display:flex; gap:10px; flex-wrap:wrap; }
+  .ch-qv-thumb {
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 6px;
+    padding: 3px;
+    cursor: pointer;
+  }
+  .ch-qv-thumb.is-active { border-color: #d12f24; }
+  .ch-qv-thumb img { width: 74px; height: auto; display: block; }
+
+  .ch-qv-info-col {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    max-height: calc(92vh - 3.6rem);
+    overflow-y: auto;
+    padding-right: .4rem;
+  }
+  /* thinner rail */
+  .ch-qv-info-col::-webkit-scrollbar{ width:5px; }
+  .ch-qv-info-col::-webkit-scrollbar-track{ background:transparent; }
+  .ch-qv-info-col::-webkit-scrollbar-thumb{ background:rgba(148,163,184,.4); border-radius:20px; }
+
+  .ch-qv-vendor { font-size: .8rem; color: #9CA3AF; text-transform: capitalize; }
+  .ch-qv-title { font-size: 1.65rem; font-weight: 600; margin: 0; color: #111; }
+
+  .ch-qv-price-block { display:flex; flex-direction:column; gap:.2rem; }
+  .ch-qv-price-line { display:flex; align-items:baseline; gap:.6rem; }
+  .ch-qv-price { color:#d12f24; font-weight:700; font-size:1.45rem; }
+  .ch-qv-price-compare { color:#9ca3af; text-decoration:line-through; }
+  .ch-qv-save { color:#b42318; font-size:.78rem; }
+
+  .ch-qv-topdesc { font-size: .85rem; color:#6b7280; line-height:1.4; max-width:38rem; }
+
+  .ch-qv-rating-row { display:flex; align-items:center; gap:.5rem; color:#6b7280; font-size:.72rem; }
+
+  /* smaller option bar */
+  .ch-optionbar {
+    position: relative;
+    margin-top: .2rem;
+    margin-bottom: .2rem;
+    z-index: 40;
+  }
+  .ch-optionbar__btn {
+    width: 100%;
+    background: #fff;
+    border: 1px solid rgba(17,17,17,.08);
+    border-radius: 12px;
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 10px 4px 12px;
+    cursor: pointer;
+    transition: box-shadow .12s ease, border .12s ease;
+  }
+  .ch-optionbar__btn:hover { border: 1px solid rgba(17,17,17,.15); box-shadow: 0 4px 16px rgba(17,17,17,.02); }
+  .ch-optionbar__label { font-size: .78rem; color: #4b5563; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ch-optionbar__ico { width: 22px; height: 22px; display: grid; place-items: center; color: #9ca3af; transition: transform .16s ease; position: relative; }
+  .ch-optionbar.is-open .ch-optionbar__ico { transform: rotate(180deg); }
+
+  .ch-optionbar__pop {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 6px);
+    min-width: 100%;
+    background: #fff;
+    border: 1px solid rgba(17,17,17,.04);
+    border-radius: 14px;
+    box-shadow: 0 16px 34px rgba(17,17,17,.12);
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity .12s ease, transform .12s ease;
+    max-height: 240px;
+  }
+  .ch-optionbar.is-open .ch-optionbar__pop { opacity: 1; pointer-events: auto; transform: translateY(0); }
+  .ch-optionbar__list { list-style:none; margin:0; padding:4px 0; max-height:240px; overflow-y:auto; }
+  .ch-optionbar__item {
+    padding: 7px 10px 7px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    transition: background .12s ease;
+    font-size:.75rem;
+  }
+  .ch-optionbar__item:hover { background:#f9fafb; }
+  .ch-optionbar__item.is-active {
+    background:#fff1f0; color:#d12f24; font-weight:500;
+  }
+  .ch-optionbar__item.is-active::before {
+    content:""; position:absolute; left:12px; top:7px; bottom:7px; width:3px; border-radius:16px; background:#d12f24;
+  }
+  .ch-vp-line { display:flex; flex-direction:column; gap:2px; }
+  .ch-vp-name { font-size:.73rem; }
+  .ch-vp-price { font-size:.68rem; color:#6b7280; }
+  .ch-optionbar__item.is-disabled { opacity:.5; background:#fafafa; cursor:not-allowed; }
+
+  /* CTA row in QV */
+.ch-qv-cta-row{
+  display:grid;
+  grid-template-columns:130px minmax(0,1fr) minmax(0,1fr); /* qty | ATC | View */
+  gap:10px;
+  align-items:center;
+  margin-top:.6rem;
+}
+  .ch-qty{
+    display:flex;
+    align-items:center;
+    border:1px solid #1f2937;
+    border-radius:9999px;
+    overflow:hidden;
+    height:38px;
+    background:#fff;
+  }
+  .ch-qty__btn{
+    width:36px;
+    height:38px;
+    border:0;
+    background:transparent;
+    display:grid;
+    place-items:center;
+    font-size:18px;
+    font-weight:600;
+    cursor:pointer;
+    line-height:1;
+  }
+  .ch-qty__input{
+    flex:1;
+    border:0;
+    text-align:center;
+    font-weight:600;
+    background:#fff;
+    font-size:.85rem;
+  }
+  .ch-atc-btn{
+    height:38px;
+    border-radius:9999px;
+    background:#d12f24;
+    color:#fff;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-transform:uppercase;
+    border:0;
+    transition:background .1s ease;
+    cursor:pointer;
+    position:relative;
+    font-size:.7rem;
+  }
+  .ch-atc-btn:hover{ background:#B3281F; }
+  .ch-atc-btn.is-loading .ch-atc-label{opacity:0;}
+  .ch-atc-btn.is-loading::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    margin:auto;
+    width:16px;
+    height:16px;
+    border-radius:999px;
+    border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;
+    animation: chspin .7s linear infinite; /* 🔁 use existing keyframe */
+  }
+  .ch-view-btn{
+    height:38px;
+    border-radius:9999px;
+    background:#f1f5f9;
+    color:#0f172a;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:0;
+    font-size:.7rem;
+    gap:4px;
+    cursor:pointer;
+    transition:background .1s ease;
+  }
+  .ch-view-btn:hover{ background:#e2e8f0; }
+  .ch-wishlist-btn{ width:38px;height:38px;border-radius:9999px;border:1px solid #ddd;display:grid;place-items:center;background:#fff; }
+
+  /* trust */
+  .ch-trust-card{
+    margin-top:.5rem;
+    background:#fff;
+    border:1px solid rgba(15,23,42,.03);
+    border-radius:18px;
+    box-shadow:0 6px 28px rgba(15,23,42,.02);
+    overflow:hidden;
+  }
+  .ch-trust-head{display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem .4rem .75rem;gap:12px;}
+  .ch-trust-title{margin:0;font-weight:600;font-size:.9rem;color:#0f172a;}
+  .ch-trust-toggle{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid rgba(148,163,184,.6);border-radius:999px;padding:3px 14px 3px 15px;font-size:.72rem;color:#0f172a;cursor:pointer;}
+  .ch-trust-toggle__ico{font-size:.6rem;}
+  .ch-trust-body{overflow:hidden;transition:max-height .18s ease;max-height:0;} /* hidden by default */
+  .ch-trust{display:flex;flex-direction:column;gap:.35rem;padding:0 .75rem .65rem .75rem;}
+  .ch-trust__item{display:flex;gap:.55rem;align-items:flex-start;}
+  .ch-trust__icon{width:24px;height:24px;border-radius:999px;background:rgba(209,47,36,.06);display:grid;place-items:center;color:#d12f24;flex:0 0 24px;}
+  .ch-trust__title{margin:0;font-weight:600;font-size:.77rem;color:#0f172a;}
+  .ch-trust__sub{margin:2px 0 0;font-size:.66rem;color:#94A3B8;}
+  .ch-trust__item--link .ch-trust__title{color:#d12f24;}
+
+  /* mobile */
+@media (max-width: 991px){
+  .ch-qv-cta-row{
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "qty qty"
+      "atc view";
+  }
+    .ch-qv-grid {
+      grid-template-columns: 1fr;
+      padding: 1.2rem 1rem 1rem;
+    }
+    .ch-qv-info-col { max-height: none; }
+    .ch-qv-media-main { min-height: 360px; }
+    .ch-qv-cta-row {
+      grid-template-columns: 1fr 1fr 36px;
+      grid-template-areas:
+        "qty qty wish"
+        "atc view view";
+    }
+  .ch-qty{ grid-area: qty; }
+  .ch-atc-btn{ grid-area: atc; width:100%; }
+  .ch-view-btn{ grid-area: view; }
+    .ch-wishlist-btn{ grid-area:wish; justify-self:end; }
+  }
+  /* force QV "View product" style */
+.stand-qv .ch-view-btn,
+.stand-qv__panel .ch-view-btn,
+.ch-qv-panel .ch-view-btn {
+  background: #fff !important;
+  border: 1px solid #0f172a !important;
+  color: #0f172a !important;
+  height: 38px;
+  min-width: 110px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: .78rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* hover → yellow */
+.stand-qv .ch-view-btn:hover,
+.stand-qv__panel .ch-view-btn:hover,
+.ch-qv-panel .ch-view-btn:hover {
+  background: #facc15 !important;   /* yellow-400 vibe */
+  border-color: #facc15 !important;
+  color: #0f172a !important;        /* keep text dark for contrast */
+}
+/* ====== MAX CARD WIDTH ====== */
+:root { --ch-card-max: 340px; }        /* tweak if you like */
+.ch-card { width: 100%; max-width: var(--ch-card-max); }
+
+/* ====== IMAGE HOVER: ONLY WHEN AN ALT EXISTS ====== */
+.ch-card__img { transition: opacity .18s ease; }
+.ch-card__img--alt { position:absolute; inset:0; opacity:0; pointer-events:none; }
+@media (hover:hover){
+  /* swap only when .has-alt is present */
+  .ch-card:hover .ch-card__media.has-alt .ch-card__img--alt,
+  .ch-card:focus-within .ch-card__media.has-alt .ch-card__img--alt { opacity:1; }
+  .ch-card:hover .ch-card__media.has-alt .ch-card__img[data-img-main],
+  .ch-card:focus-within .ch-card__media.has-alt .ch-card__img[data-img-main] { opacity:.02; }
+
+  /* guard: if NO alt, keep primary fully visible */
+  .ch-card:hover .ch-card__media:not(.has-alt) .ch-card__img[data-img-main],
+  .ch-card:focus-within .ch-card__media:not(.has-alt) .ch-card__img[data-img-main] { opacity:1 !important; }
+}
+@media (hover:none){ .ch-card__img--alt { display:none !important; } }
+
+/* ====== ROW-BY-ROW ALIGNMENT (VENDOR / TITLE / PRICE / RATING / CTA) ====== */
+.ch-card__body{
+  display:grid !important;
+  grid-auto-rows:min-content;
+  /* vendor | title (2 lines) | price | rating | spacer | CTA */
+  grid-template-rows:
+    min-content
+    min-content
+    min-content
+    min-content
+    1fr
+    min-content;
+  gap:8px;
+}
+
+/* Vendor: always exactly one line worth of height */
+.ch-card__vendor{
+  line-height:1.2;
+  min-height: calc(1em * 1.2);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+
+/* Title: clamp to 2 lines AND reserve exactly 2-line height */
+.ch-card__title{ --title-lh:1.28; margin:2px 0 0; }
+.ch-card__titlelink{
+  display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden;
+  line-height: var(--title-lh); font-size:14px;
+}
+/* reserve 2 lines of space so 1-line titles don’t collapse */
+.ch-card__title{ min-height: calc(2 * 1em * var(--title-lh)); }
+
+/* Rating: reserve a line even before the widget paints */
+.ch-rating{ min-height:18px; }
+.ch-rating__oke{ display:flex; align-items:center; }
+
+/* Make sure CTA isn’t pushed down inconsistently by legacy Flex styles */
+.ch-card__body .ch-cta{ margin-top:0 !important; }
+  .ch-iconbtn svg{
+    width: 16px !important;
+    height: 16px !important;
+    stroke: #111827 !important;
+  }
+
+  /* Keep badges clear of the heart */
+  .ch-badgestack-left{
+    top: 36px !important;
+    left: 8px !important;
+  }
+}
+/* ✅ mobile-only */
+@media (hover:none), (max-width:767px){
+  .ch-iconbtn--qv{ display:none !important; }   /* hide QV only on touch */
+  .ch-actions-tr{
+    left: 6px !important;
+    right: auto !important;
+    top: 6px !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .ch-badgestack-left{                          /* nudge badge below the heart on mobile */
+    top: 34px !important;
+    left: 6px !important;
+  }
+}
+/* ✅ desktop */
+@media (hover:hover){
+  .ch-badgestack-left{
+    top: 8px !important;
+    left: 8px !important;
+  }
+}
+
+/* === FINAL OVERRIDES: badge TL, QV TR, QV desktop-only === */
+
+/* Badge rail back to top-left */
+.ch-badgestack-left{
+  top: 8px !important;
+  left: 8px !important;
+  right: auto !important;
+}
+
+/* Actions stack to top-right */
+.ch-actions-tr{
+  top: 8px !important;
+  right: 8px !important;
+  left: auto !important;
+}
+
+/* Desktop: hide actions until hover/focus for a tidy look */
+@media (hover:hover){
+  .ch-actions-tr{
+    opacity: 0 !important;
+    transform: translateX(8px) !important;
+    transition: opacity .18s ease, transform .18s ease !important;
+  }
+  .ch-card:hover .ch-actions-tr,
+  .ch-card:focus-within .ch-actions-tr{
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* Mobile/touch: Quick View completely hidden */
+@media (hover:none), (max-width:767px){
+  .ch-iconbtn--qv{ display: none !important; }
+  /* keep stack stable if you later add other icons */
+  .ch-actions-tr{
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+/* === ATC LOADER SPINNER ON CARD BUTTON === */
+
+/* Make sure the button can host the pseudo-element */
+.sbtn.ch-atcbtn{
+  position: relative;
+}
+
+/* When adding: hide text (you already had this) */
+.ch-atcbtn.is-adding .ch-atcbtn__txt{
+  opacity: 0;
+}
+
+.sbtn.ch-atcbtn.is-adding::after{
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+
+  /* base track (matching current color logic) */
+  border: 2px solid rgba(224, 58, 47, 0.25);
+  border-top-color: #E03A2F;
+  border-right-color: #E03A2F;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+
+  /* the important part: keep it centered WHILE spinning */
+  animation: atcspin 0.7s linear infinite;
+  pointer-events: none;
+}
+
+/* spinner turns white when hovered (on red background) */
+.sbtn.ch-atcbtn.is-adding:hover::after,
+.sbtn.ch-atcbtn.is-adding:focus-visible::after{
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #FFFFFF;
+  border-right-color: #FFFFFF;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+}
+/* Remove icon inside the black "Quick view" tooltip only */
+.ch-pop svg {
+  display: none !important;
+}
+/* Mobile: stack price + old price but keep all cards the same height */
+@media (max-width: 767px) {
+  /* Price row: always exactly 2 lines tall on all cards */
+  .ch-card .ch-price .ch-price__row {
+    display: flex !important;
+    flex-direction: column !important;   /* current price on top, old price below */
+    align-items: flex-start !important;
+    gap: 0 !important;
+    flex-wrap: nowrap !important;
+    white-space: normal !important;
+    min-height: 36px !important;         /* 2 × 18px lines */
+  }
+
+  /* Normalize the line-height and kill margins so 2 lines fit in 36px */
+  .ch-card .ch-price__cur,
+  .ch-card .ch-price__compare {
+    line-height: 18px !important;
+    margin: 0 !important;
+    white-space: normal !important;
+  }
+
+  /* Old price always sits as a second line (no side-by-side) */
+  .ch-card .ch-price__compare {
+    display: block !important;
+    margin-top: 0 !important;
+  }
+}
+/* Mobile: same alignment, just a bit more breathing room */
+@media (max-width: 767px) {
+  .ch-card .ch-price .ch-price__row {
+    min-height: 42px !important;   /* was 36–40; this adds ~1/3 line of air */
+  }
+
+  /* small gap between price block and button */
+  .ch-card .ch-price {
+    margin-bottom: 4px !important;
+  }
+
+  .ch-card .ch-price__cur,
+  .ch-card .ch-price__compare {
+    line-height: 18px !important;
+    margin: 0 !important;
+  }
+
+  .ch-card .ch-price__compare {
+    display: block !important;
+  }
+}
+
+/* === FIXED CARD SIZE DESKTOP + MOBILE (add at the very end) === */
+
+/* reset the old height:100%; let us control min-height instead */
+.ch-card {
+  height: auto !important;
+}
+
+/* Desktop breakpoint */
+@media (min-width: 1024px) {
+  .ch-card {
+    min-height: 460px;           /* tweak to taste */
+  }
+
+  .ch-card__media {
+    aspect-ratio: auto !important;
+    height: 260px;               /* fixed media area */
+  }
+}
+
+/* Tablet + mobile */
+@media (max-width: 1023px) {
+  .ch-card {
+    min-height: 250px;           /* slightly shorter on small screens */
+  }
+
+  .ch-card__media {
+    aspect-ratio: auto !important;
+    height: 150px;               /* fixed media area */
+  }
+}
+/* 🔒 FINAL OVERRIDE: fixed card size desktop + mobile */
+/* put this AT THE VERY END of your CSS */
+
+/* Reset old behavior */
+.ch-card {
+  height: auto !important;
+  max-width: none !important;
+}
+
+/* Desktop: 2–3 cards per row in sliders/rows */
+@media (min-width: 1024px) {
+  .ch-card {
+    box-sizing: border-box;
+    width: 260px !important;
+    max-width: 260px !important;
+    min-height: 460px !important;
+    flex: 0 0 260px !important;   /* fixes flex “compression” */
+  }
+
+  .ch-card__media {
+    aspect-ratio: auto !important;
+    height: 260px !important;     /* fixed media window */
+  }
+}
+
+/* Mobile + tablet */
+@media (max-width: 1023px) {
+  .ch-card {
+    box-sizing: border-box;
+    width: 175px !important;      /* adjust if you want more/less peek */
+    max-width: 200px !important;
+    min-height: 380px !important;
+    flex: 0 0 220px !important;
+  }
+/* Mobile + tablet – collection + search */
+@media (max-width: 1023px) {
+  .template-collection .ch-card,
+  .template-search .ch-card {
+    box-sizing: border-box;
+    width: 163px !important;
+    max-width: 160px !important;
+    min-height: 380px !important;
+    flex: 0 0 160px !important; /* match flex-basis to width */
+  }
+}
+
+
+  .ch-card__media {
+    aspect-ratio: auto !important;
+    height: 150px !important;
+  }
+}
+/* Trim extra height + bottom padding if you want tighter cards */
+.ch-card{
+  min-height: 0 !important;      /* or a smaller value than you use now */
+}
+
+.ch-card__body{
+  padding-bottom: 8px !important;  /* default is 12px in your code */
+}
+/* 🔒 MAX IN CART STATE – faint grey button */
+.sbtn.ch-atcbtn[data-maxed="true"],
+.sbtn.ch-atcbtn[data-maxed="true"]:disabled {
+  background: #f9fafb !important;   /* light grey fill */
+  border-color: #d1d5db !important;  /* faint grey border (“grid”) */
+  color: #9ca3af !important;        /* muted grey text */
+  cursor: default !important;
+  pointer-events: none !important;  /* belt and suspenders */
+}
+
+/* prevent hover from turning it red */
+.sbtn.ch-atcbtn[data-maxed="true"]:hover,
+.sbtn.ch-atcbtn[data-maxed="true"]:focus-visible {
+  background: #f9fafb !important;
+  border-color: #d1d5db !important;
+  color: #9ca3af !important;
+  box-shadow: none !important;
+}
+
+</style>
+
+<!-- ✅ STANDALONE QV SCRIPT – FIXED -->
+<script>
+  (function() {
+    if (window.StandaloneShopifyQVPDP) return;
+    
+    // --- Helper to execute scripts from fetched HTML ---
+    function runScripts(container) {
+      const scripts = container.querySelectorAll('script');
+      scripts.forEach(oldScript => {
+        const newScript = document.createElement('script');
+        Array.from(oldScript.attributes).forEach(attr => newScript.setAttribute(attr.name, attr.value));
+        newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+        oldScript.parentNode.replaceChild(newScript, oldScript);
+      });
+    }
+
+    // --- Main Open Function ---
+    function openQV(handle) {
+      if (!handle) return;
+      
+      // Close any existing
+      const existing = document.querySelector('.ch-qv');
+      if (existing) existing.remove();
+      
+      return fetch('/products/' + encodeURIComponent(handle) + '?view=quick-view')
+        .then(r => {
+          if (!r.ok) throw new Error('Product not found');
+          return r.text();
+        })
+        .then(html => {
+          // 1. Parse HTML
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, 'text/html');
+          
+          // 2. Extract the critical parts: 
+          // The snippet renders:
+          //   [template id="qv-template-ID"] ... [/template]
+          //   [style] ... [/style]
+          //   [script] ... [/script]
+          
+          // We append styles and scripts to body, then we find the template and instantiate it.
+          const styles = doc.querySelectorAll('style');
+          const scripts = doc.querySelectorAll('script');
+          const templates = doc.querySelectorAll('script[type="text/template"][id^="qv-template-"]');
+          
+          if (!templates.length) {
+            console.error('QV Template not found in response');
+            return;
+          }
+          
+          // Append styles
+          styles.forEach(style => document.head.appendChild(style));
+          
+          // Execute scripts (bind logic)
+          scripts.forEach(s => {
+            if (s.type === 'text/template') return; // skip the template itself
+            const scriptEl = document.createElement('script');
+            scriptEl.textContent = s.textContent;
+            document.body.appendChild(scriptEl);
+          });
+          
+          // 3. Render the specific product modal
+          // The template ID is usually "qv-template-{product_id}"
+          // We can just take the first template found since we fetched a specific handle
+          const tmpl = templates[0];
+          const tmplId = tmpl.id; // "qv-template-12345"
+          const qvId = tmplId.replace('qv-template-', 'qv-'); // "qv-12345"
+          
+          // Convert template content to node
+          const div = document.createElement('div');
+          div.innerHTML = tmpl.innerHTML;
+          const root = div.firstElementChild; // The .ch-qv element
+          
+          if (!root) return;
+          document.body.appendChild(root);
+          
+          // 4. Init logic using the window.CHQV_SNIPPETS registry
+          if (window.CHQV_SNIPPETS && typeof window.CHQV_SNIPPETS[qvId] === 'function') {
+            window.CHQV_SNIPPETS[qvId](root);
+          }
+          
+          // 5. Bind close event (the snippet does some, but we ensure global close handling)
+          const closeBtns = root.querySelectorAll('[data-ch-qv-close]');
+          closeBtns.forEach(b => b.addEventListener('click', () => root.remove()));
+          
+          return root;
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Sorry, could not load quick view.');
+        });
+    }
+
+    // --- Global Click Listener ---
+    document.addEventListener('click', function(e) {
+      const btn = e.target.closest('[data-standalone-qv]');
+      if (!btn) return;
+
+      const isMobile = window.matchMedia('(hover:none)').matches || window.innerWidth < 768;
+      const card = btn.closest('.ch-card');
+      const handle = btn.getAttribute('data-product-handle');
+      
+      // Mobile/Touch: Redirect to PDP
+      if (isMobile) {
+         const url = card?.dataset.productUrl || (handle ? '/products/' + handle : '#');
+         window.location.href = url;
+         return;
+      }
+      
+      e.preventDefault();
+      
+      // Loading State
+      if (card) card.classList.add('is-loading');
+      btn.classList.add('is-loading');
+      btn.setAttribute('aria-busy', 'true');
+      
+      openQV(handle)
+        .finally(() => {
+           if (card) card.classList.remove('is-loading');
+           btn.classList.remove('is-loading');
+           btn.removeAttribute('aria-busy');
+        });
+    }, false);
+
+    // Expose API
+    window.StandaloneShopifyQVPDP = { open: openQV };
+  })();
+  </script>

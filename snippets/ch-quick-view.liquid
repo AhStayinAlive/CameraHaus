@@ -1,0 +1,838 @@
+<!-- QV SNIPPET CODE (PER PRODUCT) -->
+{%- assign current_variant = product.selected_or_first_available_variant -%}
+{%- assign compare_val = 0 -%}
+{%- assign save_amt = 0 -%}
+{%- assign pct_save = 0 -%}
+{%- if current_variant and current_variant.compare_at_price and current_variant.compare_at_price > current_variant.price -%}
+  {%- assign compare_val = current_variant.compare_at_price -%}
+  {%- assign save_amt = compare_val | minus: current_variant.price -%}
+  {%- assign pct_save = save_amt | times: 100.0 | divided_by: compare_val | floor -%}
+{%- endif -%}
+
+{% comment %} SHORT DESCRIPTION (metafield-first, fallback to existing parsing) {% endcomment %}
+{% assign final_short_desc = '' %}
+
+{% assign custom_desc = product.metafields.custom.description | default: '' %}
+{% if custom_desc != blank %}
+  {% assign final_short_desc = custom_desc | strip %}
+{% else %}
+  {% assign raw_desc = product.description | strip %}
+  {% assign chosen = '' %}
+
+  {% if raw_desc contains '</p>' %}
+    {% assign blocks = raw_desc | split: '</p>' %}
+    {% for block in blocks %}
+      {% assign b = block | strip %}
+      {% if b == '' %}{% continue %}{% endif %}
+
+      {% assign b_lower = b | downcase %}
+      {% assign b3 = b_lower | slice: 0, 3 %}
+      {% assign b4 = b_lower | slice: 0, 4 %}
+      {% assign b6 = b_lower | slice: 0, 6 %}
+      {% assign b7 = b_lower | slice: 0, 7 %}
+
+      {% assign is_bad_block = false %}
+      {% if b6 == '<table' or b3 == '<ul' or b3 == '<ol' or b4 == '<img' or b6 == '<video' or b7 == '<iframe' %}
+        {% assign is_bad_block = true %}
+      {% endif %}
+
+      {% assign plain = b | strip_html | strip | downcase | replace: ':', '' %}
+      {% assign is_heading_like = false %}
+      {% assign idx_h  = plain | index_of: 'highlights' %}
+      {% assign idx_kh = plain | index_of: 'key highlights' %}
+      {% assign idx_kf = plain | index_of: 'key features' %}
+      {% assign idx_sp = plain | index_of: 'specifications' %}
+      {% assign idx_sp1 = plain | index_of: 'specification' %}
+      {% if idx_h == 0 or idx_kh == 0 or idx_kf == 0 or idx_sp == 0 or idx_sp1 == 0 %}
+        {% assign is_heading_like = true %}
+      {% endif %}
+
+      {% if is_bad_block or is_heading_like %}
+        {% continue %}
+      {% endif %}
+
+      {% assign cleaned = b
+        | replace: '<p>', ''
+        | replace: '<p ', ''
+        | strip_html
+        | strip %}
+
+      {% if cleaned != '' %}
+        {% assign chosen = cleaned %}
+        {% break %}
+      {% endif %}
+
+      {% if forloop.index >= 5 %}
+        {% break %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  {% if chosen != '' %}
+    {% assign final_short_desc = chosen %}
+  {% endif %}
+{% endif %}
+
+<script type="text/template" id="qv-template-{{ product.id }}">
+  <div class="stand-qv" id="qv-{{ product.id }}" data-product-handle="{{ product.handle }}">
+    <div class="stand-qv__overlay" data-ch-qv-close></div>
+    <div class="stand-qv__panel ch-qv-panel" role="dialog" aria-modal="true" aria-label="Quick view: {{ product.title }}">
+      <button type="button" class="stand-qv__close" data-ch-qv-close aria-label="Close">×</button>
+      
+      <div class="ch-qv-grid">
+        <!-- LEFT / MEDIA -->
+        <div class="ch-qv-media-col">
+          <div class="ch-qv-media">
+            <div class="ch-qv-media-main" data-qv-media>
+              {% if product.images.size == 0 %}
+                <div class="ch-qv-media-main__item is-shown">
+                  <img class="ch-qv-img" src="//placehold.co/600x600?text=No+image" alt="{{ product.title }}">
+                </div>
+              {% else %}
+                {% for image in product.images %}
+                  <div class="ch-qv-media-main__item {% if current_variant.featured_image.id == image.id or forloop.first and current_variant.featured_image == nil %}is-shown{% endif %}" 
+                       data-media-id="{{ image.id }}" 
+                       data-img-src="{{ image.src | img_url: 'master' }}">
+                    <img class="ch-qv-img" src="{{ image.src | img_url: '720x720' }}" alt="{{ image.alt | escape }}" loading="lazy">
+                  </div>
+                {% endfor %}
+              {% endif %}
+
+              {% if product.images.size > 1 %}
+                <button type="button" class="ch-qv-media-nav ch-qv-media-nav--prev" data-qv-media-prev aria-label="Previous image">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <button type="button" class="ch-qv-media-nav ch-qv-media-nav--next" data-qv-media-next aria-label="Next image">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+                </button>
+              {% endif %}
+            </div>
+
+            {% if product.images.size > 1 %}
+              <div class="ch-qv-thumbs" data-qv-thumbs>
+                {% for image in product.images %}
+                  <button type="button" class="ch-qv-thumb {% if current_variant.featured_image.id == image.id or forloop.first and current_variant.featured_image == nil %}is-active{% endif %}" 
+                          data-qv-thumb-id="{{ image.id }}" 
+                          data-img-src="{{ image.src | img_url: 'master' }}">
+                    <img src="{{ image.src | img_url: '100x100', crop: 'center' }}" alt="Thumb {{ forloop.index }}">
+                  </button>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- RIGHT / INFO -->
+        <div class="ch-qv-info-col">
+          <p class="ch-qv-vendor">{{ product.vendor }}</p>
+          <h2 class="ch-qv-title">{{ product.title }}</h2>
+
+          <div class="ch-qv-price-block">
+            <div class="ch-qv-price-line">
+              <span class="ch-qv-price" data-qv-price>{{ current_variant.price | money }}</span>
+              <span class="ch-qv-price-compare" data-qv-compare style="{% unless compare_val > 0 %}display:none;{% endunless %}">
+                {% if compare_val > 0 %}{{ compare_val | money }}{% endif %}
+              </span>
+            </div>
+            <p class="ch-qv-save" data-qv-save style="{% unless compare_val > 0 %}display:none;{% endunless %}">
+              Save {{ save_amt | money_without_trailing_zeros }} ({{ pct_save }}%)
+            </p>
+          </div>
+
+          {% if final_short_desc != blank %}
+            <div class="ch-qv-topdesc">{{ final_short_desc }}</div>
+          {% endif %}
+
+          <div class="ch-qv-rating-row">
+            <span class="ch-qv-rating-text">No reviews yet — be the first</span>
+          </div>
+
+          <!-- Variants -->
+          {% if product.variants.size > 1 %}
+            <div class="ch-optionbar ch-optionbar--qv ch-optionbar--up">
+              <button type="button" class="ch-optionbar__btn" aria-haspopup="listbox" aria-expanded="false">
+                <span class="ch-optionbar__label" data-qv-opt-label>{{ current_variant.title }}</span>
+                <span class="ch-optionbar__ico">
+                   <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
+                </span>
+              </button>
+              <div class="ch-optionbar__pop ch-optionbar__pop--portal" role="listbox" tabindex="-1">
+                <ul class="ch-optionbar__list" data-qv-variant-list>
+                  {% for v in product.variants %}
+                    <li class="ch-optionbar__item {% if v.id == current_variant.id %}is-active{% endif %} {% unless v.available %}is-disabled{% endunless %}"
+                        data-value="{{ v.id }}"
+                        data-title="{{ v.title | escape }}"
+                        data-price="{{ v.price | money }}"
+                        data-compare="{{ v.compare_at_price | money }}"
+                        data-available="{{ v.available }}"
+                        data-img-src="{{ v.featured_image.src | img_url: 'master' }}"
+                        role="option"
+                        {% if v.id == current_variant.id %}aria-selected="true"{% endif %}>
+                      <span class="ch-vp-line">
+                        <span class="ch-vp-name">{{ v.title }}</span>
+                        <span class="ch-vp-price">{{ v.price | money }}</span>
+                      </span>
+                      {% unless v.available %}<span class="ch-vp-badge">Out</span>{% endunless %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            </div>
+            <input type="hidden" data-qv-variant-input value="{{ current_variant.id }}">
+          {% else %}
+            <input type="hidden" data-qv-variant-input value="{{ current_variant.id }}">
+          {% endif %}
+
+          <form method="post" action="/cart/add" class="ch-qv-form" data-ch-qv-form>
+             <input type="hidden" name="id" value="{{ current_variant.id }}" data-qv-variant-input-form>
+             
+             <div class="ch-qv-cta">
+                <div class="ch-qv-cta-top">
+                  <div class="ch-qty">
+                    <button type="button" class="ch-qty__btn" data-qv-qty="minus" aria-label="Decrease quantity">−</button>
+                    <input type="number" name="quantity" value="1" min="1" class="ch-qty__input" aria-label="Quantity" data-qv-qty-input>
+                    <button type="button" class="ch-qty__btn ch-qty__btn--plus" data-qv-qty="plus" aria-label="Increase quantity">+</button>
+                  </div>
+
+                  <button type="button" class="ch-view-btn" data-qv-view data-product-url="{{ product.url }}">
+                    View <span class="ch-view-arrow" aria-hidden="true">→</span>
+                  </button>
+                </div>
+             </div>
+
+             <div class="ch-qv-row ch-qv-row--bottom">
+                <button type="submit" class="ch-atc-btn ch-atc-btn--full {% unless current_variant.available %}is-disabled{% endunless %}" data-qv-atc {% unless current_variant.available %}disabled{% endunless %}>
+                  <span class="ch-atc-label">{% if current_variant.available %}Add to cart{% else %}Sold out{% endif %}</span>
+                  <span class="ch-atc-loader"></span>
+                </button>
+             </div>
+          </form>
+
+          <!-- TRUST -->
+          <div class="ch-trust-card" data-qv-trust data-open="false">
+              <div class="ch-trust-head">
+                <p class="ch-trust-title">Why buy from us</p>
+                <button type="button" class="ch-trust-toggle" aria-expanded="false">
+                  <span class="ch-trust-toggle__text">Show</span>
+                  <span class="ch-trust-toggle__ico" aria-hidden="true">▼</span>
+                </button>
+              </div>
+              <div class="ch-trust-body" style="display:none;">
+                <div class="ch-trust">
+                  <div class="ch-trust__item">
+                    <div class="ch-trust__icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+                    </div>
+                    <div class="ch-trust__body">
+                      <p class="ch-trust__title">Official {{ product.vendor | default: 'Camerahaus' }} Warranty</p>
+                      <p class="ch-trust__sub">Authentic &amp; PH-backed</p>
+                    </div>
+                  </div>
+                  <div class="ch-trust__item">
+                    <div class="ch-trust__icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15A2.25 2.25 0 0 0 2.25 6.75v10.5A2.25 2.25 0 0 0 4.5 19.5Z"/></svg>
+                    </div>
+                    <div class="ch-trust__body">
+                      <p class="ch-trust__title">Pay via GCash / Card / Bank</p>
+                      <p class="ch-trust__sub">Secure local payments</p>
+                    </div>
+                  </div>
+                  <div class="ch-trust__item">
+                    <div class="ch-trust__icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614"/></svg>
+                    </div>
+                    <div class="ch-trust__body">
+                      <p class="ch-trust__title">Store Pickup / Branch Pickup Available</p>
+                      <p class="ch-trust__sub">Convenient handover</p>
+                    </div>
+                  </div>
+                  <div class="ch-trust__item ch-trust__item--link">
+                    <div class="ch-trust__icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-6-5.686-6-10a6 6 0 1 1 12 0c0 4.314-6 10-6 10Z"/><circle cx="12" cy="11" r="2.5"/></svg>
+                    </div>
+                    <div class="ch-trust__body">
+                      <a class="ch-trust__title ch-trust__link" href="/pages/store-locator">Find a Camerahaus near you →</a>
+                      <p class="ch-trust__sub">See branches &amp; service</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</script>
+
+<style>
+/* STANDALONE QV STYLES (Restored from user snippet) */
+  .stand-qv {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    background: rgba(0,0,0,.12);
+    animation: qvFadeIn .15s ease forwards;
+  }
+  @keyframes qvFadeIn { from{opacity:0;} to{opacity:1;} }
+  
+  .stand-qv__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(1px);
+  }
+  .stand-qv__panel {
+    position: relative;
+    background: #fff;
+    border-radius: 20px;
+    max-width: 1080px;
+    width: min(1080px, 96vw);
+    max-height: 92vh;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
+    z-index: 1;
+    transform-origin: center;
+    animation: qvIn .16s ease;
+  }
+  .stand-qv__panel.is-closing {
+    animation: qvOut .13s ease forwards;
+  }
+  @keyframes qvIn {
+    from { transform: translateY(8px) scale(.97); opacity:0; }
+    to { transform: translateY(0) scale(1); opacity:1; }
+  }
+  @keyframes qvOut {
+    from { transform: translateY(0) scale(1); opacity:1; }
+    to { transform: translateY(8px) scale(.97); opacity:0; }
+  }
+
+  .stand-qv__close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    background: rgba(248, 250, 252, 0.65);
+    border-radius: 999px;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    color: #0f172a;
+    transition: transform .12s ease;
+    z-index: 20;
+  }
+  .stand-qv__close:hover { transform: scale(1.04); }
+
+  .ch-qv-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+    gap: 1.8rem;
+    align-items: flex-start;
+    width: 100%;
+    padding: 1.6rem 1.6rem 1.2rem;
+  }
+  .ch-qv-media-col, .ch-qv-info-col { min-width: 0; }
+
+  .ch-qv-media { display: flex; flex-direction: column; gap: 1rem; }
+  .ch-qv-media-main {
+    position: relative;
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    min-height: 420px;
+  }
+  /* Media Items: absolute stack */
+  .ch-qv-media-main__item {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .22s ease;
+  }
+  .ch-qv-media-main__item.is-shown {
+    opacity: 1;
+    visibility: visible;
+    z-index: 2;
+  }
+  .ch-qv-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .ch-qv-media-nav {
+    position: absolute; top: 50%; transform: translateY(-50%); width: 34px; height: 34px;
+    border-radius: 999px; border: 1px solid rgba(0,0,0,.05); background: rgba(255,255,255,.75);
+    display: grid; place-items: center; cursor: pointer; z-index: 5;
+  }
+  .ch-qv-media-nav--prev { left: 10px; }
+  .ch-qv-media-nav--next { right: 10px; }
+
+  .ch-qv-thumbs { display:flex; gap:10px; flex-wrap:wrap; }
+  .ch-qv-thumb {
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 6px;
+    padding: 3px;
+    cursor: pointer;
+    width: 80px; height: 80px; 
+  }
+  .ch-qv-thumb.is-active { border-color: #d12f24; }
+  .ch-qv-thumb img { width: 100%; height: 100%; object-fit:contain; display: block; }
+
+  .ch-qv-info-col {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    max-height: calc(92vh - 3.6rem);
+    overflow-y: auto;
+    padding-right: .4rem;
+  }
+  /* thinner rail */
+  .ch-qv-info-col::-webkit-scrollbar{ width:5px; }
+  .ch-qv-info-col::-webkit-scrollbar-track{ background:transparent; }
+  .ch-qv-info-col::-webkit-scrollbar-thumb{ background:rgba(148,163,184,.4); border-radius:20px; }
+
+  .ch-qv-vendor { font-size: .8rem; color: #9CA3AF; text-transform: capitalize; margin:0; }
+  .ch-qv-title { font-size: 1.65rem; font-weight: 600; margin: 0; color: #111; line-height:1.2; }
+
+  .ch-qv-price-block { display:flex; flex-direction:column; gap:.2rem; }
+  .ch-qv-price-line { display:flex; align-items:baseline; gap:.6rem; }
+  .ch-qv-price { color:#d12f24; font-weight:700; font-size:1.45rem; }
+  .ch-qv-price-compare { color:#9ca3af; text-decoration:line-through; font-size:0.9rem; }
+  .ch-qv-save { color:#b42318; font-size:.78rem; margin:0; }
+
+  .ch-qv-topdesc { font-size: .85rem; color:#6b7280; line-height:1.4; max-width:38rem; }
+
+  .ch-qv-rating-row { display:flex; align-items:center; gap:.5rem; color:#6b7280; font-size:.72rem; }
+
+  /* Option Bar */
+  .ch-optionbar {
+    position: relative;
+    margin-top: .2rem;
+    margin-bottom: .2rem;
+    z-index: 40;
+  }
+  .ch-optionbar__btn {
+    width: 100%;
+    background: #fff;
+    border: 1px solid rgba(17,17,17,.08);
+    border-radius: 12px;
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 10px 4px 12px;
+    cursor: pointer;
+    transition: box-shadow .12s ease, border .12s ease;
+  }
+  .ch-optionbar__btn:hover { border: 1px solid rgba(17,17,17,.15); box-shadow: 0 4px 16px rgba(17,17,17,.02); }
+  .ch-optionbar__label { font-size: .78rem; color: #4b5563; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ch-optionbar__ico { width: 22px; height: 22px; display: grid; place-items: center; color: #9ca3af; transition: transform .16s ease; position: relative; }
+  .ch-optionbar.is-open .ch-optionbar__ico { transform: rotate(180deg); }
+
+  /* Fixed portal for dropdown */
+  .ch-optionbar__pop--portal {
+    position: fixed;
+    background: #fff;
+    border: 1px solid rgba(17,17,17,.04);
+    border-radius: 14px;
+    box-shadow: 0 16px 34px rgba(17,17,17,.12);
+    overflow: hidden;
+    display:none;
+    max-height: 240px;
+    z-index: 10050;
+    min-width: 280px;
+  }
+  .ch-optionbar__list { list-style:none; margin:0; padding:4px 0; max-height:240px; overflow-y:auto; }
+  .ch-optionbar__item {
+    padding: 7px 10px 7px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    transition: background .12s ease;
+    font-size:.75rem;
+    position: relative;
+    color: #111;
+  }
+  .ch-optionbar__item:hover { background:#f9fafb; }
+  .ch-optionbar__item.is-active {
+    background:#fff1f0; color:#d12f24; font-weight:500;
+  }
+  .ch-optionbar__item.is-active::before {
+    content:""; position:absolute; left:12px; top:7px; bottom:7px; width:3px; border-radius:16px; background:#d12f24;
+  }
+  .ch-vp-line { display:flex; flex-direction:column; gap:2px; }
+  .ch-vp-name { font-size:.73rem; }
+  .ch-vp-price { font-size:.68rem; color:#6b7280; }
+  .ch-optionbar__item.is-disabled { opacity:.5; background:#fafafa; cursor:not-allowed; }
+
+  /* CTA row in QV */
+  .ch-qv-cta-row { display:flex; gap:10px; align-items:center; }
+  .ch-qv-cta {
+    display:grid;
+    gap:10px;
+    margin-top:.6rem;
+  }
+  .ch-qv-cta-top {
+      display:grid;
+      grid-template-columns: 130px minmax(0,1fr);
+      gap:10px;
+      align-items:center;
+  }
+  
+  .ch-qty {
+    display:flex;
+    align-items:center;
+    border:1px solid #1f2937;
+    border-radius:9999px;
+    overflow:hidden;
+    height:38px;
+    background:#fff;
+  }
+  .ch-qty__btn {
+    width:36px;
+    height:38px;
+    border:0;
+    background:transparent;
+    display:grid;
+    place-items:center;
+    font-size:18px;
+    font-weight:600;
+    cursor:pointer;
+    line-height:1;
+  }
+  .ch-qty__input {
+    flex:1;
+    border:0;
+    text-align:center;
+    font-weight:600;
+    background:#fff;
+    font-size:.85rem;
+    min-width:0;
+  }
+
+  .ch-atc-btn {
+    height:38px;
+    border-radius:9999px;
+    background:#d12f24;
+    color:#fff;
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-transform:uppercase;
+    border:0;
+    transition:background .1s ease;
+    cursor:pointer;
+    position:relative;
+    font-size:.7rem;
+  }
+  .ch-atc-btn:hover { background:#B3281F; }
+  .ch-atc-btn.is-disabled { background:#e5e7eb; color:#9ca3af; cursor:not-allowed; }
+  .ch-atc-btn.is-loading .ch-atc-label {opacity:0;}
+  .ch-atc-btn.is-loading::after {
+    content:"";
+    position:absolute;
+    inset:0;
+    margin:auto;
+    width:16px;
+    height:16px;
+    border-radius:999px;
+    border:2px solid rgba(255,255,255,.4);
+    border-top-color:#fff;
+    animation: chspin .7s linear infinite;
+  }
+  
+  .ch-view-btn {
+    background: #fff;
+    border: 1px solid #0f172a;
+    color: #0f172a;
+    height: 38px;
+    min-width: 110px;
+    border-radius: 8px;
+    padding: 0 14px;
+    font-size: .78rem;
+    font-weight: 600;
+    line-height: 1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:4px;
+    cursor:pointer;
+  }
+  .ch-view-btn:hover {
+    background: #facc15;
+    border-color: #facc15;
+  }
+
+  .ch-qv-row--bottom { margin-top:10px; }
+  .ch-atc-btn--full { width:100%; }
+
+  /* Trust Card */
+  .ch-trust-card {
+    margin-top:.5rem;
+    background:#fff;
+    border:1px solid rgba(15,23,42,.03);
+    border-radius:18px;
+    box-shadow:0 6px 28px rgba(15,23,42,.02);
+    overflow:hidden;
+  }
+  .ch-trust-head {display:flex;align-items:center;justify-content:space-between;padding:.5rem .75rem .4rem .75rem;gap:12px;}
+  .ch-trust-title {margin:0;font-weight:600;font-size:.9rem;color:#0f172a;}
+  .ch-trust-toggle {display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid rgba(148,163,184,.6);border-radius:999px;padding:3px 14px 3px 15px;font-size:.72rem;color:#0f172a;cursor:pointer;}
+  .ch-trust-toggle__ico {font-size:.6rem;}
+  .ch-trust-body {overflow:hidden;transition:max-height .18s ease;max-height:500px;} 
+  .ch-trust {display:flex;flex-direction:column;gap:.35rem;padding:0 .75rem .65rem .75rem;}
+  .ch-trust__item {display:flex;gap:.55rem;align-items:flex-start;}
+  .ch-trust__icon {width:24px;height:24px;border-radius:999px;background:rgba(209,47,36,.06);display:grid;place-items:center;color:#d12f24;flex:0 0 24px;}
+  .ch-trust__title {margin:0;font-weight:600;font-size:.77rem;color:#0f172a;}
+  .ch-trust__sub {margin:2px 0 0;font-size:.66rem;color:#94A3B8;}
+  .ch-trust__item--link .ch-trust__title {color:#d12f24;}
+
+  @keyframes chspin { to { transform:rotate(360deg); } }
+
+  /* Mobile */
+  @media (max-width: 991px){
+      .ch-qv-cta-top {
+          grid-template-columns: 1fr 1fr;
+      }
+      .ch-qv-grid {
+        grid-template-columns: 1fr;
+        padding: 1.2rem 1rem 1rem;
+      }
+      .ch-qv-info-col { max-height: none; }
+      .ch-qv-media-main { min-height: 360px; }
+  }
+</style>
+
+<script>
+(function(){
+  window.CHQV_SNIPPETS = window.CHQV_SNIPPETS || {};
+  window.CHQV_SNIPPETS["qv-{{ product.id }}"] = function(root){
+    const productHandle = root.dataset.productHandle;
+    
+    // Media Logic
+    const mediaBox = root.querySelector('[data-qv-media]');
+    const slides   = mediaBox ? Array.from(mediaBox.querySelectorAll('.ch-qv-media-main__item')) : [];
+    const thumbs   = Array.from(root.querySelectorAll('.ch-qv-thumb'));
+    
+    // Find visibly active index
+    let currentIdx = slides.findIndex(s => s.classList.contains('is-shown'));
+    if (currentIdx < 0) currentIdx = 0;
+
+    function showSlide(idx){
+      if (!slides.length) return;
+      currentIdx = (idx + slides.length) % slides.length;
+      
+      const active = slides[currentIdx];
+      slides.forEach(s => s.classList.remove('is-shown'));
+      active.classList.add('is-shown');
+
+      const mid = active.getAttribute('data-media-id');
+      thumbs.forEach(th => {
+        th.classList.toggle('is-active', th.dataset.qvThumbId === mid);
+      });
+    }
+
+    root.querySelector('[data-qv-media-prev]')?.addEventListener('click', () => showSlide(currentIdx - 1));
+    root.querySelector('[data-qv-media-next]')?.addEventListener('click', () => showSlide(currentIdx + 1));
+    thumbs.forEach((th, idx) => {
+      th.addEventListener('click', () => {
+         const mid = th.dataset.qvThumbId;
+         const found = slides.findIndex(s => s.dataset.mediaId === mid);
+         if (found >= 0) showSlide(found);
+      });
+    });
+
+    // Variant Portal Logic (Using fixed position portal)
+    const optionbar = root.querySelector('.ch-optionbar--qv');
+    const portal = root.querySelector('.ch-optionbar__pop--portal');
+    let portalOpen = false;
+
+    if (optionbar && portal) {
+       document.body.appendChild(portal); // Move portal to body to avoid clipping
+       const btn = optionbar.querySelector('.ch-optionbar__btn');
+       
+       const toggle = (e) => {
+         e.stopPropagation();
+         portalOpen = !portalOpen;
+         if (portalOpen) {
+           const r = btn.getBoundingClientRect();
+           portal.style.position = 'fixed';
+           portal.style.left = r.left + 'px';
+           portal.style.top = (r.bottom + 6) + 'px';
+           portal.style.width = r.width + 'px';
+           portal.style.display = 'block';
+           optionbar.classList.add('is-open');
+           btn.setAttribute('aria-expanded', 'true');
+         } else {
+           portal.style.display = 'none';
+           optionbar.classList.remove('is-open');
+           btn.setAttribute('aria-expanded', 'false');
+         }
+       };
+
+       btn.addEventListener('click', toggle);
+
+       // Close on outside click
+       document.addEventListener('click', (e) => {
+         if (portalOpen && !portal.contains(e.target) && !optionbar.contains(e.target)) {
+            portalOpen = false;
+            portal.style.display = 'none';
+            optionbar.classList.remove('is-open');
+            btn.setAttribute('aria-expanded', 'false');
+         }
+       });
+
+       // Select Variant
+       portal.addEventListener('click', (e) => {
+          const item = e.target.closest('.ch-optionbar__item');
+          if (!item || item.classList.contains('is-disabled')) return;
+          e.stopPropagation();
+
+          const vid = item.dataset.value;
+          const name = item.querySelector('.ch-vp-name').textContent;
+          const price = item.dataset.price;
+          const compare = item.dataset.compare;
+          const avail = item.dataset.available === 'true';
+          const imgSrc = item.dataset.imgSrc;
+
+          // Update UI
+          portal.querySelectorAll('.ch-optionbar__item').forEach(i => i.classList.remove('is-active'));
+          item.classList.add('is-active');
+          optionbar.querySelector('.ch-optionbar__label').textContent = name;
+          
+          root.querySelector('.ch-qv-price').textContent = price;
+          const cmpEl = root.querySelector('.ch-qv-compare');
+          const saveEl = root.querySelector('.ch-qv-save');
+          
+          if (compare && compare !== '0' && compare !== '₱0.00' && compare !== '$0.00') {
+             if(cmpEl) { cmpEl.textContent = compare; cmpEl.style.display = ''; }
+             if(saveEl) saveEl.style.display = '';
+          } else {
+             if(cmpEl) cmpEl.style.display = 'none';
+             if(saveEl) saveEl.style.display = 'none';
+          }
+
+          // Update inputs
+          const input1 = root.querySelector('[data-qv-variant-input]');
+          const input2 = root.querySelector('[data-qv-variant-input-form]');
+          if (input1) input1.value = vid;
+          if (input2) input2.value = vid;
+          
+          // ATC Button
+          const atcBtn = root.querySelector('[data-qv-atc]');
+          if (atcBtn) {
+            if (avail) {
+               atcBtn.classList.remove('is-disabled');
+               atcBtn.disabled = false;
+               atcBtn.querySelector('.ch-atc-label').textContent = 'Add to cart';
+            } else {
+               atcBtn.classList.add('is-disabled');
+               atcBtn.disabled = true;
+               atcBtn.querySelector('.ch-atc-label').textContent = 'Sold out';
+            }
+          }
+          
+          // Image
+          if (imgSrc) {
+             const clean = imgSrc.split('?')[0];
+             const found = slides.findIndex(s => s.dataset.imgSrc && s.dataset.imgSrc.includes(clean));
+             if (found >= 0) showSlide(found);
+          }
+
+          // Close
+          portalOpen = false;
+          portal.style.display = 'none';
+          optionbar.classList.remove('is-open');
+          btn.setAttribute('aria-expanded', 'false');
+       });
+    }
+
+    // Qty
+    const qInput = root.querySelector('[data-qv-qty-input]');
+    root.querySelectorAll('[data-qv-qty]').forEach(b => {
+      b.addEventListener('click', (e) => {
+         e.stopPropagation();
+         let v = parseInt(qInput.value) || 1;
+         if (b.dataset.qvQty === 'minus') v = Math.max(1, v - 1);
+         else v++;
+         qInput.value = v;
+      });
+    });
+
+    // View Product (Link)
+    root.querySelector('[data-qv-view]')?.addEventListener('click', (e) => {
+       const url = e.currentTarget.dataset.productUrl;
+       if(url) window.location.href = url;
+    });
+
+    // ATC AJAX
+    const form = root.querySelector('[data-ch-qv-form]');
+    if (form) {
+       form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          const btn = form.querySelector('[data-qv-atc]');
+          if(btn.disabled) return;
+          
+          btn.classList.add('is-loading'); 
+          
+          const formData = new FormData(form);
+
+          fetch('/cart/add.js', {
+             method: 'POST',
+             body: formData
+          })
+          .then(r => r.json())
+          .then(d => {
+             btn.classList.remove('is-loading');
+             document.dispatchEvent(new Event('open-mini-cart')); // Trigger theme cart drawer
+             root.querySelector('[data-ch-qv-close]')?.click(); // Auto Close
+          })
+          .catch(err => {
+             console.error(err);
+             btn.classList.remove('is-loading');
+             alert('Could not add to cart.');
+          });
+       });
+    }
+
+    // Trust Toggle
+    const trustBtn = root.querySelector('.ch-trust-toggle');
+    const trustCard = root.querySelector('[data-qv-trust]');
+    if (trustBtn && trustCard) {
+       const body = trustCard.querySelector('.ch-trust-body');
+       
+       trustBtn.addEventListener('click', () => {
+          const open = trustBtn.getAttribute('aria-expanded') === 'true';
+          const newOpen = !open;
+          
+          trustBtn.setAttribute('aria-expanded', newOpen);
+          trustBtn.querySelector('.ch-trust-toggle__text').textContent = newOpen ? 'Hide' : 'Show';
+          trustBtn.querySelector('.ch-trust-toggle__ico').textContent = newOpen ? '▲' : '▼';
+          
+          if(newOpen) {
+            body.style.display = 'block';
+            body.style.maxHeight = body.scrollHeight + 'px';
+          } else {
+            body.style.maxHeight = '0px';
+            setTimeout(() => { if(!newOpen) body.style.display = 'none'; }, 180);
+          }
+       });
+    }
+  };
+})();
+</script>

@@ -6,6 +6,10 @@
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
                    "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
     }
+    /* Footer logo on top of Follow us */
+    .footer-logo { margin: 0 0 12px; }
+    .footer-logo__img { max-width: 180px; height: auto; display: inline-block; }
+    @media (min-width: 750px) { .footer-logo__img { max-width: 220px; } }
   </style>
 
   <div class="page-width">
@@ -13,8 +17,20 @@
       {% for block in section.blocks %}
         <div class="flex__item" {{ block.shopify_attributes }}>
           {% case block.type %}
+
             {% when 'social' %}
               <div class="site-footer__section">
+                <!-- Logo on top -->
+                <div class="footer-logo text-{{ block.settings.align }}">
+                  <a href="{{ routes.root_url }}" aria-label="{{ shop.name }}">
+                    <img
+                      src="{{ 'ch_logo.png' | file_url }}"
+                      alt="{{ shop.name }} logo"
+                      class="footer-logo__img"
+                      loading="lazy">
+                  </a>
+                </div>
+
                 {% if block.settings.title != blank %}
                   <h4 class="h1 site-footer__section-title text-{{ block.settings.align }}">{{ block.settings.title | escape }}</h4>
                 {% endif %}
@@ -127,8 +143,25 @@
                 .site-footer .btn.btn--narrow:focus {
                   opacity: 0.9;
                 }
+                /* spacing for the social/Follow us column */
+.flex-footer { gap: clamp(20px, 4vw, 56px); } /* adds column gap for all items */
+@media (min-width: 990px) {
+  .site-footer__section--social { margin-right: clamp(24px, 6vw, 96px); }
+}
+@media (max-width: 989px) {
+  .site-footer__section--social { margin-bottom: 16px; }
+}
+
+/* existing logo styles */
+.footer-logo { margin: 0 0 12px; }
+.footer-logo__img { max-width: 180px; height: auto; display: inline-block; }
+@media (min-width: 750px) { .footer-logo__img { max-width: 220px; } }
+@media (min-width: 990px){
+  .site-footer__section--social { margin-left: -16px; } /* tweak: -16, -24, -40, etc. */
+}
+
               </style>
-              <div class="site-footer__section">
+             <div class="site-footer__section site-footer__section--social">
                 <h4 class="site-footer__section-title h1">
                   {% if block.settings.title != blank %}
                     {{ block.settings.title | escape }}
@@ -165,6 +198,7 @@
       {% endfor %}
     </div>
   </div>
+
   <div class="site-footer__copyright">
     <div class="page-width">
       <div class="grid medium-up--grid--table">
@@ -229,7 +263,7 @@
         "ja": "支払いアイコンを表示する",
         "ko": "결제 아이콘 표시",
         "nb": "Vis betalingsikoner",
-        "nl": "Betalingspictogrammen weergeven",
+        "nl": "Betalingspictogrammen weergeben",
         "pt-BR": "Exibir ícones de pagamento",
         "pt-PT": "Mostrar ícones de pagamento",
         "sv": "Visa betalningsikoner",
@@ -493,7 +527,7 @@
             "ja": "テキスト",
             "ko": "텍스트",
             "nb": "Tekst",
-            "nl": "Tekst",
+            "nl": "Text",
             "pt-BR": "Texto",
             "pt-PT": "Texto",
             "sv": "Text",
@@ -515,8 +549,8 @@
             "nb": "<p>Del butikkdetaljer, kampanjer eller merkevareinnhold med kundene dine</p>",
             "nl": "<p>Deel winkeldetails, promoties of merkcontent met je klanten</p>",
             "pt-BR": "<p>Compartilhe informações da loja, promoções ou conteúdo da marca com seus clientes</p>",
-            "pt-PT": "<p>Partilhe detalhes da loja, promoções ou conteúdo\nde marca com os seus clientes</p>",
-            "sv": "<p>Dela butikens detaljer, kampanjer eller varumärkesinnehåll med dina kunder.</p>",
+            "pt-PT": "<p>Partilhe detaljer da loja, promoções ou conteúdo\nde marca com os seus clientes</p>",
+            "sv": "<p>Kampanjer, nya produkter och försäljning. Direkt till din inkorg.</p>",
             "th": "<p>แชร์รายละเอียดร้านค้า โปรโมชัน หรือเนื้อหาแบรนด์กับลูกค้าของคุณ</p>",
             "zh-CN": "<p>与您的客户分享商店详细信息、促销信息或品牌内容</p>",
             "zh-TW": "<p>與顧客分享商店的詳細資訊、宣傳活動或品牌內容。</p>"
@@ -676,7 +710,7 @@
             "it": "<p>Promozioni, nuovi prodotti e offerte. Direttamente nella tua casella di posta.</p>",
             "ja": "<p>新商品やセール情報などのお得な情報をお届けします。</p>",
             "ko": "<p>프로모션, 신제품, 판매. 받은 편지함으로 바로 이동.</p>",
-            "nb": "<p>Kampanjer, nye produkter og salg. Direkte i innboksen din.</p>",
+            "nb": "<p>Kampanjer, nye produkter og salg. Direkt i innboksen din.</p>",
             "nl": "<p>Promoties, nieuwe producten en uitverkoop rechtstreeks in je inbox.</p>",
             "pt-BR": "<p>Promoções, novos produtos e vendas. Diretamente para sua caixa de entrada.</p>",
             "pt-PT": "<p>Promoções, novos produtos e ofertas. Diretamente na sua caixa de entrada.</p>",

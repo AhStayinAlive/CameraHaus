@@ -1,0 +1,31 @@
+{% layout none %}
+{
+  "brands": [
+    {%- for filter in collection.filters -%}
+      {%- if filter.type == 'list' and filter.label == 'Brand' -%}
+        {%- for v in filter.values -%}
+          {
+            "label": {{ v.label | json }},
+            "param_name": {{ filter.param_name | json }},
+            "value": {{ v.value | json }},
+            "url": {{ v.url_to_add | json }}
+          }{% unless forloop.last %},{% endunless %}
+        {%- endfor -%}
+      {%- endif -%}
+    {%- endfor -%}
+  ],
+  "categories": [
+    {%- for filter in collection.filters -%}
+      {%- if filter.type == 'list' and filter.label == 'Category' -%}
+        {%- for v in filter.values -%}
+          {
+            "label": {{ v.label | json }},
+            "param_name": {{ filter.param_name | json }},
+            "value": {{ v.value | json }},
+            "url": {{ v.url_to_add | json }}
+          }{% unless forloop.last %},{% endunless %}
+        {%- endfor -%}
+      {%- endif -%}
+    {%- endfor -%}
+  ]
+}

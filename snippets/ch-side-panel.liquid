@@ -16,25 +16,6 @@ Notes
 - The cart wiring works out of the box for standard add-to-cart forms. If your theme uses custom endpoints, hook them where noted.
 {% endcomment %}
 
-<!-- ===== GENERIC SIDE PANEL WRAPPER (same Liquid API) ===== -->
-<div class="ch-panel {{ theme | default: 'light' }}{% if is_open %} is-open{% endif %}"
-     id="ch-panel-{{ id }}"
-     aria-hidden="{% if is_open %}false{% else %}true{% endif %}"
-     data-ch-panel="{{ id }}">
-  <div class="ch-panel__ov" data-ch-panel-close></div>
-  <aside class="ch-panel__pn" role="dialog" aria-modal="true" aria-label="{{ aria_label | default: title | default: id }}">
-    <div class="ch-panel__hd">
-      <div class="ch-panel__title">{{ title }}</div>
-      <button type="button" class="btn btn-icon" aria-label="Close" data-ch-panel-close>
-        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3L16.9 4.3z"/></svg>
-      </button>
-    </div>
-    <div class="ch-panel__body">
-      {{ body }}
-    </div>
-  </aside>
-</div>
-
 <style>
 /* ===== Camerahaus Sleek Panel Styles (scoped per instance via ID) ===== */
 #ch-panel-{{ id }}{
@@ -200,10 +181,26 @@ Notes
 
 </style>
 
-{% comment %}
-======== MINI-CART WIRING (DATA + RENDER) ========
-- Safe to include once per page. If you use multiple panels, this script detects the cart by data-ch-panel="cart".
-{% endcomment %}
+<!-- ===== GENERIC SIDE PANEL WRAPPER (same Liquid API) ===== -->
+<div class="ch-panel {{ theme | default: 'light' }}{% if is_open %} is-open{% endif %}"
+     id="ch-panel-{{ id }}"
+     aria-hidden="{% if is_open %}false{% else %}true{% endif %}"
+     data-ch-panel="{{ id }}">
+  <div class="ch-panel__ov" data-ch-panel-close></div>
+  <aside class="ch-panel__pn" role="dialog" aria-modal="true" aria-label="{{ aria_label | default: title | default: id }}">
+    <div class="ch-panel__hd">
+      <div class="ch-panel__title">{{ title }}</div>
+      <button type="button" class="btn btn-icon" aria-label="Close" data-ch-panel-close>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3L16.9 4.3z"/></svg>
+      </button>
+    </div>
+
+    <div class="ch-panel__body">
+      {{ body }}
+    </div>
+  </aside>
+</div>
+
 <script>
 (() => {
   const rootDoc = document;

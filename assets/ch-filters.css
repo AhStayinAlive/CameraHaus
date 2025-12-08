@@ -1,0 +1,850 @@
+  /**********************
+   * 1. TOKENS & BASE
+   **********************/
+  :root {
+      --ch-drawer-gap: 56px;
+  }
+
+  :is(.ch-sidebar-nav, .ch-portal, .ch-drawer) {
+      --ink: #0f1115;
+      --muted: rgba(0, 0, 0, .42);
+      --surface: #fbfbfd;
+      --line: rgba(60, 60, 67, .18);
+      --brand: #E0302A;
+      --radius: 16px;
+      --shadow: 0 1px 3px rgba(0, 0, 0, .08), 0 10px 30px rgba(0, 0, 0, .06);
+      --ch-header-h: 110px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, system-ui, sans-serif;
+      color: var(--ink);
+      isolation: isolate;
+  }
+
+  .sr-only {
+      position: absolute !important;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+  }
+
+  /**********************
+   * 2. CHIP BAR & CONTROLS
+   **********************/
+  .ch .ch-controls-wrap {
+      position: relative;
+  }
+
+  .ch .ch-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+  }
+
+  /* Filter pill */
+  .ch .ch-filter-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 7px 14px;
+      color: var(--ink);
+      font: 500 14px/1.2 inherit;
+      text-transform: none;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+      transition: all .14s ease;
+  }
+
+  .ch .ch-filter-btn svg {
+      width: 16px;
+      height: 16px;
+  }
+
+  .ch .ch-filter-btn:hover {
+      background: #f5f5f7;
+      border-color: var(--brand);
+      transform: translateY(-1px);
+  }
+
+  .ch .ch-bar-below {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+      margin-top: 6px;
+  }
+
+  .ch .ch-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+  }
+
+  .ch .ch-count {
+      font-size: 13.25px;
+      color: var(--muted);
+      font-weight: 400;
+  }
+
+  .ch .ch-count .ch-count-num {
+      color: var(--ink);
+      font-weight: 500;
+  }
+
+  /**********************
+   * 3. DESKTOP SIDEBAR
+   **********************/
+  @media (min-width: 990px) {
+      .ch-sidebar-nav {
+          width: 280px;
+          position: sticky;
+          top: var(--ch-header-h);
+          align-self: flex-start;
+          z-index: 11;
+          padding-left: 20px;
+          margin-top: 8px;
+      }
+
+      .ch-sidebar-nav .ch-controls-wrap {
+          display: block;
+      }
+
+      .ch-sidebar-nav .ch-controls {
+          display: inline-flex;
+      }
+
+      .ch-sidebar-nav .ch-bar-below {
+          display: none;
+      }
+  }
+
+  /* Panel shell */
+  .ch .ch-panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: max-height .22s ease;
+      max-height: 9999px;
+      transform-origin: top;
+      margin-top: 8px;
+  }
+
+  .ch .ch-panel-body {
+      padding: 14px 10px 6px;
+  }
+
+  @media (min-width: 990px) {
+      .ch .ch-panel.is-collapsed {
+          max-height: 0;
+          padding: 0;
+          overflow: hidden;
+      }
+
+      .ch .ch-panel.is-collapsed .ch-panel-body {
+          padding: 0;
+      }
+  }
+
+  /**********************
+   * 4. GROUPS & OPTIONS
+   **********************/
+  .ch .ch-group,
+  .ch-drawer .ch-group {
+      border-bottom: 1px solid var(--line);
+      padding: 1px 0;
+  }
+
+  .ch .ch-group:last-child,
+  .ch-drawer .ch-group:last-child {
+      border-bottom: 0;
+  }
+
+  .ch .ch-group-hd,
+  .ch-drawer .ch-group-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      cursor: pointer;
+      padding: 1px 2px 8px;
+      min-height: 40px;
+  }
+
+  .ch .ch-group-title,
+  .ch-drawer .ch-group-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: none;
+      letter-spacing: -0.01em;
+      margin-right: auto;
+  }
+
+  .ch .ch-group-toggle,
+  .ch-drawer .ch-group-toggle {
+      border: 0;
+      background: transparent;
+      font-size: 13px;
+      display: inline-flex;
+      width: 18px;
+      height: 18px;
+      align-items: center;
+      justify-content: center;
+      transform-origin: center;
+      color: rgba(17, 17, 17, .65);
+  }
+
+  .ch .ch-group-toggle svg,
+  .ch-drawer .ch-group-toggle svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+  }
+
+  .ch .ch-group-bd,
+  .ch-drawer .ch-group-bd {
+      overflow: hidden;
+      max-height: 540px;
+      transition: max-height .2s ease, padding .2s ease;
+      padding: 8px 2px 8px;
+  }
+
+  .ch .ch-group-bd.is-collapsed,
+  .ch-drawer .ch-group-bd.is-collapsed {
+      max-height: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+  }
+
+  /* Lists & options */
+  .ch .ch-list,
+  .ch-drawer .ch-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0;
+  }
+
+  .ch .ch-option,
+  .ch-drawer .ch-option {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 21px;
+      padding: 2px 4px;
+      border-radius: 10px;
+      background: transparent;
+      transition: background .06s ease;
+  }
+
+  .ch .ch-option:hover,
+  .ch-drawer .ch-option:hover {
+      background: rgba(17, 17, 17, .015);
+  }
+
+  .ch .ch-option-input,
+  .ch-drawer .ch-option-input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+  }
+
+  /* Red circle + white check */
+  .ch-sidebar-nav .ch-option-input+.ch-dot,
+  .ch-portal .ch-option-input+.ch-dot {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
+      min-width: 16px;
+      min-height: 16px;
+      border-radius: 50%;
+      border: 1px solid var(--line);
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background-clip: padding-box;
+      transition: all .1s ease;
+  }
+
+  .ch-sidebar-nav .ch-option-input:checked+.ch-dot::after,
+  .ch-portal .ch-option-input:checked+.ch-dot::after {
+      content: none;
+  }
+
+  .ch-sidebar-nav .ch-option-input:checked+.ch-dot,
+  .ch-portal .ch-option-input:checked+.ch-dot {
+      background: #E0302A;
+      border-color: #E0302A;
+      box-shadow: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 9'%3E%3Cpath fill='%23fff' d='M4.5 6.2 1.8 3.5.7 4.6l3.8 3.8 6.8-6.8-1.4-1.4z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: 10px 10px;
+  }
+
+  .ch .ch-label,
+  .ch-drawer .ch-label {
+      flex: 1;
+      font-size: 12.1px;
+      line-height: 1.23;
+      color: #111;
+      text-transform: none;
+      letter-spacing: -0.011em;
+      font-weight: 400;
+  }
+
+  .ch .ch-count,
+  .ch-drawer .ch-count {
+      font-size: 11.15px;
+      color: rgba(17, 17, 17, .42);
+      font-weight: 500;
+  }
+
+  .ch .is-disabled,
+  .ch-drawer .is-disabled {
+      opacity: .35;
+      cursor: not-allowed;
+  }
+
+  /* “Show more” button */
+  .ch .ch-more,
+  .ch-drawer .ch-more {
+      background: transparent;
+      border: 0;
+      font-size: 12.25px;
+      color: rgba(17, 17, 17, .55);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      padding: 4px 0 0;
+      white-space: nowrap;
+      min-width: max-content;
+      overflow: visible;
+  }
+
+  /* Optional brand animation */
+  [data-brand-list] {
+      max-height: 190px;
+      overflow: hidden;
+      transition: max-height .22s ease;
+  }
+
+  [data-brand-list].is-expanded {
+      max-height: 820px;
+  }
+
+  .ch .ch-more-brands {
+      background: transparent;
+      border: 0;
+      font-size: 12.25px;
+      color: rgba(17, 17, 17, .55);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+  }
+
+  /**********************
+   * 5. PRICE CARD + SLIDER
+   **********************/
+  .ch .ch-price-card,
+  .ch-drawer .ch-price-card {
+      padding: 4px 0;
+      max-width: 100%;
+  }
+
+  .ch .ch-price-note,
+  .ch-drawer .ch-price-note {
+      font-size: 12.5px;
+      color: #111;
+      font-weight: 400;
+      margin-bottom: 8px;
+  }
+
+  .ch .ch-price-note .price-current,
+  .ch-drawer .ch-price-note .price-current {
+      font-weight: 600;
+  }
+
+  .ch .ch-price-apply,
+  .ch-drawer .ch-price-apply {
+      border: 1.2px solid #111;
+      background: #fff;
+      color: #111;
+      border-radius: 10px;
+      height: 32px;
+      padding: 0 18px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+      transition: all .12s ease;
+  }
+
+  .ch .ch-price-apply:hover,
+  .ch-drawer .ch-price-apply:hover {
+      background: #D12F24;
+      border-color: #D12F24;
+      color: #fff;
+  }
+
+  .ch .ch-range,
+  .ch-drawer .ch-range {
+      position: relative;
+      width: 100%;
+      height: 26px;
+      margin: 0 0 8px;
+      --start: 0;
+      /* 0–100 (percent) */
+      --end: 100;
+      --thumb: 6px;
+  }
+
+  /* grey base rail */
+  .ch .ch-range::before,
+  .ch-drawer .ch-range::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 0;
+      right: 0;
+      transform: translateY(-50%);
+      height: 2px;
+      background: #dcdcdc;
+      border-radius: 2px;
+      z-index: 1;
+  }
+
+  /* red active segment between the two thumbs */
+  .ch .ch-range::after,
+  .ch-drawer .ch-range::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      left: calc(var(--start) * 1%);
+      right: calc(100% - var(--end) * 1%);
+      height: 2px;
+      background: #E0302A;
+      border-radius: 2px;
+      z-index: 2;
+      pointer-events: none;
+  }
+
+
+  .ch .ch-range input[type="range"],
+  .ch-drawer .ch-range input[type="range"] {
+      position: absolute;
+      inset: 0;
+      background: transparent;
+      appearance: none;
+      pointer-events: none;
+      z-index: 7;
+  }
+
+  .ch .ch-range input[type="range"]::-webkit-slider-runnable-track,
+  .ch-drawer .ch-range input[type="range"]::-webkit-slider-runnable-track {
+      background: transparent;
+      height: 2px;
+  }
+
+  .ch .ch-range input[type="range"]::-moz-range-track,
+  .ch-drawer .ch-range input[type="range"]::-moz-range-track {
+      background: transparent;
+      border: 0;
+      height: 2px;
+  }
+
+  .ch .ch-range input[type="range"]::-webkit-slider-thumb,
+  .ch-drawer .ch-range input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: var(--thumb);
+      height: 18px;
+      background: #E0302A;
+      border-radius: 2px;
+      margin-top: -8px;
+      pointer-events: auto;
+  }
+
+  .ch .ch-range input[type="range"]::-moz-range-thumb,
+  .ch-drawer .ch-range input[type="range"]::-moz-range-thumb {
+      width: var(--thumb);
+      height: 18px;
+      background: #E0302A;
+      border-radius: 2px;
+      border: 0;
+      pointer-events: auto;
+  }
+
+  /* Focus ring */
+  .ch-sidebar-nav .ch-range input[type="range"]:focus-visible::-webkit-slider-thumb {
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .08), 0 0 0 3px rgba(224, 48, 42, .35);
+  }
+
+  .ch-sidebar-nav .ch-range input[type="range"]:focus-visible::-moz-range-thumb {
+      box-shadow: 0 1px 2px rgba(0, 0, 0, .08), 0 0 0 3px rgba(224, 48, 42, .35);
+  }
+
+  /**********************
+   * 6. GRID MASK / ANIM
+   **********************/
+  .ch-grid-mask {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, .9);
+      backdrop-filter: blur(1px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      pointer-events: auto;
+      opacity: 0;
+      transition: opacity .16s ease;
+  }
+
+  .ch-grid-mask.is-on {
+      display: flex;
+      opacity: 1;
+  }
+
+  /* No spinner, we just keep the white overlay */
+  .ch-grid-mask .spinner {
+      display: none !important;
+  }
+
+  .ch-grid-loading {
+      display: none !important;
+  }
+
+  .ch-grid-animate-in>* {
+      opacity: 0;
+      transform: translateY(18px);
+      animation: ch-grid-rise .35s ease forwards;
+  }
+
+  @keyframes ch-grid-rise {
+      to {
+          opacity: 1;
+          transform: translateY(0);
+      }
+  }
+
+  @keyframes chspin {
+      to {
+          transform: rotate(360deg);
+      }
+  }
+
+  /**********************
+   * 7. MOBILE DRAWER
+   **********************/
+  .ch-portal {
+      position: fixed;
+      inset: 0;
+      z-index: 900000;
+      pointer-events: none;
+  }
+
+  .ch-portal>* {
+      pointer-events: auto;
+  }
+
+  .ch-portal [data-ch-overlay] {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .28);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .14s ease;
+      z-index: 900000;
+  }
+
+  .ch-portal [data-ch-overlay].is-open {
+      opacity: 1;
+      pointer-events: auto;
+  }
+
+  @media (max-width: 989px) {
+      .ch-portal .ch-drawer {
+          position: fixed;
+          top: 0;
+          bottom: 0;
+          left: 0;
+          right: auto;
+          width: min(92vw, 420px);
+          height: 100dvh;
+          background: var(--surface);
+          transform: translateX(-104%);
+          transition: transform .32s cubic-bezier(.22, .61, .36, 1);
+          border-radius: 0 16px 16px 0;
+          box-shadow: 18px 0 34px rgba(0, 0, 0, .12);
+          border-right: 1px solid var(--line);
+          z-index: 10000001;
+          display: flex;
+          flex-direction: column;
+      }
+
+      @supports not (height: 1dvh) {
+          .ch-portal .ch-drawer {
+              height: calc(var(--dvh, 1vh) * 100);
+          }
+      }
+
+      .ch-portal .ch-drawer.is-open {
+          transform: translateX(0);
+      }
+
+      /* mobile shows drawer; sidebar is hidden below */
+      .ch-sidebar-nav {
+          display: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          height: 0 !important;
+          min-height: 0 !important;
+          box-shadow: none !important;
+          overflow: hidden !important;
+      }
+
+      .ch-drawer [data-clear-all] {
+          display: inline-flex !important;
+          margin-left: 0;
+          margin-bottom: 10px;
+      }
+  }
+
+  /* Drawer header */
+  .ch-portal .ch-drawer__hd {
+      background: #fff;
+      border-bottom: 1px solid var(--line);
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+  }
+
+  .ch-portal .ch-drawer__hd h2 {
+      margin: 0;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-size: 14px;
+      color: #0f1115;
+  }
+
+  .ch-portal .ch-drawer__close {
+      border: 0;
+      background: transparent;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background .12s ease;
+  }
+
+  .ch-portal .ch-drawer__close:hover {
+      background: rgba(60, 60, 67, .08);
+  }
+
+  .ch-portal .ch-drawer__close svg {
+      width: 18px;
+      height: 18px;
+      transition: transform .18s ease, opacity .18s ease;
+  }
+
+  .ch-portal .ch-drawer__close.is-closing svg {
+      transform: rotate(90deg) scale(.92);
+      opacity: .55;
+  }
+
+  .ch-portal .ch-drawer__bd {
+      flex: 1 1 auto;
+      overflow: auto;
+      padding: 8px 10px 14px;
+      background: #fff;
+  }
+
+  /* Hide drawer on desktop; use sticky sidebar instead */
+  @media (min-width: 990px) {
+
+      .ch-portal .ch-drawer,
+      .ch-portal [data-ch-overlay] {
+          display: none !important;
+      }
+  }
+
+  /**********************
+   * 8. LIMIT-LIST ANIM
+   **********************/
+  :is(.ch-sidebar-nav, .ch-portal, .ch-drawer) {
+      --list-expanded-max: 280px;
+  }
+
+  .ch .ch-list[data-limit-list],
+  .ch-drawer .ch-list[data-limit-list] {
+      transition: max-height .28s ease;
+      will-change: max-height;
+      scrollbar-width: thin;
+      scrollbar-color: #c9c9c9 transparent;
+  }
+
+  .ch .ch-list[data-limit-list][data-limit-expanded="true"],
+  .ch-drawer .ch-list[data-limit-list][data-limit-expanded="true"] {
+      max-height: var(--list-expanded-max);
+      overflow-y: auto;
+  }
+
+  .ch .ch-list[data-limit-list]::-webkit-scrollbar,
+  .ch-drawer .ch-list[data-limit-list]::-webkit-scrollbar {
+      width: 8px;
+  }
+
+  .ch .ch-list[data-limit-list]::-webkit-scrollbar-track,
+  .ch-drawer .ch-list[data-limit-list]::-webkit-scrollbar-track {
+      background: transparent;
+  }
+
+  .ch .ch-list[data-limit-list]::-webkit-scrollbar-thumb,
+  .ch-drawer .ch-list[data-limit-list]::-webkit-scrollbar-thumb {
+      background: #c9c9c9;
+      border-radius: 6px;
+  }
+
+  .ch .ch-list[data-limit-list]::-webkit-scrollbar-thumb:hover,
+  .ch-drawer .ch-list[data-limit-list]::-webkit-scrollbar-thumb:hover {
+      background: #b3b3b3;
+  }
+
+  /* 1️⃣ Desktop only – hide Dawn's extra "Filters" control above the grid */
+  @media (min-width: 990px) {
+
+      .collection .facets__summary,
+      .collection .collection-filters,
+      .collection .collection__filters,
+      .collection .collection-filter,
+      .collection .facets__open,
+      .collection .mobile-facets__open {
+          display: none !important;
+      }
+  }
+
+  @media (max-width: 989px) {
+      .ch-open-btn {
+          display: inline-flex !important;
+          align-items: center;
+          gap: 8px;
+      }
+  }
+
+  /* 2️⃣ Price facet – remove the tall gray value block (keep slider + note)  */
+  /* If your markup came from the earlier snippet, this will nuke the box
+   that shows the big 0 / 339,990. */
+  .ch-sidebar-nav .ch-price-rows,
+  .ch-portal .ch-price-rows {
+      display: none !important;
+      height: 0 !important;
+      opacity: 0 !important;
+      overflow: hidden !important;
+      pointer-events: none !important;
+  }
+
+  /* 3️⃣ Align caret / collapse arrow for ALL groups (incl. Price) on desktop */
+  @media (min-width: 990px) {
+
+      .ch-sidebar-nav .ch-group-hd,
+      .ch-portal .ch-group-hd {
+          display: flex !important;
+          align-items: center !important;
+          flex-wrap: nowrap !important;
+          gap: 8px !important;
+          padding-right: 8px !important;
+          min-height: 40px !important;
+      }
+
+      .ch-sidebar-nav .ch-group-title,
+      .ch-portal .ch-group-title {
+          margin-right: auto !important;
+          /* pushes caret all the way right */
+      }
+
+      .ch-sidebar-nav .ch-group-toggle,
+      .ch-portal .ch-group-toggle {
+          width: 18px !important;
+          height: 18px !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          line-height: 1 !important;
+          transform-origin: center !important;
+      }
+  }
+
+  /* Hide the extra chipbar + its "×Clear all" under the sidebar */
+  .ch-chipbar-global {
+      display: none !important;
+  }
+
+  /* Hide only the black chip-style Filters button on desktop */
+  @media (min-width: 990px) {
+      .ch-sidebar-nav .ch-filter-btn {
+          display: none !important;
+      }
+  }
+
+  /* Desktop: pull the filter panel up so it hugs the grey "Filters" label */
+  @media (min-width: 990px) {
+      .ch-sidebar-nav {
+          margin-top: 0 !important;
+          padding-top: 0 !important;
+      }
+
+      .ch-sidebar-nav .ch-panel {
+          margin-top: 0 !important;
+      }
+  }
+
+  /* Desktop: make the filter card tall so it visually matches the first row of products */
+  @media (min-width: 990px) {
+      .ch-sidebar-nav .ch-panel {
+          min-height: calc(100vh - var(--ch-header-h) - 40px);
+          display: flex;
+          flex-direction: column;
+      }
+
+      .ch-sidebar-nav .ch-panel-body {
+          flex: 1 1 auto;
+      }
+  }
+
+  /* Desktop: bring the sticky filter panel closer to the header */
+  @media (min-width: 990px) {
+      .ch-sidebar-nav {
+          top: 1999px !important;
+          /* tune this: 70–80 usually looks good */
+          margin-top: 0 !important;
+      }
+
+      /* remove extra offset between the "Filters" label and the card */
+      .ch-sidebar-nav .ch-panel {
+          margin-top: 0 !important;
+      }
+  }

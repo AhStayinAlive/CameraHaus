@@ -1,15 +1,13 @@
-{%- comment -%}
-  Section: main-collection (Dawn OS 2.0)
-  - Contained layout (NO full-bleed)
-  - Inter font everywhere
-  - Heading + subtitle first, then breadcrumbs (HAVIT-style)
-  - Hard grid (no flex clipping), AJAX pagination, skeletons
-{%- endcomment -%}
-
 {%- paginate collection.products by 20 -%}
-<section id="ch-collection-{{ section.id }}" class="ch-collection" data-section-id="{{ section.id }}">
+<section
+  id="ch-collection-{{ section.id }}"
+  class="ch-collection"
+  data-section-id="{{ section.id }}"
+>
   <style>
-    /* ====== Base / tokens ====== */
+    /* =======================
+       TOKENS & GLOBAL RESET
+    ======================== */
     #ch-collection-{{ section.id }}{
       --panel: #ffffff;
       --ink: #111111;
@@ -18,285 +16,770 @@
       --radius: 14px;
       --shadow: 0 10px 30px rgba(17,17,17,.10);
       --focus: 0 0 0 3px rgba(32,94,214,.35);
-      --grid-gap: 20px;
+      --grid-gap: 10px;
+      --accent: #e11d48;
+      --accent-soft: #fff4f2;
     }
-    #ch-collection-{{ section.id }} *, 
-    #ch-collection-{{ section.id }} *::before, 
+
+    #ch-collection-{{ section.id }} *,
+    #ch-collection-{{ section.id }} *::before,
     #ch-collection-{{ section.id }} *::after{
-      box-sizing: border-box;
+      box-sizing:border-box;
       font-family:var(--font-sans);
     }
-    /* ====== Top filters block (kept from theme) ====== */
-    #ch-collection-{{ section.id }} .ch-topfilters{ 
-      margin: 10px 0 18px; /* space between filters/sort and grid */
+
+    /* =======================
+       HEADER
+    ======================== */
+    #ch-collection-{{ section.id }} .ch-header{
+      margin:26px 0 2px;
+      padding-top:4px;
+    }
+#ch-collection-{{ section.id }} .ch-title{
+  margin:0 0 10px !important;
+  font-weight:600;
+  letter-spacing:-.02em;
+  line-height:1.1;
+  font-size:clamp(2.15rem, 3vw, 42px);
+  color: var(--heading-color, inherit);
+}
+
+    #ch-collection-{{ section.id }} .ch-sub{
+      margin:0 !important;
+      line-height:1.55;
+      font-weight:400;
+      color:var(--muted);
+      max-width:660px;
+      font-size:clamp(14px, 1.1vw, 16px);
+    }
+    /* =======================
+       TOOLBAR (FILTER + SORT)
+    ======================== */
+    #ch-collection-{{ section.id }} .ch-toolbar{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      margin:26px 0 12px;
+      flex-wrap:wrap;
+      padding:8px 0;
+    }
+    #ch-collection-{{ section.id }} .ch-toolbar-left{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    #ch-collection-{{ section.id }} .ch-toolbar-right{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      position:relative;
     }
 
-    /* ====== HARD GRID (replace Dawn flex grid) ====== */
-    #ch-collection-{{ section.id }} #CollectionProductGrid{
-      display:grid;
-      grid-template-columns: repeat(2, minmax(0,1fr));
-      gap: var(--grid-gap);
-      align-items: stretch;
-      min-height: 120px;
+    /* Filter: icon + faint gray text (no pill) */
+    #ch-collection-{{ section.id }} .ch-toolbar-filter{
+      display:inline-flex;
+      gap:4px;
+      align-items:center;
+      border:0;
+      background:transparent;
+      border-radius:0;
+      padding:0;
+      font-size:14px;
+      cursor:pointer;
+      transition:color .12s ease;
+      color:rgba(17,17,17,.45);
+      box-shadow:none;
+      font-weight:400;
     }
-    @media (min-width: 750px){
-      #ch-collection-{{ section.id }} #CollectionProductGrid{ 
-        grid-template-columns: repeat(4, minmax(0,1fr)); 
-      }
+
+    #ch-collection-{{ section.id }} .ch-toolbar-filter:hover{
+      background:transparent;
+      border-color:transparent;
+      box-shadow:none;
+      transform:none;
+      color:rgba(17,17,17,.8);
     }
-    @media (min-width: 1100px){
-      #ch-collection-{{ section.id }} #CollectionProductGrid{ 
-        grid-template-columns: repeat(4, minmax(0,1fr)); 
-      }
+
+    #ch-collection-{{ section.id }} .ch-toolbar-filter .ch-filter-icon{
+      display:inline-flex;
+      width:16px;
+      height:16px;
     }
-    /* Neutralize theme grid utilities inside our grid */
-    #ch-collection-{{ section.id }} #CollectionProductGrid .grid__item,
-    #ch-collection-{{ section.id }} #CollectionProductGrid [class*="medium-up--"],
-    #ch-collection-{{ section.id }} #CollectionProductGrid [class*="small--"]{
-      all: unset;
+
+    #ch-collection-{{ section.id }} .ch-toolbar-filter .ch-filter-icon svg{
+      width:16px;
+      height:16px;
       display:block;
     }
-    #ch-collection-{{ section.id }} #CollectionProductGrid .ch-cell{ height:100%; min-height:0; }
-    #ch-collection-{{ section.id }} #CollectionProductGrid .chcard{ height:100%; }
 
-    /* ====== Pagination (existing pill styles kept) ====== */
-    #ch-collection-{{ section.id }} .pagination{ 
-      margin:22px 0 0; 
-      display:flex; flex-wrap:wrap; gap:8px; 
+    /* default: filters shown → UP arrow visible */
+    #ch-collection-{{ section.id }} .ch-toolbar-filter .ch-filter-icon--closed{display:none;}
+    /* collapsed → DOWN arrow visible */
+    #ch-collection-{{ section.id }}.is-filter-collapsed .ch-toolbar-filter .ch-filter-icon--closed{display:inline-flex;}
+    #ch-collection-{{ section.id }}.is-filter-collapsed .ch-toolbar-filter .ch-filter-icon--open{display:none;}
+
+    /* Sort dropdown */
+    #ch-collection-{{ section.id }} .ch-sorter{
+      position:relative;
+      z-index:30;
     }
-    #ch-collection-{{ section.id }} .pagination a,
-    #ch-collection-{{ section.id }} .pagination span{
-      padding:8px 12px; 
-      border:1px solid var(--line); 
-      border-radius: 10px; 
-      text-decoration:none; 
-      color:var(--ink); 
-      font-size:14px;
-      line-height:1;
+    #ch-collection-{{ section.id }} .ch-sorter-btn{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      justify-content:space-between;
+      min-width:150px;
+      border:1px solid rgba(17,17,17,.1);
       background:#fff;
+      border-radius:999px;
+      padding:6px 16px 7px;
+      font-size:13.5px;
+      cursor:pointer;
+      transition:box-shadow .12s ease, transform .12s ease, background .12s ease, border-color .12s ease;
+      box-shadow:0 1px 2px rgba(0,0,0,.04);
+      color:var(--ink);
     }
-    #ch-collection-{{ section.id }} .pagination .current{ 
-      background:#F6F7F8; 
-      font-weight:600; 
+    #ch-collection-{{ section.id }} .ch-sorter-btn:hover{
+      background:#f5f5f7;
+      border-color:var(--accent);
+      box-shadow:0 6px 18px rgba(17,17,17,.05);
+      transform:translateY(-1px);
     }
-
-    /* ====== Pagination — numbers only (non-destructive override) ====== */
-    #ch-collection-{{ section.id }} .pagination.numbers-only{
-      margin: 28px 0 0;
-      padding-top: 14px;
-      border-top: 1px solid var(--line);   /* faint line */
-      display: flex;
-      justify-content: center;
-      gap: 0; /* handled by list */
+    #ch-collection-{{ section.id }} .ch-sorter-arrow{
+      width:14px;
+      height:14px;
+      display:block;
     }
-    #ch-collection-{{ section.id }} .pagination.numbers-only .pag-list{
-      display: flex;
-      gap: 14px;
-      list-style: none;
-      margin: 0;
-      padding: 0;
+    #ch-collection-{{ section.id }} .ch-sorter-pop{
+      position:absolute;
+      right:0;
+      top:calc(100% + 10px);
+      background:#fff;
+      border:1px solid rgba(17,17,17,.08);
+      border-radius:16px;
+      box-shadow:0 18px 40px rgba(17,17,17,.12);
+      min-width:220px;
+      display:none;
+      overflow:hidden;
     }
-    #ch-collection-{{ section.id }} .pagination.numbers-only a,
-    #ch-collection-{{ section.id }} .pagination.numbers-only span{
-      border: none !important;
-      background: none !important;
-      border-radius: 0 !important;
-      padding: 6px 2px;
-      min-width: 28px;
-      text-align: center;
-      line-height: 1;
-      font-size: 14px;
-      text-decoration: none;
+    #ch-collection-{{ section.id }} .ch-sorter.is-open .ch-sorter-pop{
+      display:block;
     }
-    #ch-collection-{{ section.id }} .pagination.numbers-only a{
-      color: var(--muted);
+    #ch-collection-{{ section.id }} .ch-sorter-pop::before{
+      content:'';
+      position:absolute;
+      top:-11px;
+      right:32px;
+      width:14px;
+      height:14px;
+      background:#fff;
+      border-top:1px solid rgba(17,17,17,.08);
+      border-left:1px solid rgba(17,17,17,.08);
+      transform:rotate(45deg);
     }
-    #ch-collection-{{ section.id }} .pagination.numbers-only a:hover{
-      color: var(--ink);
-      text-decoration: underline;
+    #ch-collection-{{ section.id }} .ch-sorter-list{
+      list-style:none;
+      margin:0;
+      padding:8px 0;
+      max-height:280px;
+      overflow-y:auto;
     }
-    #ch-collection-{{ section.id }} .pagination.numbers-only .is-current > span{
-      color: #e11d48;
-      font-weight: 700;
+    #ch-collection-{{ section.id }} .ch-sorter-item{
+      padding:10px 16px 10px 32px;
+      font-size:13.5px;
+      line-height:1.35;
+      cursor:pointer;
+      position:relative;
+      color:var(--ink);
+      background:#fff;
+      transition:background .12s ease, color .12s ease;
     }
-    #ch-collection-{{ section.id }} .pagination.numbers-only .ellipsis > span{
-      color: var(--muted);
-      opacity: .65;
-      pointer-events: none;
-      user-select: none;
+    #ch-collection-{{ section.id }} .ch-sorter-item:hover{
+      background:var(--accent-soft);
+      color:var(--accent);
     }
-
-    /* ====== Skeleton ====== */
-    #ch-collection-{{ section.id }} .ch-skeleton-grid{
-      display:grid; grid-template-columns: repeat(2, 1fr); gap:var(--grid-gap);
+    #ch-collection-{{ section.id }} .ch-sorter-item.is-active{
+      background:var(--accent-soft);
+      color:var(--accent);
+      font-weight:500;
     }
-    @media (min-width: 750px){
-      #ch-collection-{{ section.id }} .ch-skeleton-grid{ grid-template-columns: repeat(4, 1fr); }
+    #ch-collection-{{ section.id }} .ch-sorter-item.is-active::before{
+      content:'';
+      position:absolute;
+      left:10px;
+      top:9px;
+      bottom:9px;
+      width:3px;
+      border-radius:999px;
+      background:var(--accent);
     }
-    #ch-collection-{{ section.id }} .ch-skel-card{
-      border:1px solid var(--line); border-radius: 12px; overflow:hidden; background:#fff; padding:10px;
-    }
-    #ch-collection-{{ section.id }} .skel-media{
-      height: 160px; border-radius:10px;
-      background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%);
-      background-size:400% 100%;
-      animation: ch-skel 1.1s ease-in-out infinite;
-    }
-    #ch-collection-{{ section.id }} .skel-line{
-      height: 12px; margin:10px 6px; border-radius: 8px;
-      background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%);
-      background-size:400% 100%;
-      animation: ch-skel 1.1s ease-in-out infinite;
-    }
-    #ch-collection-{{ section.id }} .skel-line.skel-short{ width: 60%; }
-    #ch-collection-{{ section.id }} .skel-cta{
-      height:36px; margin:10px 6px 4px; border-radius: 10px;
-      background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%);
-      background-size:400% 100%;
-      animation: ch-skel 1.1s ease-in-out infinite;
-    }
-    @keyframes ch-skel{ 0%{background-position:100% 50%} 100%{background-position:0 50%} }
-
-    /* ===== HAVIT-style heading block ===== */
-    #ch-collection-{{ section.id }} .ch-header{
-      margin: 24px 0 8px;          
-      padding-top: 2px;
+    #ch-collection-{{ section.id }} .ch-sorter-select{
+      display:none;
     }
 
-    /* Nuke Dawn's top padding on this section */
-    #ch-collection-{{ section.id }}.shopify-section,
-    #ch-collection-{{ section.id }}.section,
-    #ch-collection-{{ section.id }},
-    #ch-collection-{{ section.id }} .page-width{
-      padding-top: 0 !important;
-      margin-top: 0 !important;
-    }
-    #ch-collection-{{ section.id }} .ch-header{ margin-top: 0 !important; }
-    #ch-collection-{{ section.id }} .ch-title{ margin-top: 0 !important; }
-    #MainContent > .shopify-section:has(#ch-collection-{{ section.id }}) {
-      padding-top: 0 !important;
-    }
-    #MainContent { scroll-margin-top: var(--header-height, 64px); }
-    #ch-collection-{{ section.id }} .ch-desc,
-    #ch-collection-{{ section.id }} .ch-desc.rte,
-    #ch-collection-{{ section.id }} .ch-desc p {
-      margin-left: 0 !important;
-      padding-left: 0 !important;
-      text-indent: 0 !important;
-    }
-    #ch-collection-{{ section.id }} .ch-desc ul,
-    #ch-collection-{{ section.id }} .ch-desc ol {
-      margin-left: 0 !important;
-      padding-left: 1.25rem;
-    }
-    #ch-collection-{{ section.id }} .ch-header {
-      margin-top: 0 !important;
-      margin-bottom: 12px; 
-    }
-    #ch-collection-{{ section.id }} .ch-title {
-      margin: 0 0 6px !important;
-      line-height: 1.15;
-    }
-    #ch-collection-{{ section.id }} .ch-desc {
-      margin: 0 !important;
-      line-height: 1.55;
-    }
-
-    /* FIX 1 */
-    #MainContent > .shopify-section:has(#ch-collection-{{ section.id }}) ,
+    /* =======================
+       LAYOUT
+    ======================== */
+    /* Remove Dawn’s outer padding around this section */
+    #MainContent > .shopify-section:has(#ch-collection-{{ section.id }}),
     #MainContent > .shopify-section:has(#ch-collection-{{ section.id }}) .page-width,
     #ch-collection-{{ section.id }},
     #ch-collection-{{ section.id }} .page-width{
-      padding-top: 0 !important;
-      margin-top: 0 !important;
+      padding-top:0 !important;
+      margin-top:0 !important;
     }
-    #ch-collection-{{ section.id }} .ch-header{ padding-top: 1px !important; margin-top: 0 !important; }
-    @supports not (selector(:has(*))) {
-      body.template-collection #MainContent .shopify-section,
-      body.template-collection #MainContent .shopify-section .page-width{
-        padding-top: 0 !important;
-        margin-top: 0 !important;
+    @media(max-width:749px){
+      #ch-collection-{{ section.id }} .page-width{
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+      }
+      #ch-collection-{{ section.id }}{
+        --grid-gap: 6px;
       }
     }
-    /* FIX 2 */
-    #ch-collection-{{ section.id }} .ch-sub,
-    #ch-collection-{{ section.id }} .ch-sub *,
-    #ch-collection-{{ section.id }} .ch-sub p{
-      margin-left: 0 !important;
-      padding-left: 0 !important;
-      text-indent: 0 !important;
-    }
-    #ch-collection-{{ section.id }} .ch-title{
-      margin: 0 0 10px !important;
-      font-weight: 900;
-      letter-spacing: -0.02em;
-      line-height: 1.12;
-    }
-    #ch-collection-{{ section.id }} .ch-sub{
-      margin: 0 !important;
-      line-height: 1.6;
-      color: #111;
-    }
-    /* make page numbers obviously clickable */
-#ch-collection-{{ section.id }} .pagination.numbers-only a { cursor: pointer; }
-#ch-collection-{{ section.id }} .pagination.numbers-only .is-current > span,
-#ch-collection-{{ section.id }} .pagination.numbers-only .ellipsis > span { cursor: default; }
 
-/* optional: subtle disabled style while loading */
-#ch-collection-{{ section.id }} .pagination.is-loading { opacity: .7; pointer-events: none; }
+    /* Force full width and auto height to fix "thin and long" look */
+    @media (max-width: 1023px) {
+      .template-collection .ch-card {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: auto !important;
+        flex: 1 1 auto !important;
+      }
+    }
+ 
+    #ch-collection-{{ section.id }} .ch-body{
+      display:flex;
+      gap:28px;
+      align-items:flex-start;
+      margin-top:4px;
+      transition:gap .28s ease;
+    }
+    #ch-collection-{{ section.id }} .ch-side{
+      flex:0 0 280px;
+      max-width:280px;
+      transition:max-width .28s ease, flex-basis .28s ease, opacity .2s ease;
+    }
+    #ch-collection-{{ section.id }} .ch-main{
+      flex:1 1 auto;
+      min-width:0;
+    }
+
+    @media(max-width:989px){
+      #ch-collection-{{ section.id }} .ch-body{display:block;}
+      #ch-collection-{{ section.id }} .ch-side{
+        max-width:none;
+        margin-bottom:14px;
+        opacity:1 !important;
+        pointer-events:auto !important;
+      }
+    }
+
+    /* When filters are collapsed on desktop keep them hidden and widen grid */
+    @media(min-width:990px){
+      #ch-collection-{{ section.id }}.is-filter-collapsed .ch-side{
+        max-width:0;
+        flex-basis:0;
+        opacity:0;
+        pointer-events:none;
+      }
+      #ch-collection-{{ section.id }}.is-filter-collapsed .ch-body{
+        gap:20px;
+      }
+    }
+
+    /* =======================
+       PRODUCT GRID
+    ======================== */
+    #ch-collection-{{ section.id }} #CollectionProductGrid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:var(--grid-gap);
+      align-items:stretch;
+      min-height:120px;
+      transition:grid-template-columns .28s ease;
+      position:relative;
+    }
+    @media(min-width:750px){
+      #ch-collection-{{ section.id }} #CollectionProductGrid{
+        grid-template-columns:repeat(3,minmax(0,1fr));
+      }
+    }
+    @media(min-width:990px){
+      #ch-collection-{{ section.id }} #CollectionProductGrid{
+        grid-template-columns:repeat(3,minmax(0,1fr));
+      }
+      #ch-collection-{{ section.id }}.is-filter-collapsed #CollectionProductGrid{
+        grid-template-columns:repeat(4,minmax(0,1fr));
+      }
+    }
+
+    /* neutralize Dawn’s grid__item etc inside our grid */
+    #ch-collection-{{ section.id }} #CollectionProductGrid .grid__item,
+    #ch-collection-{{ section.id }} #CollectionProductGrid [class*="medium-up--"],
+    #ch-collection-{{ section.id }} #CollectionProductGrid [class*="small--"]{
+      all:unset;
+      display:block;
+    }
+
+
+
+    /* =======================
+       GRID OVERLAY / LOADER
+    ======================== */
+    #ch-collection-{{ section.id }} .ch-grid-wrap{
+      position:relative;
+    }
+    @keyframes chSpin{to{transform:rotate(360deg);}}
+
+    .ch-float-in{animation:chFloatIn .5s cubic-bezier(.21,.61,.35,1) both;}
+    @keyframes chFloatIn{
+      from{opacity:0;transform:translateY(12px);}
+      to{opacity:1;transform:none;}
+    }
+
+    /* =======================
+       PAGINATION (numbers only)
+    ======================== */
+    #ch-collection-{{ section.id }} .pagination{
+      margin:22px 0 0;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    #ch-collection-{{ section.id }} .pagination.numbers-only{
+      margin:28px 0 0;
+      padding-top:14px;
+      border-top:1px solid var(--line);
+      justify-content:center;
+      gap:0;
+    }
+    #ch-collection-{{ section.id }} .pagination.numbers-only .pag-list{
+      display:flex;
+      gap:14px;
+      list-style:none;
+      margin:0;
+      padding:0;
+    }
+    #ch-collection-{{ section.id }} .pagination.numbers-only a,
+    #ch-collection-{{ section.id }} .pagination.numbers-only span{
+      border:none !important;
+      background:none !important;
+      border-radius:0 !important;
+      padding:6px 2px;
+      min-width:28px;
+      text-align:center;
+      line-height:1;
+      font-size:14px;
+      text-decoration:none;
+    }
+    #ch-collection-{{ section.id }} .pagination.numbers-only a{
+      color:var(--muted);
+      cursor:pointer;
+    }
+    #ch-collection-{{ section.id }} .pagination.numbers-only a:hover{
+      color:var(--ink);
+      text-decoration:underline;
+    }
+    #ch-collection-{{ section.id }} .pagination.numbers-only .is-current > span{
+      color:var(--accent);
+      font-weight:700;
+    }
+
+    /* =======================
+       MOBILE TWEAKS
+    ======================== */
+    @media(max-width:749px){
+      #ch-collection-{{ section.id }} .ch-header{
+        padding-top:8px;
+        padding-bottom:6px;
+      }
+      #ch-collection-{{ section.id }} .ch-title{
+        margin-bottom:6px !important;
+      }
+      #ch-collection-{{ section.id }} .ch-sub{
+        color:#111;
+        max-width:none;
+        font-size:14.75px;
+        margin-bottom:12px !important;
+      }
+      #ch-collection-{{ section.id }} .ch-toolbar{
+        margin-top:16px;
+        padding:6px 0 !important;
+        flex-direction:row;
+        align-items:center;
+      }
+      #ch-collection-{{ section.id }} .ch-toolbar-filter{
+        padding:6px 12px !important;
+        font-size:14px;
+      }
+      #ch-collection-{{ section.id }} .ch-sorter-btn{
+        padding:6px 12px !important;
+        min-width:auto;
+        gap:4px;
+        font-size:14px;
+        font-weight:500;
+      }
+      #ch-collection-{{ section.id }} .ch-sorter-pop{
+        right:0;
+        left:auto;
+        width:min(90vw,280px);
+      }
+      #ch-collection-{{ section.id }} .ch-sorter-pop::before{
+        right:12px;
+        left:auto;
+      }
+      #ch-collection-{{ section.id }} .ch-body{
+        margin-top:10px;
+      }
+    }
+
+/* --- Sorter button: faint grey, squarish --- */
+#ch-collection-{{ section.id }} .ch-sorter-btn{
+  border-radius:10px;                              /* squarish */
+  background:#f5f5f7;                              /* faint grey */
+  border:1px solid rgba(17,17,17,.10);
+  box-shadow:none;
+  color:rgba(17,17,17,.55);                        /* similar tone as Filters text */
+  font-size:14px;
+  min-height:36px;
+}
+
+#ch-collection-{{ section.id }} .ch-sorter-btn:hover{
+  background:#ececf0;
+  border-color:rgba(17,17,17,.18);
+  box-shadow:none;
+  transform:none;                                  /* no lift on hover */
+}
+/* === Header filter chips
+   Layout:  × In stock | × On-Ear Headphones   [Clear all ×]
+============================================================ */
+#ch-collection-{{ section.id }} .ch-chipline{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:0;
+  margin:10px 0 0;
+}
+
+/* individual chip (active filter) */
+#ch-collection-{{ section.id }} .ch-chipline .chip{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  flex-direction:row-reverse;   /* visually: × label */
+  padding:0 14px;
+  background:transparent;
+  border:0;
+  border-radius:0;
+  box-shadow:none;
+  font-size:14px;
+  color:#111;
+  white-space:nowrap;
+}
+
+/* first chip: no extra left padding */
+#ch-collection-{{ section.id }} .ch-chipline .chip:first-child{
+  padding-left:0;
+}
+
+/* vertical bar between chips */
+#ch-collection-{{ section.id }} .ch-chipline .chip + .chip::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:50%;
+  transform:translateY(-50%);
+  width:1px;
+  height:16px;
+  background:rgba(15,17,21,.18);
+}
+
+/* remove button base – holds the animated “×” */
+#ch-collection-{{ section.id }} .ch-chipline .chip > button{
+  all:unset;
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:16px;
+  height:16px;
+  cursor:pointer;
+  color:inherit;
+  margin-right:6px;     /* space between × and label */
+  font-size:0;
+  line-height:0;
+}
+
+/* two bars that form the × */
+#ch-collection-{{ section.id }} .ch-chipline .chip > button::before,
+#ch-collection-{{ section.id }} .ch-chipline .chip > button::after{
+  content:"";
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:10px;
+  height:2px;
+  border-radius:2px;
+  background:currentColor;
+  transform-origin:center;
+  transition:transform .18s cubic-bezier(.2,.7,.2,1), opacity .18s;
+}
+
+/* default state: “×” */
+#ch-collection-{{ section.id }} .ch-chipline .chip > button::before{
+  transform:translate(-50%,-50%) rotate(45deg);
+}
+#ch-collection-{{ section.id }} .ch-chipline .chip > button::after{
+  transform:translate(-50%,-50%) rotate(-45deg);
+}
+
+/* hover/focus: animate to “–” and tint red */
+#ch-collection-{{ section.id }} .ch-chipline .chip > button:hover,
+#ch-collection-{{ section.id }} .ch-chipline .chip > button:focus-visible{
+  color:#D12F24;
+  outline:none;
+}
+#ch-collection-{{ section.id }} .ch-chipline .chip > button:hover::before,
+#ch-collection-{{ section.id }} .ch-chipline .chip > button:focus-visible::before{
+  transform:translate(-50%,-50%) rotate(0deg);
+}
+#ch-collection-{{ section.id }} .ch-chipline .chip > button:hover::after,
+#ch-collection-{{ section.id }} .ch-chipline .chip > button:focus-visible::after{
+  opacity:0;
+  transform:translate(-50%,-50%) rotate(0deg) scaleX(.2);
+}
+
+/* “Clear all” pill – red chip on the right */
+#ch-collection-{{ section.id }} .ch-chipline .chip--clear{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  flex-direction:row-reverse;      /* "Clear all  ×" */
+  background:#D12F24;
+  border:1px solid #D12F24;
+  color:#fff;
+  font-weight:500;
+  border-radius:999px;
+  padding:4px 18px;
+  margin-left:14px;                /* space after divider */
+}
+
+/* “×” inside Clear all button */
+#ch-collection-{{ section.id }} .ch-chipline .chip--clear > span:first-child{
+  display:inline-block;
+  font-size:14px;
+  line-height:1;
+  margin-left:6px; /* small gap after label when flex reversed */
+}
+
+/* keep Clear all’s × white on hover */
+#ch-collection-{{ section.id }} .ch-chipline .chip--clear:hover,
+#ch-collection-{{ section.id }} .ch-chipline .chip--clear:focus-visible{
+  color:#fff;
+  background:#D12F24;
+  outline:none;
+}
+
+/* don't draw the default LEFT divider on the last filter chip
+   when it's followed by Clear all */
+#ch-collection-{{ section.id }} .ch-chipline .chip:has(+ .chip--clear)::before{
+  content:none;
+}
+
+/* instead, draw a divider on the RIGHT of the last filter chip */
+#ch-collection-{{ section.id }} .ch-chipline .chip:has(+ .chip--clear){
+  position:relative;
+  padding-right:18px;              /* white gap before the bar */
+}
+#ch-collection-{{ section.id }} .ch-chipline .chip:has(+ .chip--clear)::after{
+  content:"";
+  position:absolute;
+  right:-8px;                      /* controls distance from text */
+  top:50%;
+  transform:translateY(-50%);
+  width:1px;
+  height:16px;
+  background:rgba(15,17,21,.18);
+}
+
+/* ensure Clear all never gets a divider of its own */
+#ch-collection-{{ section.id }} .ch-chipline .chip--clear::before{
+  content:none !important;
+}
+
+/* respect reduced motion – no animation, but still change shape */
+@media(prefers-reduced-motion:reduce){
+  #ch-collection-{{ section.id }} .ch-chipline .chip > button::before,
+  #ch-collection-{{ section.id }} .ch-chipline .chip > button::after{
+    transition:none;
+  }
+}
+/* Animate chip removal (header chips + global chipbar) */
+#ch-collection-{{ section.id }} .ch-chipline .chip,
+.ch-chipbar-global .ch-chip {
+  transition: opacity .2s ease, transform .2s ease;
+}
+
+#ch-collection-{{ section.id }} .ch-chipline .chip.is-removing,
+.ch-chipbar-global .ch-chip.is-removing {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+/* GREY DROPDOWN to match grey sorter button */
+#ch-collection-{{ section.id }} .ch-sorter-pop,
+#ch-collection-search .ch-sorter-pop{
+  background:#f5f5f7;                  /* same family as button */
+  border:1px solid rgba(17,17,17,.10);
+  box-shadow:none;                      /* keep it flat like the button */
+}
+
+/* little pointer matches panel color */
+#ch-collection-{{ section.id }} .ch-sorter-pop::before,
+#ch-collection-search .ch-sorter-pop::before{
+  background:#f5f5f7;
+  border-top:1px solid rgba(17,17,17,.10);
+  border-left:1px solid rgba(17,17,17,.10);
+}
+
+/* list items: neutral grey states */
+#ch-collection-{{ section.id }} .ch-sorter-item,
+#ch-collection-search .ch-sorter-item{
+  background:transparent;
+  color:rgba(17,17,17,.75);
+}
+
+#ch-collection-{{ section.id }} .ch-sorter-item:hover,
+#ch-collection-search .ch-sorter-item:hover{
+  background:#ececf0;                   /* hover = slightly darker grey */
+  color:var(--ink);
+}
+
+#ch-collection-{{ section.id }} .ch-sorter-item.is-active,
+#ch-collection-search .ch-sorter-item.is-active{
+  background:#ececf0;                   /* active = same grey, keep left bar */
+  color:var(--ink);
+  font-weight:500;
+}
+
+/* keep the active left bar accent if you like it */
+#ch-collection-{{ section.id }} .ch-sorter-item.is-active::before,
+#ch-collection-search .ch-sorter-item.is-active::before{
+  background:var(--accent);
+}
+/* GREY DROPDOWN to match grey sorter button */
+#ch-collection-{{ section.id }} .ch-sorter-pop,
+#ch-collection-search .ch-sorter-pop{
+  background:#f5f5f7;                  /* same family as button */
+  border:1px solid rgba(17,17,17,.10);
+  box-shadow:none;                      /* keep it flat like the button */
+}
+
+/* little pointer matches panel color */
+#ch-collection-{{ section.id }} .ch-sorter-pop::before,
+#ch-collection-search .ch-sorter-pop::before{
+  background:#f5f5f7;
+  border-top:1px solid rgba(17,17,17,.10);
+  border-left:1px solid rgba(17,17,17,.10);
+}
+
+/* list items: neutral grey states */
+#ch-collection-{{ section.id }} .ch-sorter-item,
+#ch-collection-search .ch-sorter-item{
+  background:transparent;
+  color:rgba(17,17,17,.75);
+}
+
+#ch-collection-{{ section.id }} .ch-sorter-item:hover,
+#ch-collection-search .ch-sorter-item:hover{
+  background:#ececf0;                   /* hover = slightly darker grey */
+  color:var(--ink);
+}
+
+#ch-collection-{{ section.id }} .ch-sorter-item.is-active,
+#ch-collection-search .ch-sorter-item.is-active{
+  background:#ececf0;                   /* active = same grey, keep left bar */
+  color:var(--ink);
+  font-weight:500;
+}
+
+/* keep the active left bar accent if you like it */
+#ch-collection-{{ section.id }} .ch-sorter-item.is-active::before,
+#ch-collection-search .ch-sorter-item.is-active::before{
+  background:var(--accent);
+}
+/* Align filter panel with first product card */
+#ch-collection-{{ section.id }} .ch-side .ch-form {
+  margin-top: 0;       /* remove extra space above the filters */
+}
+
+/* if your filter wrapper uses padding instead of margin, you can also do: */
+/* #ch-collection-{{ section.id }} .ch-side .ch-form { padding-top: 0; } */
+@media (min-width: 990px) {
+  #ch-collection-{{ section.id }} .ch-side,
+  #ch-collection-{{ section.id }} .ch-main {
+    padding-top: 10px;  /* same value on both columns keeps them perfectly in line */
+  }
+}
 
   </style>
 
   <div class="page-width">
-    {%- comment -%} ---------- Category subtitles ---------- {%- endcomment -%}
     {%- assign h = collection.handle | downcase -%}
     {%- assign sub = '' -%}
 
-    {%- if h == 'instant-camera' or h == 'instant-cameras' -%}
-      {%- assign sub = 'Point-and-shoot cameras that print on the spot—fun, portable, and perfect for keepsakes.' -%}
-    {%- elsif h == 'compact-camera' or h == 'compact-cameras' -%}
-      {%- assign sub = 'Pocketable cameras with bigger sensors than phones for easy, everyday shooting.' -%}
-    {%- elsif h == 'mirrorless-camera' or h == 'mirrorless-cameras' -%}
-      {%- assign sub = 'Interchangeable-lens cameras with fast autofocus and modern creator features.' -%}
-    {%- elsif h == 'lens' or h == 'lenses' -%}
-      {%- assign sub = 'Prime and zoom lenses for every mount—go wider, get closer, or shoot in low light.' -%}
-    {%- elsif h == 'action-camera' or h == 'action-cameras' -%}
-      {%- assign sub = 'Rugged, stabilized cameras built for travel, sports, and adventure.' -%}
-    {%- elsif h == 'film-camera' or h == 'film-cameras' -%}
-      {%- assign sub = '35mm and medium-format bodies for a timeless analog look.' -%}
-    {%- elsif h == 'films-consumables' or h == 'film-consumables' or h == 'films-and-consumables' -%}
-      {%- assign sub = 'Instant packs, 35mm rolls, and the essentials you burn through often.' -%}
-    {%- elsif h == 'professional-lighting' or h == 'pro-lighting' -%}
-      {%- assign sub = 'LED panels, COB lights, and modifiers for studio-grade control.' -%}
-    {%- elsif h == 'flash' or h == 'flashes' or h == 'speedlights' -%}
-      {%- assign sub = 'Speedlights and triggers for crisp, controllable light on the go.' -%}
-    {%- elsif h == 'storage' -%}
-      {%- assign sub = 'Memory cards, SSDs, and readers to keep your shoots flowing.' -%}
-    {%- elsif h == 'binoculars-and-scopes' or h == 'binoculars' -%}
-      {%- assign sub = 'See farther with bright, rugged optics for nature and sport.' -%}
-    {%- elsif h == 'drones' or h == 'drone' -%}
-      {%- assign sub = 'Aerial cameras with smart flight modes for sweeping, stabilized shots.' -%}
-    {%- elsif h == 'gimbals' or h == 'gimbal' -%}
-      {%- assign sub = '3-axis stabilizers for silky video—from phone to cinema rigs.' -%}
-    {%- elsif h == 'tripods' or h == 'tripod' -%}
-      {%- assign sub = 'Lightweight travel sticks to rock-solid studio support.' -%}
-    {%- elsif h == 'camera-bag' or h == 'camera-bags' or h == 'bags' -%}
-      {%- assign sub = 'Backpacks, slings, and cases that protect and organize your gear.' -%}
-    {%- elsif h == '360-camera' or h == '360-cameras' -%}
-      {%- assign sub = 'Capture everything in one go—immersive video and VR-ready photos.' -%}
-    {%- elsif h == 'microphone' or h == 'microphones' or h == 'mics' -%}
-      {%- assign sub = 'On-camera mics, lavs, and USB/XLR options for clean, clear audio.' -%}
-    {%- elsif h == 'cinema' -%}
-      {%- assign sub = 'Pro video bodies, cages, and accessories for production workflows.' -%}
-    {%- elsif h == 'kids-camera' or h == 'kids-cameras' -%}
-      {%- assign sub = 'Simple, durable cameras made for little hands and big imaginations.' -%}
+    {%- if section.settings.manual_subtitle != blank -%}
+      {%- assign sub = section.settings.manual_subtitle | strip -%}
+    {%- elsif collection.description != blank -%}
+      {%- assign sub = collection.description -%}
+    {%- else -%}
+      {%- if h contains 'instant-camera' -%}
+        {%- assign sub = 'Point-and-shoot cameras that print on the spot—fun, portable, and perfect for keepsakes.' -%}
+      {%- elsif h contains 'compact-camera' -%}
+        {%- assign sub = 'Pocketable cameras with bigger sensors than phones for easy, everyday shooting.' -%}
+      {%- elsif h contains 'mirrorless' -%}
+        {%- assign sub = 'Interchangeable-lens cameras with fast autofocus and modern creator features.' -%}
+      {%- elsif h contains 'system' and h contains 'camera' -%}
+        {%- assign sub = 'Interchangeable system cameras with pro controls, fast AF, and room to grow.' -%}
+      {%- elsif h contains 'lens' -%}
+        {%- assign sub = 'Prime and zoom lenses for every mount—go wider, get closer, or shoot in low light.' -%}
+      {%- elsif h contains 'action-camera' -%}
+        {%- assign sub = 'Rugged, stabilized cameras built for travel, sports, and adventure.' -%}
+      {%- elsif h contains 'film-camera' -%}
+        {%- assign sub = '35mm and medium-format bodies for a timeless analog look.' -%}
+      {%- elsif h contains 'film' and h contains 'consumable' -%}
+        {%- assign sub = 'Instant packs, 35mm rolls, and the essentials you burn through often.' -%}
+      {%- elsif h contains 'lighting' -%}
+        {%- assign sub = 'LED panels, COB lights, and modifiers for studio-grade control.' -%}
+      {%- elsif h contains 'flash' or h contains 'speedlight' -%}
+        {%- assign sub = 'Speedlights and triggers for crisp, controllable light on the go.' -%}
+      {%- elsif h contains 'storage' -%}
+        {%- assign sub = 'Memory cards, SSDs, and readers to keep your shoots flowing.' -%}
+      {%- elsif h contains 'binocular' or h contains 'scope' -%}
+        {%- assign sub = 'See farther with bright, rugged optics for nature and sport.' -%}
+      {%- elsif h contains 'drone' -%}
+        {%- assign sub = 'Aerial cameras with smart flight modes for sweeping, stabilized shots.' -%}
+      {%- elsif h contains 'gimbal' -%}
+        {%- assign sub = '3-axis stabilizers for silky video—from phone to cinema rigs.' -%}
+      {%- elsif h contains 'tripod' -%}
+        {%- assign sub = 'Lightweight travel sticks to rock-solid studio support.' -%}
+      {%- elsif h contains 'bag' -%}
+        {%- assign sub = 'Backpacks, slings, and cases that protect and organize your gear.' -%}
+      {%- elsif h contains '360' -%}
+        {%- assign sub = 'Capture everything in one go—immersive video and VR-ready photos.' -%}
+      {%- elsif h contains 'microphone' or h contains 'mic' -%}
+        {%- assign sub = 'On-camera mics, lavs, and USB/XLR options for clean, clear audio.' -%}
+      {%- elsif h contains 'cinema' -%}
+        {%- assign sub = 'Pro video bodies, cages, and accessories for production workflows.' -%}
+      {%- elsif h contains 'kids' and h contains 'camera' -%}
+        {%- assign sub = 'Simple, durable cameras made for little hands and big imaginations.' -%}
+      {%- endif -%}
     {%- endif -%}
 
-    {%- if sub == '' and collection.description != blank -%}
-      {%- assign sub = collection.description | strip_html | strip -%}
-    {%- endif -%}
+    {%- assign current_sort = collection.sort_by | default: 'best-selling' -%}
 
-    <!-- Heading + subtitle (HAVIT order) -->
     <header class="ch-header">
       <h1 class="ch-title">
         {{ collection.title }}{% if current_tags %} – {{ current_tags | join: ', ' }}{% endif %}
@@ -304,226 +787,168 @@
       {% if sub != '' %}
         <p class="ch-sub">{{ sub }}</p>
       {% endif %}
-    </header>
 
-    <!-- TOP FILTERS (theme section output) -->
-    <div class="ch-topfilters">
-      {% section 'collection-filters' %}
-    </div>
+      <!-- toolbar -->
+      <div class="ch-toolbar" id="ChToolbar-{{ section.id }}">
+        <div class="ch-toolbar-left">
+          <button type="button" class="ch-toolbar-filter" data-ch-toolbar-filter>
+            <span class="ch-filter-icon ch-filter-icon--open">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m3 8 4-4 4 4"/><path d="M7 4v16"/><path d="M11 12h4"/><path d="M11 16h7"/><path d="M11 20h10"/>
+              </svg>
+            </span>
+            <span class="ch-filter-icon ch-filter-icon--closed">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="M11 4h4"/><path d="M11 8h7"/><path d="M11 12h10"/>
+              </svg>
+            </span>
+            Filters
+          </button>
+        </div>
 
-    <!-- Product grid + pagination (contained) -->
-    <div class="ch-grid-wrap">
-      <div id="CollectionProductGrid">
-        {%- for product in collection.products -%}
-          <div class="ch-cell">
-            {% render 'product-card', product: product %}
-          </div>
-        {%- else -%}
-          {%- if shop.products_count == 0 -%}
-            {%- for i in (1..10) -%}
-              <div class="ch-cell">
-                <a href="/admin/products" class="product-card" style="display:block;border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff">
-                  <div style="aspect-ratio:1/1;background:#f5f5f5;border-radius:8px;display:flex;align-items:center;justify-content:center">
-                    {%- capture current -%}{% cycle 1,2,3,4,5,6 %}{%- endcapture -%}
-                    {{ 'product-' | append: current | placeholder_svg_tag: 'placeholder-svg' }}
-                  </div>
-                  <div style="margin-top:8px;font-weight:700">{{ 'homepage.onboarding.product_title' | t }}</div>
-                  <div>$19.99</div>
-                </a>
+        <div class="ch-toolbar-right">
+          {% if collection.sort_options.size > 1 %}
+            <div class="ch-sorter" data-ch-sorter>
+              <button type="button" class="ch-sorter-btn" aria-haspopup="listbox" aria-expanded="false">
+                <span class="ch-sorter-label">
+                  {% assign active_label = '' %}
+                  {% for option in collection.sort_options %}
+                    {% if option.value == current_sort %}
+                      {% assign active_label = option.name %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ active_label | default: 'Best selling' }}
+                </span>
+                <span class="ch-sorter-arrow">
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m5 8 5 5 5-5" />
+                  </svg>
+                </span>
+              </button>
+              <div class="ch-sorter-pop" role="listbox" tabindex="-1">
+                <ul class="ch-sorter-list">
+                  {% for option in collection.sort_options %}
+                    <li
+                      class="ch-sorter-item {% if option.value == current_sort %}is-active{% endif %}"
+                      data-value="{{ option.value }}"
+                      role="option"
+                      aria-selected="{% if option.value == current_sort %}true{% else %}false{% endif %}">
+                      {{ option.name }}
+                    </li>
+                  {% endfor %}
+                </ul>
               </div>
-            {%- endfor -%}
-          {%- else -%}
-            <div class="ch-cell" style="grid-column:1/-1;text-align:center">
-              <p>{{ 'collections.general.no_matches' | t }}</p>
+              <form method="get" id="ChSortForm-{{ section.id }}">
+                <select
+                  name="sort_by"
+                  id="ChSortSelect-{{ section.id }}"
+                  class="ch-sorter-select"
+                  aria-hidden="true"
+                  tabindex="-1">
+                  {% for option in collection.sort_options %}
+                    <option value="{{ option.value }}" {% if option.value == current_sort %}selected{% endif %}>
+                      {{ option.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </form>
             </div>
-          {%- endif -%}
-        {%- endfor -%}
+          {% endif %}
+        </div>
       </div>
 
-      {%- if paginate.pages > 1 -%}
-        <!-- Numbers-only pager: keeps AJAX and accessibility, just removes Prev/Next -->
-        <nav class="pagination numbers-only" role="navigation" aria-label="Pagination">
-          <ol class="pag-list" role="list">
-            {%- for part in paginate.parts -%}
-              {%- if part.is_link -%}
-                <li><a href="{{ part.url }}" data-page="{{ part.title }}" aria-label="Go to page {{ part.title }}">{{ part.title }}</a></li>
-              {%- elsif part.title == paginate.current_page -%}
-                <li class="is-current"><span aria-current="page">{{ part.title }}</span></li>
+      <div id="ChFilterChips-{{ section.id }}" class="ch-chipline" aria-live="polite"></div>
+    </header>
+
+    <div class="ch-body">
+      <aside class="ch-side">
+        {% section 'collection-filters' %}
+      </aside>
+
+      <div class="ch-main">
+        <div class="ch-grid-wrap">
+          <div class="ch-grid-overlay" aria-hidden="true">
+            <span class="ch-loader" aria-hidden="true"></span>
+          </div>
+
+          <div id="CollectionProductGrid">
+            {%- for product in collection.products -%}
+              <div class="ch-cell">
+                {% render 'product-card', product: product %}
+              </div>
+            {%- else -%}
+              {%- if shop.products_count == 0 -%}
+                {%- for i in (1..10) -%}
+                  <div class="ch-cell">
+                    <a href="/admin/products" class="product-card" style="display:block;border:1px solid var(--line);border-radius:12px;padding:10px;background:#fff">
+                      <div style="aspect-ratio:1/1;background:#f5f5f5;border-radius:8px;display:flex;align-items:center;justify-content:center">
+                        {%- capture current -%}{% cycle 1,2,3,4,5,6 %}{%- endcapture -%}
+                        {{ 'product-' | append: current | placeholder_svg_tag: 'placeholder-svg' }}
+                      </div>
+                      <div style="margin-top:8px;font-weight:700">{{ 'homepage.onboarding.product_title' | t }}</div>
+                      <div>$19.99</div>
+                    </a>
+                  </div>
+                {%- endfor -%}
               {%- else -%}
-                <li class="ellipsis" aria-hidden="true"><span>&hellip;</span></li>
+                <div class="ch-cell" style="grid-column:1/-1;text-align:center">
+                  <p>{{ 'collections.general.no_matches' | t }}</p>
+                </div>
               {%- endif -%}
             {%- endfor -%}
-          </ol>
-        </nav>
-      {%- endif -%}
+          </div>
+
+          {%- if paginate.pages > 1 -%}
+            <nav class="pagination numbers-only" role="navigation" aria-label="Pagination">
+              <ol class="pag-list" role="list">
+                {%- for part in paginate.parts -%}
+                  {%- if part.is_link -%}
+                    <li>
+                      <a href="{{ part.url }}" data-page="{{ part.title }}" aria-label="Go to page {{ part.title }}">
+                        {{ part.title }}
+                      </a>
+                    </li>
+                  {%- elsif part.title == paginate.current_page -%}
+                    <li class="is-current">
+                      <span aria-current="page">{{ part.title }}</span>
+                    </li>
+                  {%- else -%}
+                    <li class="ellipsis" aria-hidden="true">
+                      <span>&hellip;</span>
+                    </li>
+                  {%- endif -%}
+                {%- endfor -%}
+              </ol>
+            </nav>
+          {%- endif -%}
+        </div>
+      </div>
     </div>
   </div>
 
-<script>
-(function () {
-  const root = document.getElementById('ch-collection-{{ section.id }}');
-  const SID  = root.dataset.sectionId;
+  <script src="{{ 'ch-collection-grid.js' | asset_url }}" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const root = document.getElementById('ch-collection-{{ section.id }}');
+      if (!root) return;
 
-  const GRID_SEL = '#CollectionProductGrid';
-  const PAG_SEL  = 'nav.pagination';
-
-  const gridEl = () => root.querySelector(GRID_SEL);
-  const normalize = (url) => new URL(url, window.location.origin).toString();
-  const withSection = (url) => {
-    const u = new URL(url, window.location.origin);
-    u.searchParams.set('section_id', SID);
-    return u.toString();
-  };
-
-  const cache = new Map(); // url -> {gridHTML, pagHTML}
-  let controller = null;
-  let isLoading = false;
-  let watchdog = null;
-
-  function makeSkeleton() {
-    const g = gridEl();
-    const cols = (getComputedStyle(g).gridTemplateColumns || '').split(' ').length || 4;
-    const n = Math.max(cols * 1, 6);
-    const wrap = document.createElement('div'); wrap.className = 'ch-skeleton-grid';
-    for (let i = 0; i < n; i++) {
-      const c = document.createElement('div'); c.className = 'ch-skel-card';
-      c.innerHTML = '<div class="skel-media"></div><div class="skel-line"></div><div class="skel-line skel-short"></div><div class="skel-cta"></div>';
-      wrap.appendChild(c);
-    }
-    return wrap;
-  }
-
-  function setLoading(state) {
-    isLoading = state;
-    const pag = root.querySelector('.pagination');
-    if (pag) {
-      pag.setAttribute('aria-busy', state ? 'true' : 'false');
-      pag.classList.toggle('is-loading', !!state);
-    }
-  }
-
-  function startWatchdog(href) {
-    clearTimeout(watchdog);
-    // If AJAX swap hasn't completed in 2500ms, hard-nav to keep UX alive
-    watchdog = setTimeout(() => { window.location.assign(href); }, 2500);
-  }
-  function stopWatchdog() { clearTimeout(watchdog); }
-
-  async function fetchPage(url) {
-    const key = normalize(url);
-    if (cache.has(key)) return cache.get(key);
-
-    if (controller) controller.abort();
-    controller = new AbortController();
-
-    const res = await fetch(withSection(key), {
-      headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'text/html' },
-      signal: controller.signal,
-      credentials: 'same-origin',
-      cache: 'no-store'
+      window.ChCollectionGrid.init(root, {
+        sid: '{{ section.id }}',
+        gridSelector: '#CollectionProductGrid',
+        paginationSelector: 'nav.pagination',
+        chipsBarSelector: '#ChFilterChips-{{ section.id }}',
+        sorter: {
+          containerSelector: '[data-ch-sorter]',
+          labelSelector: '.ch-sorter-label',
+          itemSelector: '.ch-sorter-item',
+          selectSelector: '#ChSortSelect-{{ section.id }}',
+          getSortFromUrl: () => new URL(window.location.href).searchParams.get('sort_by') || '{{ current_sort }}'
+        },
+        fetch: {
+          resolveSectionRoot: (frag) => frag.querySelector('#ch-collection-{{ section.id }}') || frag
+        }
+      });
     });
-    const html = await res.text();
-
-    // Parse and scope to the returned section root
-    const tpl = document.createElement('template');
-    tpl.innerHTML = html.trim();
-    const frag = tpl.content;
-    const sectionRoot = frag.querySelector('#ch-collection-{{ section.id }}') || frag;
-
-    const freshGrid = sectionRoot.querySelector(GRID_SEL);
-    const freshPag  = sectionRoot.querySelector(PAG_SEL);
-
-    if (!freshGrid) throw new Error('Returned HTML did not contain ' + GRID_SEL);
-
-    const payload = {
-      gridHTML: freshGrid.outerHTML,
-      pagHTML:  freshPag ? freshPag.outerHTML : ''
-    };
-    cache.set(key, payload);
-    return payload;
-  }
-
-  async function swapFrom(url) {
-    startWatchdog(url);
-    setLoading(true);
-
-    const g = gridEl();
-    if (g) { g.innerHTML = ''; g.appendChild(makeSkeleton()); }
-
-    try {
-      const payload = await fetchPage(url);
-      if (!payload) return;
-
-      const existingGrid = gridEl();
-      if (existingGrid && payload.gridHTML) existingGrid.outerHTML = payload.gridHTML;
-
-      const oldPag = root.querySelector(PAG_SEL);
-      if (oldPag && payload.pagHTML) {
-        oldPag.outerHTML = payload.pagHTML;
-      } else if (!oldPag && payload.pagHTML) {
-        root.querySelector('.ch-grid-wrap').insertAdjacentHTML('beforeend', payload.pagHTML);
-      }
-
-      bindPagination();
-      prefetchNext();
-    } catch (err) {
-      console.error('Pager swap failed → hard navigation', err);
-      window.location.assign(url);  // safety net
-    } finally {
-      stopWatchdog();
-      setLoading(false);
-    }
-  }
-
-  function onPagerClick(e) {
-    const a = e.target.closest('a[href]');
-    if (!a || a.target === '_blank' || e.metaKey || e.ctrlKey) return;
-    e.preventDefault();
-
-    if (isLoading && controller) controller.abort(); // newest click wins
-    history.pushState({}, '', a.href);
-    swapFrom(a.href);
-  }
-
-  function bindPagination() {
-    const pag = root.querySelector('.pagination');
-    if (!pag) return;
-    pag.removeEventListener('click', onPagerClick, true);
-    pag.addEventListener('click', onPagerClick, true);
-  }
-
-  function prefetchNext() {
-    const list = root.querySelector('.pagination.numbers-only .pag-list');
-    if (!list) return;
-
-    const current = list.querySelector('.is-current span');
-    const nextLi  = current && current.parentElement.nextElementSibling;
-    const nextA   = nextLi && nextLi.querySelector('a[href]');
-    const nextUrl = nextA && nextA.href;
-    if (!nextUrl || cache.has(normalize(nextUrl))) return;
-
-    const doPrefetch = () => fetchPage(nextUrl).catch(() => {});
-    if ('requestIdleCallback' in window) {
-      requestIdleCallback(doPrefetch, { timeout: 1000 });
-    } else {
-      setTimeout(doPrefetch, 250);
-    }
-
-    try {
-      const hint = document.createElement('link');
-      hint.rel = 'prefetch';
-      hint.href = withSection(nextUrl);
-      hint.as = 'fetch';
-      hint.crossOrigin = 'anonymous';
-      document.head.appendChild(hint);
-    } catch(_) {}
-  }
-
-  window.addEventListener('popstate', () => swapFrom(window.location.href));
-  bindPagination();
-  prefetchNext();
-})();
-</script>
-
+  </script>
 </section>
 {%- endpaginate -%}

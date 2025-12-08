@@ -1,0 +1,57 @@
+{% comment %}
+  snippets/ch-sort-drawer.liquid
+  Mobile SORT drawer (bottom) — CH version
+{% endcomment %}
+
+<style>
+  @media(max-width:989px){
+    .ch-portal .ch-drawer--bottom{
+      position:fixed;left:0;right:0;bottom:0;top:auto;width:100vw;max-height:min(70vh,520px);
+      background:var(--surface);border-radius:14px 14px 0 0;box-shadow:0 -24px 64px rgba(17,17,17,.24);
+      transform:translate3d(0,100%,0);transition:transform .24s ease;z-index:var(--z-drawer);display:flex;flex-direction:column
+    }
+    .ch-portal .ch-drawer--bottom.is-open{transform:translate3d(0,0,0)}
+
+    .ch-portal .ch-drawer--bottom .ch-drawer__hd{
+      padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between
+    }
+    .ch-portal .ch-drawer--bottom .ch-drawer__hd h2{text-transform:uppercase;font-size:13px;letter-spacing:.02em}
+    .ch-portal .ch-drawer--bottom .ch-drawer__close{
+      width:28px;height:28px;border:0;background:transparent;color:#262626;display:grid;place-items:center;padding:0;cursor:pointer;line-height:1
+    }
+    .ch-portal .ch-drawer--bottom .ch-drawer__close:hover{ color:var(--brand); }
+
+    .ch-portal .ch-drawer--bottom .ch-drawer__bd{
+      flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch;padding:0 0
+    }
+    .ch-portal .ch-sort-row{
+      padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;font-size:14px;
+    }
+    .ch-portal .ch-sort-row.is-active{ background:#FEE2E2; }
+    .ch-portal .ch-drawer--bottom .ch-drawer__ft{
+      position:sticky;bottom:0;padding:10px 16px;border-top:1px solid var(--line);padding-bottom:calc(12px + env(safe-area-inset-bottom));background:var(--surface);display:block
+    }
+    .ch-portal .ch-drawer--bottom .btn{width:100%}
+  }
+
+  @media(min-width:990px){
+    .ch-portal #ChDrawerSort-{{ section.id }}{display:none!important}
+  }
+</style>
+
+<aside id="ChDrawerSort-{{ section.id }}" class="ch-drawer ch-drawer--bottom" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="ChDrawerSortLabel-{{ section.id }}">
+  <div class="ch-drawer__hd">
+    <h2 id="ChDrawerSortLabel-{{ section.id }}">Sort by</h2>
+    <button type="button" class="ch-drawer__close" data-ch-close aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" fill="none"/></svg>
+    </button>
+  </div>
+  <div class="ch-drawer__bd">
+    <form id="ChSortForm-{{ section.id }}" role="group" aria-labelledby="ChDrawerSortLabel-{{ section.id }}">
+      <div data-sort-options></div>
+    </form>
+  </div>
+  <div class="ch-drawer__ft">
+    <button type="button" class="btn btn-solid" data-apply-sort>Apply</button>
+  </div>
+</aside>

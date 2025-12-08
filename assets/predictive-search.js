@@ -47,25 +47,85 @@ function attachPredictive(inputId){
     hasAny ? open() : close();
   };
 
-  const fetchPredictive = async (q)=>{
-    const url = `/search/suggest.json?q=${encodeURIComponent(q)}`
-      + `&resources[type]=product,collection,article,page`
-      + `&resources[limit]=4`
-      + `&resources[options][unavailable_products]=last`
-      + `&resources[options][fields]=title,product_type,variants.title,vendor`;
-    const res = await fetch(url,{headers:{'Accept':'application/json'}});
-    if(!res.ok) throw new Error('Network');
-    const data = await res.json();
-    const queries = (data?.suggestions || []).map(s=>s.text);
-    const products = (data?.resources?.results?.products || []);
-    render({products,queries});
+const fetchPredictive = async (rawQ) => {
+  // optional little normalizer: treat "f1.8" / "f 1.8" as "f/1.8"
+  const q = rawQ.replace(/\bf\s*1\.8\b/gi, 'f/1.8');
+
+  const qs = encodeURIComponent(q);
+
+  const urlSuggest =
+    `/search/suggest.json?q=${qs}` +
+    `&resources[type]=product,collection,article,page` +
+    `&resources[limit]=4` +
+    `&resources[options][unavailable_products]=last` +
+    `&resources[options][fields]=title,product_type,variants.title,vendor`;
+
+  const urlSearch = `/search.json?q=${qs}&type=product`;
+
+  const [resSuggest, resSearch] = await Promise.all([
+    fetch(urlSuggest, { headers: { 'Accept':'application/json' } }),
+    fetch(urlSearch,  { headers: { 'Accept':'application/json' } })
+  ]);
+
+  const dataSuggest = resSuggest.ok ? await resSuggest.json() : null;
+  const dataSearch  = resSearch.ok  ? await resSearch.json()  : null;
+
+  const queries = (dataSuggest?.suggestions || []).map(s => s.text);
+  const productsSuggest = (dataSuggest?.resources?.results?.products || []);
+
+  // search.json shape: { products: [...] } on modern themes
+  const rawSearchProducts = Array.isArray(dataSearch?.products)
+    ? dataSearch.products
+    : Array.isArray(dataSearch?.results)
+      ? dataSearch.results
+      : [];
+
+  const seen = new Set();
+  const merged = [];
+
+  const add = (p) => {
+    if (!p) return;
+    const key = p.id || p.handle || p.url;
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    merged.push(p);
   };
 
-  const onInput = debounce(async (e)=>{
-    const q = (e.target.value||'').trim();
-    if(q.length < 2){ close(); return; }
-    try { await fetchPredictive(q); } catch(e){ close(); }
+  // 1) predictive products
+  productsSuggest.forEach(add);
+
+  // 2) full search products (normalize shape)
+  rawSearchProducts.forEach(p => {
+    const normalized = {
+      id: p.id,
+      handle: p.handle,
+      title: p.title,
+      url: p.url || (p.handle ? `/products/${p.handle}` : '#'),
+      price: p.price || p.price_min || 0,
+      price_min: p.price_min || p.price || 0,
+      image:
+        (p.featured_image && (p.featured_image.url || p.featured_image.src)) ||
+        (p.image && (p.image.url || p.image.src || p.image)) ||
+        '',
+      vendor: p.vendor || '',
+    };
+    add(normalized);
   });
+
+  // keep your existing render API; just cap to 4 results
+  render({
+    products: merged.slice(0, 4),
+    queries
+  });
+};
+
+
+const onInput = debounce(async (e) => {
+  const q = (e.target.value || '').trim();
+  if (q.length < 2) { close(); return; }
+  try { await fetchPredictive(q); } catch (e) { close(); }
+});
+
 
   input.addEventListener('input', onInput);
   input.addEventListener('focus', ()=>{ const q=(input.value||'').trim(); if(q.length>=2) fetchPredictive(q); });

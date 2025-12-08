@@ -1,86 +1,567 @@
-{% paginate search.results by 20 %}
+{%- paginate search.results by 20 -%}
+<section
+  id="ch-search-template"
+  class="ch-collection"
+  data-section-id="search"
+>
+  <style>
+    /* =======================
+       TOKENS & GLOBAL RESET
+    ======================== */
+    #ch-search-template{
+      --panel: #ffffff;
+      --ink: #111111;
+      --muted: #6B7280;
+      --line: rgba(17,17,17,.10);
+      --radius: 14px;
+      --shadow: 0 10px 30px rgba(17,17,17,.10);
+      --focus: 0 0 0 3px rgba(32,94,214,.35);
+      --grid-gap: 20px;
+      --accent: #e11d48;
+      --accent-soft: #fff4f2;
+    }
+    #ch-search-template *,
+    #ch-search-template *::before,
+    #ch-search-template *::after{
+      box-sizing:border-box;
+      font-family:var(--font-sans);
+    }
 
-<div class="page-width">
-  <header class="grid medium-up--grid--table section-header small--text-center">
-    <div class="grid__item medium-up--two-thirds section-header__item">
-      <h1 class="section-header__title">{{ 'general.search.title' | t }}</h1>
+    /* =======================
+       HEADER
+    ======================== */
+    #ch-search-template .ch-header{
+      margin:26px 0 2px;
+      padding-top:4px;
+    }
+    #ch-search-template .ch-title{
+      margin:0 0 10px !important;
+      font-weight:600;
+      letter-spacing:-.02em;
+      line-height:1.1;
+      font-size:clamp(2.15rem, 3vw, 42px);
+      color: var(--heading-color, inherit);
+    }
+    #ch-search-template .ch-sub{
+      margin:0 !important;
+      line-height:1.55;
+      font-weight:400;
+      color:var(--muted);
+      max-width:660px;
+      font-size:clamp(14px, 1.1vw, 16px);
+    }
+
+    /* =======================
+       TOOLBAR (FILTER + SORT)
+    ======================== */
+    #ch-search-template .ch-toolbar{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      justify-content:space-between;
+      margin:26px 0 12px;
+      flex-wrap:wrap;
+      padding:8px 0;
+    }
+    #ch-search-template .ch-toolbar-left{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    #ch-search-template .ch-toolbar-right{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      position:relative;
+    }
+
+    /* Filter: icon + faint gray text (no pill) — EXACTLY like collections */
+    #ch-search-template .ch-toolbar-filter{
+      display:inline-flex;
+      gap:4px;
+      align-items:center;
+      border:0;
+      background:transparent;
+      border-radius:0;
+      padding:0;
+      font-size:14px;
+      cursor:pointer;
+      transition:color .12s ease;
+      color:rgba(17,17,17,.45);
+      box-shadow:none;
+      font-weight:400;
+    }
+    #ch-search-template .ch-toolbar-filter:hover{
+      background:transparent;
+      border-color:transparent;
+      box-shadow:none;
+      transform:none;
+      color:rgba(17,17,17,.8);
+    }
+    #ch-search-template .ch-toolbar-filter .ch-filter-icon{
+      display:inline-flex;
+      width:16px;
+      height:16px;
+    }
+    #ch-search-template .ch-toolbar-filter .ch-filter-icon svg{
+      width:16px;
+      height:16px;
+      display:block;
+    }
+    /* default: filters shown → UP arrow visible */
+    #ch-search-template .ch-toolbar-filter .ch-filter-icon--closed{display:none;}
+    #ch-search-template.is-filter-collapsed .ch-toolbar-filter .ch-filter-icon--closed{display:inline-flex;}
+    #ch-search-template.is-filter-collapsed .ch-toolbar-filter .ch-filter-icon--open{display:none;}
+
+    /* Sorter — EXACT same squarish faint grey style */
+    #ch-search-template .ch-sorter{ position:relative; z-index:30; }
+    #ch-search-template .ch-sorter-btn{
+      display:flex;
+      gap:14px;
+      align-items:center;
+      justify-content:space-between;
+      min-width:150px;
+      border:1px solid rgba(17,17,17,.10);
+      background:#f5f5f7;
+      border-radius:10px;
+      padding:6px 16px 7px;
+      font-size:13.5px;
+      cursor:pointer;
+      transition:box-shadow .12s ease, transform .12s ease, background .12s ease, border-color .12s ease;
+      box-shadow:none;
+      color:rgba(17,17,17,.55);
+      min-height:36px;
+    }
+    #ch-search-template .ch-sorter-btn:hover{
+      background:#ececf0;
+      border-color:rgba(17,17,17,.18);
+      box-shadow:none;
+      transform:none;
+    }
+    #ch-search-template .ch-sorter-arrow{ width:14px; height:14px; display:block; }
+    #ch-search-template .ch-sorter-pop{
+      position:absolute;
+      right:0;
+      top:calc(100% + 10px);
+      background:#f5f5f7;
+      border:1px solid rgba(17,17,17,.10);
+      border-radius:16px;
+      box-shadow:none;
+      min-width:220px;
+      display:none;
+      overflow:hidden;
+    }
+    #ch-search-template .ch-sorter.is-open .ch-sorter-pop{ display:block; }
+    #ch-search-template .ch-sorter-pop::before{
+      content:''; position:absolute; top:-11px; right:32px; width:14px; height:14px;
+      background:#f5f5f7; border-top:1px solid rgba(17,17,17,.10); border-left:1px solid rgba(17,17,17,.10);
+      transform:rotate(45deg);
+    }
+    #ch-search-template .ch-sorter-list{
+      list-style:none; margin:0; padding:8px 0; max-height:280px; overflow-y:auto;
+    }
+    #ch-search-template .ch-sorter-item{
+      padding:10px 16px 10px 32px; font-size:13.5px; line-height:1.35; cursor:pointer; position:relative;
+      color:rgba(17,17,17,.75); background:transparent; transition:background .12s ease, color .12s ease;
+    }
+    #ch-search-template .ch-sorter-item:hover{ background:#ececf0; color:var(--ink); }
+    #ch-search-template .ch-sorter-item.is-active{
+      background:#ececf0; color:var(--ink); font-weight:500;
+    }
+    #ch-search-template .ch-sorter-item.is-active::before{
+      content:''; position:absolute; left:10px; top:9px; bottom:9px; width:3px; border-radius:999px; background:var(--accent);
+    }
+    #ch-search-template .ch-sorter-select{ display:none; }
+
+    /* =======================
+       LAYOUT
+    ======================== */
+    #MainContent > .shopify-section:has(#ch-search-template),
+    #MainContent > .shopify-section:has(#ch-search-template) .page-width,
+    #ch-search-template,
+    #ch-search-template .page-width{
+      padding-top:0 !important;
+      margin-top:0 !important;
+    }
+    @supports not (selector(:has(*))){
+      body.template-search #MainContent .shopify-section,
+      body.template-search #MainContent .shopify-section .page-width{
+        padding-top:0 !important;
+        margin-top:0 !important;
+      }
+    }
+    #ch-search-template .ch-body{
+      display:flex; gap:28px; align-items:flex-start; margin-top:4px; transition:gap .28s ease;
+    }
+    #ch-search-template .ch-side{
+      flex:0 0 280px; max-width:280px; transition:max-width .28s ease, flex-basis .28s ease, opacity .2s ease;
+    }
+    #ch-search-template .ch-main{ flex:1 1 auto; min-width:0; }
+
+    @media(max-width:989px){
+      #ch-search-template .ch-body{ display:block; }
+      #ch-search-template .ch-side{
+        max-width:none; margin-bottom:14px; opacity:1 !important; pointer-events:auto !important;
+      }
+    }
+    @media(min-width:990px){
+      #ch-search-template.is-filter-collapsed .ch-side{
+        max-width:0; flex-basis:0; opacity:0; pointer-events:none;
+      }
+      #ch-search-template.is-filter-collapsed .ch-body{ gap:20px; }
+      #ch-search-template.is-filter-collapsed #CollectionProductGrid{
+        grid-template-columns:repeat(4,minmax(0,1fr));
+      }
+    }
+
+    /* =======================
+       PRODUCT GRID
+    ======================== */
+    #ch-search-template #CollectionProductGrid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:var(--grid-gap);
+      align-items:stretch;
+      min-height:120px;
+      transition:grid-template-columns .28s ease;
+      position:relative;
+    }
+    @media(min-width:750px){
+      #ch-search-template #CollectionProductGrid{
+        grid-template-columns:repeat(3,minmax(0,1fr));
+      }
+    }
+    /* neutralize Dawn utilities */
+    #ch-search-template #CollectionProductGrid .grid__item,
+    #ch-search-template #CollectionProductGrid [class*="medium-up--"],
+    #ch-search-template #CollectionProductGrid [class*="small--"]{
+      all:unset; display:block;
+    }
+    /* perf hint */
+    #ch-search-template #CollectionProductGrid .ch-cell{
+      content-visibility:auto; contain-intrinsic-size:1px 360px;
+    }
+
+    /* =======================
+       SIMPLE ANIM
+    ======================== */
+    .ch-float-in{ animation:chFloatIn .5s cubic-bezier(.21,.61,.35,1) both; }
+    @keyframes chFloatIn{ from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:none;} }
+
+    /* =======================
+       PAGINATION (numbers only)
+    ======================== */
+    #ch-search-template .pagination{
+      margin:22px 0 0; display:flex; flex-wrap:wrap; gap:8px;
+    }
+    #ch-search-template .pagination.numbers-only{
+      margin:28px 0 0; padding-top:14px; border-top:1px solid var(--line);
+      justify-content:center; gap:0;
+    }
+    #ch-search-template .pagination.numbers-only .pag-list{
+      display:flex; gap:14px; list-style:none; margin:0; padding:0;
+    }
+    #ch-search-template .pagination.numbers-only a,
+    #ch-search-template .pagination.numbers-only span{
+      border:none !important; background:none !important; border-radius:0 !important;
+      padding:6px 2px; min-width:28px; text-align:center; line-height:1; font-size:14px; text-decoration:none;
+    }
+    #ch-search-template .pagination.numbers-only a{ color:var(--muted); cursor:pointer; }
+    #ch-search-template .pagination.numbers-only a:hover{ color:var(--ink); text-decoration:underline; }
+    #ch-search-template .pagination.numbers-only .is-current > span{
+      color:var(--accent); font-weight:700;
+    }
+
+    /* =======================
+       MOBILE TWEAKS
+    ======================== */
+    @media(max-width:749px){
+      #ch-search-template .ch-header{ padding-top:8px; padding-bottom:6px; }
+      #ch-search-template .ch-title{ margin-bottom:6px !important; }
+      #ch-search-template .ch-sub{
+        color:#111; max-width:none; font-size:14.75px; margin-bottom:12px !important;
+      }
+      #ch-search-template .ch-toolbar{
+        margin-top:16px; padding:6px 0 !important; flex-direction:row; align-items:center;
+      }
+      #ch-search-template .ch-toolbar-filter{ padding:6px 12px !important; font-size:14px; }
+      #ch-search-template .ch-sorter-btn{
+        padding:6px 12px !important; min-width:auto; gap:4px; font-size:14px; font-weight:500;
+      }
+      #ch-search-template .ch-sorter-pop{ right:0; left:auto; width:min(90vw,280px); }
+      #ch-search-template .ch-sorter-pop::before{ right:12px; left:auto; }
+      #ch-search-template .ch-body{ margin-top:10px; }
+      #ch-search-template .page-width{
+        padding-left: 4px !important;
+        padding-right: 4px !important;
+      }
+      #ch-search-template{
+        --grid-gap: 6px;
+      }
+    }
+
+    /* Force full width and auto height to fix "thin and long" look */
+    @media (max-width: 1023px) {
+      #ch-search-template .ch-card,
+      #ch-collection-{{ section.id }} .ch-card {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: auto !important;
+        flex: 1 1 auto !important;
+      }
+    }
+
+    /* === Header filter chips — EXACT divider style as collections === */
+    #ch-search-template .ch-chipline{
+      display:flex; flex-wrap:wrap; align-items:center; gap:0; margin:10px 0 0;
+    }
+    #ch-search-template .ch-chipline .chip{
+      position:relative; display:inline-flex; align-items:center; flex-direction:row-reverse;
+      padding:0 14px; background:transparent; border:0; border-radius:0; box-shadow:none;
+      font-size:14px; color:#111; white-space:nowrap;
+      transition: opacity .2s ease, transform .2s ease; /* for removal anim */
+    }
+    #ch-search-template .ch-chipline .chip.is-removing{ opacity:0; transform:translateY(-6px); }
+    #ch-search-template .ch-chipline .chip:first-child{ padding-left:0; }
+    #ch-search-template .ch-chipline .chip + .chip::before{
+      content:""; position:absolute; left:0; top:50%; transform:translateY(-50%);
+      width:1px; height:16px; background:rgba(15,17,21,.18);
+    }
+    #ch-search-template .ch-chipline .chip > button{
+      all:unset; position:relative; display:inline-flex; align-items:center; justify-content:center;
+      width:16px; height:16px; cursor:pointer; color:inherit; margin-right:6px; font-size:0; line-height:0;
+    }
+    #ch-search-template .ch-chipline .chip > button::before,
+    #ch-search-template .ch-chipline .chip > button::after{
+      content:""; position:absolute; left:50%; top:50%; width:10px; height:2px; border-radius:2px;
+      background:currentColor; transform-origin:center; transition:transform .18s cubic-bezier(.2,.7,.2,1), opacity .18s;
+    }
+    #ch-search-template .ch-chipline .chip > button::before{ transform:translate(-50%,-50%) rotate(45deg); }
+    #ch-search-template .ch-chipline .chip > button::after{ transform:translate(-50%,-50%) rotate(-45deg); }
+    #ch-search-template .ch-chipline .chip > button:hover,
+    #ch-search-template .ch-chipline .chip > button:focus-visible{
+      color:#D12F24; outline:none;
+    }
+    #ch-search-template .ch-chipline .chip > button:hover::before,
+    #ch-search-template .ch-chipline .chip > button:focus-visible::before{
+      transform:translate(-50%,-50%) rotate(0deg);
+    }
+    #ch-search-template .ch-chipline .chip > button:hover::after,
+    #ch-search-template .ch-chipline .chip > button:focus-visible::after{
+      opacity:0; transform:translate(-50%,-50%) rotate(0deg) scaleX(.2);
+    }
+    #ch-search-template .ch-chipline .chip--clear{
+      position:relative; display:inline-flex; align-items:center; flex-direction:row-reverse;
+      background:#D12F24; border:1px solid #D12F24; color:#fff; font-weight:500; border-radius:999px;
+      padding:4px 18px; margin-left:14px;
+    }
+    #ch-search-template .ch-chipline .chip--clear > span:first-child{
+      display:inline-block; font-size:14px; line-height:1; margin-left:6px;
+    }
+    #ch-search-template .ch-chipline .chip:has(+ .chip--clear){ position:relative; padding-right:18px; }
+    #ch-search-template .ch-chipline .chip:has(+ .chip--clear)::after{
+      content:""; position:absolute; right:-8px; top:50%; transform:translateY(-50%);
+      width:1px; height:16px; background:rgba(15,17,21,.18);
+    }
+    #ch-search-template .ch-chipline .chip--clear::before{ content:none !important; }
+    @media(prefers-reduced-motion:reduce){
+      #ch-search-template .ch-chipline .chip > button::before,
+      #ch-search-template .ch-chipline .chip > button::after{ transition:none; }
+    }
+  </style>
+
+  <div class="page-width">
+    {%- assign current_sort = search.sort_by | default: 'relevance' -%}
+    {%- assign terms = search.terms | strip -%}
+    {%- assign display_terms = terms
+      | replace: 'vendor:"', '' | replace: "vendor:'", '' | replace: 'vendor:', ''
+      | replace: 'product_type:"', '' | replace: "product_type:'", '' | replace: 'product_type:', ''
+      | replace: 'category:"', '' | replace: "category:'", '' | replace: 'category:', ''
+      | strip | replace: '  ', ' ' | replace: '"', '' -%}
+
+    <header class="ch-header">
+      <h1 class="ch-title">
+        {% if search.performed %}Results for “{{ display_terms }}”{% else %}Search{% endif %}
+      </h1>
       {% if search.performed %}
-        <p class="section-header__subtext">{{ 'general.search.results_count_html' | t: count: search.results_count, terms: search.terms }}</p>
+        <p class="ch-sub">{{ search.results_count }} result{% if search.results_count != 1 %}s{% endif %}</p>
       {% endif %}
-    </div>
-    <div class="grid__item medium-up--one-third section-header__item">
-      <form action="{{ routes.search_url }}" method="get" class="input-group" role="search">
-        {% comment %}<input type="hidden" name="type" value="product">{% endcomment %}
-        <input type="search" name="q" value="{{ search.terms | escape }}" placeholder="{{ 'general.search.placeholder' | t }}" aria-label="{{ 'general.search.placeholder' | t }}" class="input-group__field input--content-color">
 
-        <div class="input-group__btn">
-          <button type="submit" class="btn btn--narrow">
-            {% include 'icon-arrow-right' %}
-            <span class="icon__fallback-text">{{ 'general.search.submit' | t }}</span>
+      <div class="ch-toolbar" id="ChToolbar-search">
+        <div class="ch-toolbar-left">
+          <button type="button" class="ch-toolbar-filter" data-ch-toolbar-filter>
+            <span class="ch-filter-icon ch-filter-icon--open">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m3 8 4-4 4 4"/><path d="M7 4v16"/><path d="M11 12h4"/><path d="M11 16h7"/><path d="M11 20h10"/>
+              </svg>
+            </span>
+            <span class="ch-filter-icon ch-filter-icon--closed">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="M11 4h4"/><path d="M11 8h7"/><path d="M11 12h10"/>
+              </svg>
+            </span>
+            Filters
           </button>
         </div>
-      </form>
-    </div>
-  </header>
 
-  {% if search.performed %}
-
-    {% comment %}
-      Find the number of products and pages in the search results
-    {% endcomment %}
-    {% assign product_count = 0 %}
-    {% assign page_count = 0 %}
-    {% for item in search.results %}
-      {% if item.object_type == 'product' %}
-        {% assign product_count = product_count | plus: 1 %}
-      {% else %}
-        {% assign page_count = page_count | plus: 1 %}
-      {% endif %}
-    {% endfor %}
-
-    {% if product_count > 0 %}
-      <h2 class="h4 small--text-center">{{ 'general.search.products' | t }}</h2>
-
-      <div class="grid grid--no-gutters grid--uniform">
-        {% for item in search.results %}
-          {% if item.object_type == 'product' %}
-            <div class="grid__item small--one-half medium-up--one-fifth">
-              {% include 'product-card', product: item %}
+        <div class="ch-toolbar-right">
+          <div class="ch-sorter" data-ch-sorter>
+            <button type="button" class="ch-sorter-btn" aria-haspopup="listbox" aria-expanded="false">
+              <span class="ch-sorter-label">
+                {%- assign active_label = '' -%}
+                {%- for option in search.sort_options -%}
+                  {%- if option.value == current_sort -%}{%- assign active_label = option.name -%}{%- endif -%}
+                {%- endfor -%}
+                {{ active_label | default: 'Relevance' }}
+              </span>
+              <span class="ch-sorter-arrow">
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m5 8 5 5 5-5"></path>
+                </svg>
+              </span>
+            </button>
+            <div class="ch-sorter-pop" role="listbox" tabindex="-1">
+              <ul class="ch-sorter-list">
+                {%- for option in search.sort_options -%}
+                  <li
+                    class="ch-sorter-item {% if option.value == current_sort %}is-active{% endif %}"
+                    data-value="{{ option.value }}"
+                    role="option"
+                    aria-selected="{% if option.value == current_sort %}true{% else %}false{% endif %}">
+                    {{ option.name }}
+                  </li>
+                {%- endfor -%}
+              </ul>
             </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-    {% endif %}
-
-    {% if product_count and page_count %}
-      <hr>
-    {% endif %}
-
-    {% if page_count > 0 %}
-      <h4 class="small--text-center">{{ 'general.search.pages_and_articles' | t }}</h4>
-
-      <div class="content-block content-block--no-bottom-padding">
-        <div class="grid grid--uniform">
-        {% for item in search.results %}
-          {% unless item.object_type == 'product' %}
-            <div class="grid__item medium-up--one-third content-block__item">
-              <h5>{{ item.title | link_to: item.url }}</h5>
-              <div class="rte">{{ item.content | strip_html | truncate: 150 }}</div>
-              <p><a href="{{ item.url }}"><strong>{{ 'general.search.read_more' | t }}</strong></a></p>
-            </div>
-          {% endunless %}
-        {% endfor %}
+            <form method="get" id="ChSortForm-search">
+              <input type="hidden" name="q" value="{{ terms | escape }}">
+              <input type="hidden" name="type" value="product">
+              <select
+                name="sort_by"
+                id="ChSortSelect-search"
+                class="ch-sorter-select"
+                aria-hidden="true"
+                tabindex="-1">
+                {%- for option in search.sort_options -%}
+                  <option value="{{ option.value }}" {% if option.value == current_sort %}selected{% endif %}>
+                    {{ option.name }}
+                  </option>
+                {%- endfor -%}
+              </select>
+            </form>
+          </div>
         </div>
       </div>
-    {% endif %}
 
-    {% if paginate.pages > 1 %}
-      <div class="pagination">
-        {{ paginate | default_pagination | replace: '&laquo; Previous', '&larr;' | replace: 'Next &raquo;', '&rarr;' }}
+      <div id="ChFilterChips-search" class="ch-chipline" aria-live="polite"></div>
+    </header>
+
+    <div class="ch-body">
+      <aside class="ch-side">
+        {% section 'collection-filters' %}
+      </aside>
+
+      <div class="ch-main">
+        <div class="ch-grid-wrap">
+          <div id="CollectionProductGrid">
+            {%- assign has_products = false -%}
+            {%- for item in search.results -%}
+              {%- if item.object_type == 'product' -%}
+                {%- assign has_products = true -%}
+                <div class="ch-cell">
+                  {% render 'product-card', product: item %}
+                </div>
+              {%- endif -%}
+            {%- endfor -%}
+
+            {%- unless has_products -%}
+              <div class="ch-cell" style="grid-column:1/-1;text-align:center">
+                <p>No products found.</p>
+              </div>
+            {%- endunless -%}
+          </div>
+
+          {%- if paginate.pages > 1 -%}
+            <nav class="pagination numbers-only" role="navigation" aria-label="Pagination">
+              <ol class="pag-list" role="list">
+                {%- for part in paginate.parts -%}
+                  {%- if part.is_link -%}
+                    <li>
+                      <a href="{{ part.url }}" data-page="{{ part.title }}" aria-label="Go to page {{ part.title }}">
+                        {{ part.title }}
+                      </a>
+                    </li>
+                  {%- elsif part.title == paginate.current_page -%}
+                    <li class="is-current">
+                      <span aria-current="page">{{ part.title }}</span>
+                    </li>
+                  {%- else -%}
+                    <li class="ellipsis" aria-hidden="true">
+                      <span>&hellip;</span>
+                    </li>
+                  {%- endif -%}
+                {%- endfor -%}
+              </ol>
+            </nav>
+          {%- endif -%}
+        </div>
       </div>
-    {% endif %}
+    </div>
+  </div>
 
-  {% endif %}
-</div>
+  <script src="{{ 'ch-collection-grid.js' | asset_url }}" defer></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('[Search] DOMContentLoaded fired. search.filters size: {{ search.filters.size }}');
+      const root = document.getElementById('ch-search-template');
+      
+      if (!root) {
+        console.error('[Search] Root element #ch-search-template not found');
+        return;
+      }
 
-{% endpaginate %}
+      // Debug: Check if button exists
+      const btn = root.querySelector('[data-ch-toolbar-filter]');
+      console.log('[Search] Filter button found:', !!btn);
+
+      if (btn) {
+        // Fallback listener in case Module fails
+        btn.addEventListener('click', function() {
+          console.log('[Search] Filter button clicked (fallback listener)');
+          // Manually dispatch if needed, though module should handle it
+          window.dispatchEvent(new CustomEvent('ch:toggle-filters', { detail: { id: 'search' } }));
+        });
+      }
+
+      if (typeof window.ChCollectionGrid === 'undefined') {
+        console.error('[Search] window.ChCollectionGrid is undefined! Script may not have loaded.');
+        return;
+      }
+
+      console.log('[Search] Initializing ChCollectionGrid...');
+      try {
+        window.ChCollectionGrid.init(root, {
+          sid: 'search',
+          gridSelector: '#CollectionProductGrid',
+          paginationSelector: 'nav.pagination',
+          chipsBarSelector: '#ChFilterChips-search',
+          sorter: {
+            containerSelector: '[data-ch-sorter]',
+            labelSelector: '.ch-sorter-label',
+            itemSelector: '.ch-sorter-item',
+            selectSelector: '#ChSortSelect-search',
+            getSortFromUrl: () => new URL(window.location.href).searchParams.get('sort_by') || '{{ current_sort }}'
+          },
+          fetch: {
+            resolveSectionRoot: (frag) => frag.querySelector('#ch-search-template') || frag
+          }
+        });
+        console.log('[Search] ChCollectionGrid initialized successfully');
+      } catch (e) {
+        console.error('[Search] Error initializing ChCollectionGrid:', e);
+      }
+    });
+  </script>
+</section>
+{%- endpaginate -%}

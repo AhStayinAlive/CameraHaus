@@ -1,638 +1,721 @@
-{%- assign _mode = mode | default: 'cats' -%}
+{%- comment -%}
+  SNIPPET: ch-mega
+  - Modes:
+      • 'cats'   → flat category text list (multi-column, no subcategories)
+      • 'brands' → logo tiles (from brand_rows mapping)
+      • 'stores' → one-column list + CTA
+  - Panel mounts under header, overlay behind
+{%- endcomment -%}
 
-<!-- ch-mega.liquid — click-to-open mega menu, polished spacing + CTAs -->
+{%- assign _mode = mode | default: 'cats' -%}
 
 <style>
   .mmg-wrap[data-mega]{ position:relative; }
+
+  /* ===== PANEL (fixed under header) ===== */
   .mmg{
-    --brand:#e03a2f; --brand-600:#d12f24;
-    position:fixed; left:var(--mmg-left,0px); top:calc(var(--mmg-top,0px) + 6px); z-index:4000;
-    background:#fff; color:#0F172A; border:1px solid #E7EBF0; border-radius:10px;
-    box-shadow:0 14px 30px rgba(2,6,23,.12), 0 0 0 1px rgba(2,6,23,.04) inset;
-    overflow:hidden; opacity:0; visibility:hidden; pointer-events:none; transform:translateY(6px);
+    --brand:#D12F24;               /* CTA / accent red */
+    --ink:#111111;                 /* primary text */
+    --ink-2:#6B7280;               /* section labels */
+    --ink-soft:#4B5563;
+    --chev:#9CA3AF;
+
+    position:fixed; left:0; right:0; top:0; z-index:9999;
+    background:#fff; color:var(--ink);
+    border:0; border-radius:0; box-shadow:0 24px 64px rgba(16,24,40,.18);
+    opacity:0; visibility:hidden; pointer-events:none; transform:translateY(8px);
     transition:opacity .18s cubic-bezier(.22,.61,.36,1), transform .18s cubic-bezier(.22,.61,.36,1);
-    max-width:min(980px,95vw);
+    overflow-y:auto;                  /* single scroll if content overflows */
+    max-height:100vh;                 /* JS will shrink further from header height */
   }
-  .mmg-wrap[data-open="true"] .mmg{ opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0); }
+  .mmg.is-open{ opacity:1; visibility:visible; pointer-events:auto; transform:none; }
 
-  .mmg-body{ padding:14px 16px 16px; max-height:60vh; overflow:hidden; }
-  .mmg-3cols{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:36px; min-width:760px; align-items:start; }
-
-  /* Head + CTA on the right */
-  .mmg-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 8px; }
-  .mmg-head h4{ margin:0; font:600 12px/1.15 "Inter",system-ui,sans-serif; color:#111827; letter-spacing:.01em; text-transform:none; }
-  .mmg-hr{ height:1px; background:#E5E7EB; margin:0 0 10px; }
-
-  .mmg-col ul{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
-  .mmg-col a{ display:block; text-decoration:none; color:#4B5563; font:400 13px/1.45 "Inter",system-ui; }
-  .mmg-col a:hover{ color:#111827; text-decoration:underline; }
-
-  /* Column 1 rail (only this scrolls + subtle gray for separation) */
-  .mmg-col--rail{ background:#F5F6F8; border-radius:8px; padding:10px; }
-  .mmg-railwrap{ max-height:calc(60vh - 14px - 16px - 8px - 10px); overflow:auto; padding-right:6px; }
-  .mmg-railwrap::-webkit-scrollbar{ width:8px; } 
-  .mmg-railwrap::-webkit-scrollbar-thumb{ background:#E0E5EC; border-radius:8px; }
-  .mmg-railwrap:hover::-webkit-scrollbar-thumb{ background:#CBD5E1; }
-
-  /* Pivots: icon + label on ONE line */
-  .mmg-pivots li{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; column-gap:8px; }
-  .mmg-pivot{
-    grid-column:1 / span 2; display:flex; align-items:center; gap:8px;
-    min-height:32px; padding:4px 8px; border-radius:6px; text-decoration:none; overflow:hidden;
+  .mmg-shell{
+    padding:24px 40px 28px;
   }
-  .mmg-pivot:hover{ background:#EEF2F6; text-decoration:none; }
-  .mmg-pivots a[aria-current="true"]{ color:#111827; font-weight:600; background:#EEF2F6; }
-  .mmg-icoL{ width:18px; height:18px; color:#9AA3AF; display:grid; place-items:center; flex:0 0 18px; }
-  .mmg-icoL svg *{ fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
-  .mmg-txt{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .mmg-go{
-    grid-column:3; width:24px; height:24px; border:0; background:transparent; color:#9AA3AF;
-    border-radius:6px; cursor:pointer; justify-self:end; opacity:0; transition:opacity .12s ease, background .12s ease;
+  .mmg-inner{
+    margin:0 auto;
+    max-width:1220px;                /* centers content, balanced whitespace */
   }
-  .mmg-pivots li:hover .mmg-go{ opacity:1; }
-  .mmg-go:hover{ background:#EAEFF4; color:#111827; }
-  .mmg-go:focus-visible{ outline:2px solid #93C5FD; outline-offset:1px; }
 
-  /* CTA chips */
-  .mmg-btn{
-    display:inline-flex; align-items:center; gap:6px;
-    padding:6px 10px; border-radius:8px; text-decoration:none;
-    font:600 12px/1.1 "Inter"; letter-spacing:.01em;
-    background:var(--brand); border:1px solid var(--brand); color:#fff;
-    transition:background .15s ease, border-color .15s ease, transform .12s ease;
+  /* Headings */
+  .mmg-head{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin-bottom:18px;
+  }
+  .mmg-sectiontag{
+    background:transparent;
+    color:var(--ink-2);
+    padding:0;
+    font:600 14px/1.2 "Inter",system-ui;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+
+  /* ===== CATEGORIES: TEXT LIST WITH ARROW (MULTI-COLUMN) ===== */
+  .mmg-catlist{
+    list-style:none;
+    margin:4px 0 0;
+    padding:0;
+
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0,1fr));
+    column-gap:48px;
+    row-gap:4px;
+  }
+  @media (min-width:1024px){
+    .mmg-catlist{
+      grid-template-columns:repeat(3, minmax(0,1fr));
+    }
+  }
+
+  .mmg-catlink{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:6px 4px;
+    border-radius:8px;
+    text-decoration:none;
+    color:var(--ink);
+    font:600 18px/1.35 "Inter",system-ui;
+    transition:color .18s ease, background-color .14s ease;
+  }
+  .mmg-catlink::after{
+    content:"";
+    margin-left:auto;
+    width:6px; height:6px;
+    border-right:2px solid var(--chev);
+    border-top:2px solid var(--chev);
+    transform:rotate(45deg);
+    opacity:.9;
+  }
+  .mmg-catlink:hover,
+  .mmg-catlink:focus-visible{
+    color:var(--brand);
+    background:#F9FAFB;
+  }
+  .mmg-catlink:focus-visible{
+    outline:0;
+    box-shadow:0 0 0 2px rgba(32,94,214,.35);
+  }
+
+  /* ===== BRAND LOGO GRID (6 PER ROW DESKTOP, SMALLER TILES) ===== */
+  .mmg-brandgrid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+    margin-top:6px;
+  }
+  @media (min-width:768px){
+    .mmg-brandgrid{
+      grid-template-columns:repeat(4,minmax(0,1fr));
+    }
+  }
+  @media (min-width:1200px){
+    .mmg-brandgrid{
+      grid-template-columns:repeat(6,minmax(0,1fr));
+    }
+  }
+
+  .mmg-brandtile{
+    position:relative;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    min-height:72px;
+    padding:10px 8px;
+    border-radius:14px;
+    border:1px solid rgba(17,17,17,.10);
+    background:linear-gradient(180deg,#fff 0%,#fafafa 100%);
+    box-shadow:0 6px 20px rgba(17,17,17,.05);
+    text-decoration:none;
+    color:var(--ink);
+    transition:
+      transform .18s ease,
+      box-shadow .18s ease,
+      border-color .18s ease,
+      background .18s ease;
+    overflow:hidden;
+  }
+  .mmg-brandtile:hover{
+    transform:translateY(-2px);
+    border-color:rgba(17,17,17,.20);
+    box-shadow:0 10px 28px rgba(17,17,17,.10);
+  }
+  .mmg-brandtile:active{
+    transform:translateY(0) scale(.98);
+  }
+  .mmg-brandtile:focus-visible{
+    outline:0;
+    box-shadow:0 0 0 3px rgba(32,94,214,.35);
+  }
+  .mmg-brandtile img{
+    max-width:100%;
+    max-height:50px;
+    width:auto;
+    height:auto;
+    object-fit:contain;
+  }
+  .mmg-brandfallback{
+    font:600 14px/1.3 "Inter",system-ui;
+  }
+
+  /* Red hover pill like site brand */
+  .mmg-brandtile::after{
+    content:attr(data-name);
+    position:absolute;
+    left:10px; right:10px; bottom:8px;
+    padding:3px 8px;
+    border-radius:999px;
+    background:var(--brand);
+    color:#fff;
+    font-size:11px; line-height:1.2;
+    text-align:center;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity .15s ease, transform .15s ease;
+    pointer-events:none;
+    text-transform:capitalize;
+    box-shadow:0 2px 8px rgba(209,47,36,.25);
+  }
+  .mmg-brandtile:hover::after,
+  .mmg-brandtile:focus-visible::after{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  /* ===== CTA ===== */
+  .mmg-railcta{
+    margin-top:18px;
+  }
+  .mmg .mmg-cta{
+    display:inline-flex; align-items:center; justify-content:center;
+    height:38px; padding:0 16px;
+    border-radius:10px; border:1px solid var(--brand);
+    background:var(--brand); color:#fff;
+    font:700 13px/1 "Inter",system-ui;
+    box-shadow:0 1px 0 rgba(0,0,0,.02);
+    transition: filter .12s ease, transform .04s ease;
+    text-decoration:none;
     white-space:nowrap;
   }
-  .mmg-btn:hover{ background:var(--brand-600); border-color:var(--brand-600); color:#fff; text-decoration:none; }
-  .mmg-btn:active{ transform:translateY(1px); }
+  .mmg .mmg-cta:hover{ filter:brightness(.95); }
+  .mmg .mmg-cta:active{ transform:translateY(1px); }
 
-  /* Stagger on content swap */
-  .mmg-anim li{ opacity:0; transform:translateY(6px);
-    transition: opacity .18s cubic-bezier(.22,.61,.36,1), transform .18s cubic-bezier(.22,.61,.36,1); }
-  .mmg-anim.is-in li{ opacity:1; transform:translateY(0); }
+  /* Brands mode: top-right header CTA */
+  .mmg[data-mode="brands"] .mmg-head .mmg-cta{
+    height:34px;
+    padding:0 14px;
+    font-size:12px;
+  }
+  .mmg-cta-label{
+    display:inline-block;
+  }
+  .mmg-cta-arrow{
+    display:inline-block;
+    margin-left:6px;
+    font-size:13px;
+    line-height:1;
+    position:relative;
+    top:-0.5px;                 /* lift the arrow slightly to center it */
+    transition:transform .18s ease;
+  }
+  /* Arrow animation on hover: subtle slide to the right */
+  .mmg-cta:hover .mmg-cta-arrow,
+  .mmg-cta:focus-visible .mmg-cta-arrow{
+    transform:translateX(4px);
+  }
 
-  @media (prefers-reduced-motion: reduce){ .mmg, .mmg-anim li{ transition:none!important; } }
-  /* --- pivot row: icon + text on a single line --- */
-.mmg-pivots li{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-.mmg-pivot{ display:flex !important; align-items:center; gap:10px; padding:6px 8px; border-radius:8px; white-space:nowrap; }
-.mmg-icoL{ width:18px; height:18px; flex:0 0 18px; display:grid; place-items:center; color:#9AA3AF; }
-.mmg-txt{ overflow:hidden; text-overflow:ellipsis; }
+  /* MAKE "VIEW ALL BRANDS" STICKY IN BRANDS MODE ONLY (legacy) */
+  .mmg[data-mode="brands"] .mmg-railcta{
+    position:sticky;
+    bottom:16px;
+    padding-top:14px;
+    margin-top:12px;
+    background:linear-gradient(to bottom, rgba(255,255,255,0), #fff 55%);
+    z-index:2;
+  }
 
-/* --- CTA buttons: idle = black outline; hover = brand red --- */
-.mmg-btn{
-  background:transparent; border:1px solid #111; color:#111;
-  padding:6px 12px; border-radius:10px; font:600 12px/1.1 "Inter";
-}
-.mmg-btn:hover{ background:var(--brand); border-color:var(--brand); color:#fff; }
-/* === Mega menu & search CTA: idle = black outline, hover = red/white === */
-#ch-header-{{ section.id }} .mmg .mmg-btn,
-#ch-header-{{ section.id }} .ps-foot .cta-all{
-  display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 14px;
-  border-radius:8px; border:1px solid #111; background:transparent;
-  color:#111; font-weight:600; font-size:13px; line-height:1;
-  text-decoration:none !important;           /* kill theme underline */
-  box-shadow:none;
-}
-#ch-header-{{ section.id }} .mmg .mmg-btn:hover,
-#ch-header-{{ section.id }} .ps-foot .cta-all:hover{
-  background:var(--brand); border-color:var(--brand); color:#fff;
-  text-decoration:none !important;
-}
-#ch-header-{{ section.id }} .mmg .mmg-btn:focus-visible,
-#ch-header-{{ section.id }} .ps-foot .cta-all:focus-visible{
-  outline:2px solid #111; outline-offset:2px;
-}
-/* === Clean, Moment-like rhythm & red accent =============================== */
-.mmg{
-  --brand:#D12F24;           /* requested red */
-  --brand-600:#B5201D;       /* hover/darker */
-  --row-h:34px;              /* consistent rail row height */
-  --ico:16px;                /* icon size */
-  --gap:24px;                /* column gap */
-  --radius:10px;
-}
+  /* ===== STORES MODE (simple one-column + CTA) ===== */
+  .mmg--stores .mmg-head{ margin-bottom:12px; }
+  .mmg-1col{
+    padding-right:4px;
+  }
+  .mmg-1col ul{
+    list-style:none; margin:0; padding:0;
+    max-width:360px;
+    display:grid; gap:8px;
+  }
+  .mmg-1col a{
+    display:block; padding:6px 0;
+    font:600 16px/1.35 "Inter",system-ui;
+    color:var(--ink); text-decoration:none; border-radius:4px;
+    transition:color .18s ease;
+  }
+  .mmg-1col a:hover,
+  .mmg-1col a:focus-visible{
+    color:var(--brand); background:transparent;
+  }
 
-/* 3 equal-feel columns: tighter & balanced */
-.mmg-3cols{
-  grid-template-columns: 220px 1fr 1fr; /* lock rail width; fluid content */
-  gap:var(--gap);
-  min-width:760px;
-}
+  /* Overlay */
+  .mmg-overlay{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.45);
+    opacity:0; pointer-events:none;
+    transition:opacity .18s;
+    z-index:9998;
+  }
+  .mmg-overlay.is-open{ opacity:1; pointer-events:auto; }
 
-/* Column heads & dividers */
-.mmg-head h4{
-  margin:0;
-  font:600 12px/1.1 "Inter",system-ui,sans-serif;
-  letter-spacing:.04em; text-transform:uppercase; color:#111827;
-}
-.mmg-hr{ height:1px; background:#E7EBF0; margin:6px 0 10px; }
+  /* ===== Animations ===== */
+  @keyframes mmg-fade-up {
+    from{opacity:0; transform:translateY(8px)}
+    to{opacity:1; transform:none}
+  }
+  .mmg.mmg-animate [data-stagger] > *{
+    opacity:0; transform:translateY(6px);
+    animation:mmg-fade-up .26s ease-out both;
+  }
 
-/* Lists are denser and consistent across columns */
-.mmg-col ul{ list-style:none; margin:0; padding:0; display:grid; gap:4px; }
-.mmg-col a{
-  display:block; padding:6px 0; text-decoration:none;
-  color:#4B5563; font:400 13px/1.35 "Inter",system-ui;
-}
-.mmg-col a:hover{ color:#111827; text-decoration:underline; }
+  /* Reduced motion */
+  @media (prefers-reduced-motion:reduce){
+    .mmg, .mmg-overlay{ transition:none !important; }
+    .mmg *{ animation:none !important; transform:none !important; }
+  }
 
-/* --- Left rail: single-line, fixed-height rows with reserved icon column --- */
-.mmg-col--rail{ background:#F6F7FA; border-radius:8px; padding:10px; }
-.mmg-railwrap{ max-height:calc(60vh - 54px); overflow:auto; padding-right:6px; }
-.mmg-railwrap::-webkit-scrollbar{ width:8px; } 
-.mmg-railwrap::-webkit-scrollbar-thumb{ background:#E0E5EC; border-radius:8px; }
-.mmg-railwrap:hover::-webkit-scrollbar-thumb{ background:#CBD5E1; }
+  @media (max-width:980px){
+    .mmg-shell{ padding:20px 18px 24px; }
+  }
 
-.mmg-pivots li{
-  display:grid; grid-template-columns: var(--ico) 1fr 24px;
-  align-items:center; column-gap:10px;
-}
-.mmg-pivot{
-  grid-column:1 / span 2; display:flex; align-items:center; gap:10px;
-  min-height:var(--row-h); padding:0 8px; border-radius:8px;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-.mmg-icoL{
-  width:var(--ico); height:var(--ico); flex:0 0 var(--ico);
-  display:grid; place-items:center; color:#9AA3AF;
-}
-.mmg-txt{ overflow:hidden; text-overflow:ellipsis; }
+  /* ===== BRAND LOGO GRID (6 PER ROW DESKTOP, CLEANER LOOK) ===== */
+  .mmg-brandgrid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    column-gap:18px;
+    row-gap:14px;
+    margin-top:14px;
+  }
+  @media (min-width:768px){
+    .mmg-brandgrid{
+      grid-template-columns:repeat(4,minmax(0,1fr));
+    }
+  }
+  @media (min-width:1200px){
+    .mmg-brandgrid{
+      grid-template-columns:repeat(6,minmax(0,1fr));
+    }
+  }
 
-/* Keep rail spacing identical in brand mode by hiding (not collapsing) icons */
-.mmg[data-mode="brands"] .mmg-icoL{ visibility:hidden; }
+  .mmg-brandtile{
+    position:relative;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    min-height:64px;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid rgba(15,23,42,.06);
+    background:#ffffff;
+    box-shadow:0 3px 12px rgba(15,23,42,.04);
+    text-decoration:none;
+    color:var(--ink);
+    transition:
+      transform .16s ease,
+      box-shadow .16s ease,
+      border-color .16s ease,
+      background .16s ease;
+    overflow:hidden;
+  }
+  .mmg-brandtile:hover{
+    transform:translateY(-1px);
+    border-color:rgba(15,23,42,.14);
+    box-shadow:0 6px 18px rgba(15,23,42,.10);
+  }
+  .mmg-brandtile:active{
+    transform:translateY(0) scale(.985);
+  }
+  .mmg-brandtile:focus-visible{
+    outline:0;
+    box-shadow:0 0 0 3px rgba(32,94,214,.35);
+  }
 
-/* Hover & active styles with subtle red accent */
-.mmg-pivot:hover{ background:#EEF1F5; text-decoration:none; }
-.mmg-pivots a[aria-current="true"]{
-  color:#111827; font-weight:600;
-  background:linear-gradient(90deg, rgba(209,47,36,.08), rgba(209,47,36,0));
-  box-shadow:inset 2px 0 0 var(--brand);   /* red rail indicator */
-}
+  .mmg-brandtile img{
+    max-width:100%;
+    max-height:44px;
+    width:auto;
+    height:auto;
+    object-fit:contain;
+  }
+  .mmg-brandfallback{
+    font:600 14px/1.3 "Inter",system-ui;
+  }
 
-/* “Go” chevron only on hover to keep it clean */
-.mmg-go{
-  grid-column:3; width:24px; height:24px; border:0; background:transparent;
-  color:#9AA3AF; border-radius:6px; cursor:pointer; justify-self:end; opacity:0;
-  transition:opacity .12s ease, background .12s ease, color .12s ease;
-}
-.mmg-pivots li:hover .mmg-go{ opacity:1; }
-.mmg-go:hover{ background:#EAEFF4; color:#111827; }
-.mmg-go:focus-visible{ outline:2px solid #93C5FD; outline-offset:1px; }
+  .mmg-brandtile::after{
+    content:attr(data-name);
+    position:absolute;
+    left:10px; right:10px; bottom:6px;
+    padding:3px 8px;
+    border-radius:999px;
+    background:var(--brand);
+    color:#fff;
+    font-size:11px; line-height:1.2;
+    text-align:center;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity .15s ease, transform .15s ease;
+    pointer-events:none;
+    text-transform:capitalize;
+    box-shadow:0 2px 8px rgba(209,47,36,.25);
+  }
+  .mmg-brandtile:hover::after,
+  .mmg-brandtile:focus-visible::after{
+    opacity:1;
+    transform:translateY(0);
+  }
 
-/* CTAs: outline by default → brand red on hover */
-.mmg-btn{
-  display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 14px;
-  border-radius:8px; border:1px solid #111; background:transparent;
-  color:#111; font:600 13px/1 "Inter"; text-decoration:none !important;
-}
-.mmg-btn:hover{ background:var(--brand); border-color:var(--brand); color:#fff; }
-.mmg-btn:active{ transform:translateY(1px); }
-.mmg-btn:focus-visible{ outline:2px solid #111; outline-offset:2px; }
-
-/* Right/center column list hover: gentle underline only (keeps it clean) */
-.mmg-anim li{ opacity:0; transform:translateY(6px);
-  transition:opacity .18s cubic-bezier(.22,.61,.36,1), transform .18s cubic-bezier(.22,.61,.36,1);
-}
-.mmg-anim.is-in li{ opacity:1; transform:translateY(0); }
-
-/* Small screens: hide the 3rd column to keep things tidy */
-@media (max-width: 980px){
-  .mmg-3cols{ grid-template-columns: 220px 1fr; }
-  .mmg-col[data-col="right"]{ display:none; }
-}
-
-/* Motion safety */
-@media (prefers-reduced-motion: reduce){
-  .mmg, .mmg-anim li{ transition:none!important; }
-}
-/* ===== Minimal, Moment-like refinements =================================== */
-.mmg{ --brand:#D12F24; --brand-600:#b5201d; --row-h:34px; --ico:16px; }
-
-/* Top title like "Camera Gear" */
-.mmg-title{ display:flex; align-items:center; justify-content:space-between; padding:2px 2px 8px; }
-.mmg-title h3{ margin:0; font:600 16px/1.3 "Inter",system-ui; letter-spacing:.01em; color:#111827; }
-
-/* Column headings: sentence case, lighter tone */
-.mmg-head h4{
-  margin:0;
-  font:600 12px/1.25 "Inter",system-ui;
-  text-transform:none; letter-spacing:.01em; color:#1f2937;   /* no ALL CAPS */
-}
-
-/* Rail: same row height, no red bubble */
-.mmg-pivots li{ grid-template-columns: var(--ico) 1fr 24px; }
-.mmg-pivot{
-  min-height:var(--row-h); padding:0 10px 0 8px; border-radius:8px;
-  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-}
-
-/* Red indicator becomes a slim left bar; background stays neutral */
-.mmg-pivots a[aria-current="true"]{
-  color:#111827; font-weight:600;
-  background:#f3f4f6;                /* subtle gray, not pink/red */
-  box-shadow:none;                    /* remove inset red glow */
-  border-left:2px solid var(--brand);
-  padding-left:6px;                   /* compensate for the 2px bar */
-}
-
-/* Hover stays calm */
-.mmg-pivot:hover{ background:#eef1f5; }
-
-/* Hide (don’t collapse) icons when in brands mode to keep spacing even */
-.mmg[data-mode="brands"] .mmg-icoL{ visibility:hidden; }
-
-/* Sub-head dividers are hairline and consistent */
-.mmg-hr{ height:1px; background:#e7ebf0; margin:6px 0 10px; }
-
-/* Buttons: outline → red on hover (minimal) */
-.mmg-btn{
-  display:inline-flex; align-items:center; gap:8px; height:32px; padding:0 14px;
-  border-radius:8px; border:1px solid #111; background:transparent;
-  color:#111; font:600 13px/1 "Inter"; text-decoration:none !important;
-}
-.mmg-btn:hover{ background:var(--brand); border-color:var(--brand); color:#fff; }
+  .mmg[data-mode="brands"] .mmg-railcta{
+    position:sticky;
+    bottom:18px;
+    margin-top:20px;
+    padding:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:transparent;
+    z-index:3;
+  }
+  .mmg[data-mode="brands"] .mmg-railcta::before{
+    content:"";
+    position:absolute;
+    inset:-4px -10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.96);
+    box-shadow:0 6px 18px rgba(15,23,42,.20);
+    z-index:-1;
+    pointer-events:none;
+  }
 
 </style>
 
-<div class="mmg" role="dialog" aria-modal="false" aria-label="{% if _mode == 'cats' %}All Categories{% else %}Brands{% endif %}">
-  <div class="mmg-body">
-    <div class="mmg-title">
-  <h3>{% if _mode == 'cats' %}Categories{% else %}Brands{% endif %}</h3>
-  <!-- optional: <a class="mmg-btn" href="/collections/all">View all</a> -->
-</div>
-<div class="mmg-hr"></div>
-    <div class="mmg-3cols" data-mmg-cols>
-      <!-- Column 1: PIVOTS (rail) -->
-      <div class="mmg-col mmg-col--rail">
-        <div class="mmg-head"><h4>{% if _mode == 'cats' %}By Category{% else %}By Brand{% endif %}</h4></div>
-        <div class="mmg-hr"></div>
-        <div class="mmg-railwrap">
-          <ul class="mmg-pivots" data-mmg-pivots>
-          {% if _mode == 'cats' %}
-            {%- assign _cat_parent_idx = categories_parent_index | plus: 0 -%}
-            {%- assign category_links = nil -%}
-            {% if _cat_parent_idx >= 0 and menu_obj and menu_obj.links and menu_obj.links.size > _cat_parent_idx %}{% assign category_links = menu_obj.links[_cat_parent_idx].links %}{% endif %}
-            {% if category_links == nil or category_links == empty %}
-              {% if menu_obj and menu_obj.links %}
-                {% assign p_norm = parent_title | default: 'Category' | strip | downcase %}
-                {% for l in menu_obj.links %}
-                  {% assign t_norm = l.title | strip | downcase %}
-                  {% if t_norm == p_norm or t_norm contains 'categor' or t_norm contains 'shop' %}{% assign category_links = l.links %}{% break %}{% endif %}
-                {% endfor %}
-                {% if category_links == nil or category_links == empty %}
-                  {% for l in menu_obj.links %}{% if l.links and l.links.size > 0 %}{% assign category_links = l.links %}{% break %}{% endif %}{% endfor %}
-                {% endif %}
-              {% endif %}
-            {% endif %}
+{%- comment -%} Resolve Categories & Stores from the main menu (top level only) {%- endcomment -%}
+{%- assign cat_links = nil -%}
+{%- if menu_obj and menu_obj.links -%}
+  {%- assign p_norm = parent_title | default: 'Category' | strip | downcase -%}
+  {%- for l in menu_obj.links -%}
+    {%- assign t_norm = l.title | strip | downcase -%}
+    {%- if t_norm == p_norm or t_norm contains 'categor' or t_norm contains 'shop' -%}
+      {%- assign cat_links = l.links -%}{%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- if cat_links == nil or cat_links == empty -%}
+    {%- for l in menu_obj.links -%}
+      {% if l.links and l.links.size > 0 %}
+        {%- assign cat_links = l.links -%}{%- break -%}
+      {% endif %}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endif -%}
 
-            {% if category_links and category_links.size > 0 %}
-              {% for c in category_links %}
-                {% assign label = c.title | strip %}
-                {% assign url   = c.url | default: '/collections/all' %}
-                {%- capture deep_json -%}
-                [
-                  {%- for g in c.links -%}
-                    {"title": {{ g.title | json }}, "url": {{ g.url | default: '/collections/all' | json }}, "items": [
-                      {%- for it in g.links -%}
-                        {"title": {{ it.title | json }}, "url": {{ it.url | default: '/collections/all' | json }}}{%- unless forloop.last -%},{%- endunless -%}
-                      {%- endfor -%}
-                    ]}{%- unless forloop.last -%},{%- endunless -%}
-                  {%- endfor -%}
-                ]
-                {%- endcapture -%}
-                {%- capture flat_json -%}
-                [
-                  {%- for x in c.links -%}
-                    {"title": {{ x.title | json }}, "url": {{ x.url | default: '/collections/all' | json }} }{%- unless forloop.last -%},{%- endunless -%}
-                  {%- endfor -%}
-                ]
-                {%- endcapture -%}
-                {% assign lk = label | downcase %}
-                <li>
-                  <a class="mmg-pivot" href="{{ url }}" data-label="{{ label | escape }}" data-base="{{ url }}" data-deep='{{ deep_json | strip_newlines | escape }}' data-flat='{{ flat_json | strip_newlines | escape }}'>
-                    <span class="mmg-icoL" aria-hidden="true">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+{%- assign stores_links = nil -%}
+{%- if menu_obj and menu_obj.links -%}
+  {%- assign s_norm = stores_parent_title | default: 'Stores' | strip | downcase -%}
+  {%- for l in menu_obj.links -%}
+    {%- assign t_norm = l.title | strip | downcase -%}
+    {%- if t_norm == s_norm or t_norm contains 'store' or t_norm contains 'where' -%}
+      {%- assign stores_links = l.links -%}{%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
 
-                        <!-- ===== CAMERAS (specific first) ================================= -->
-                        {% if lk contains 'instant' and lk contains 'camera' %}
-                          <!-- Instant camera with print slot -->
-                          <rect x="4" y="6" width="16" height="12" rx="2"/>
-                          <circle cx="12" cy="11" r="3"/>
-                          <path d="M5 16h14M8 4h6a1 1 0 0 1 1 1v1H7V5a1 1 0 0 1 1-1z"/>
+<div class="mmg {% if _mode == 'stores' %}mmg--stores{% endif %}"
+     data-mode="{{ _mode }}" role="dialog" aria-modal="false"
+     aria-label="{% if _mode == 'cats' %}All Categories{% elsif _mode == 'brands' %}Brands{% else %}Where to find us{% endif %}">
+  <div class="mmg-shell">
+    <div class="mmg-inner">
 
-                        {% elsif lk contains 'compact' and lk contains 'camera' %}
-                          <!-- Compact point-and-shoot -->
-                          <rect x="4" y="8" width="16" height="9" rx="2"/>
-                          <circle cx="12" cy="12.5" r="2.8"/>
-                          <rect x="6" y="9.5" width="3.2" height="1.8" rx="0.5"/>
+      {% if _mode == 'stores' %}
+        <!-- ================= STORES: ONE-COLUMN + CTA ================= -->
+        <div class="mmg-head">
+          <span class="mmg-sectiontag">Where to find us</span>
+        </div>
 
-                        {% elsif lk contains 'mirror' and lk contains 'camera' %}
-                          <!-- Mirrorless -->
-                          <rect x="3" y="7" width="18" height="10" rx="2"/>
-                          <circle cx="12" cy="12" r="3.25"/>
-                          <rect x="6" y="5" width="4" height="2" rx="1"/>
-
-                        {% elsif lk contains 'action' and lk contains 'camera' %}
-                          <!-- Action cam -->
-                          <rect x="3" y="6" width="18" height="12" rx="3"/>
-                          <circle cx="14.5" cy="12" r="3.2"/>
-                          <rect x="5.5" y="9" width="3.6" height="2.6" rx="0.6"/>
-
-                        {% elsif lk contains 'film' and lk contains 'camera' %}
-                          <!-- Film SLR-style -->
-                          <rect x="3" y="8" width="18" height="9" rx="2"/>
-                          <circle cx="12" cy="12.5" r="3"/>
-                          <path d="M8 8l1.5-3h5L16 8"/>
-
-                        {% elsif lk contains '360' and lk contains 'camera' %}
-                          <!-- 360 camera -->
-                          <rect x="8" y="3" width="8" height="18" rx="4"/>
-                          <circle cx="12" cy="7" r="2"/>
-                          <circle cx="12" cy="17" r="1"/>
-
-                        {% elsif lk contains 'kids' and lk contains 'camera' %}
-                          <!-- Kids camera -->
-                          <rect x="3" y="8" width="18" height="9" rx="3"/>
-                          <circle cx="12" cy="12.5" r="3"/>
-                          <circle cx="8.8" cy="11" r="0.7"/><circle cx="15.2" cy="11" r="0.7"/>
-                          <path d="M10 14c.6.7 1.3 1 2 1s1.4-.3 2-1"/>
-
-                        {% elsif lk contains 'cinema' %}
-                          <!-- Cinema / video -->
-                          <rect x="7" y="10" width="12" height="7" rx="1"/>
-                          <circle cx="9" cy="7" r="2"/><circle cx="15" cy="7" r="2"/>
-                          <rect x="19.5" y="12" width="2.5" height="3" rx="0.5"/>
-
-                        {% elsif lk contains 'camera' %}
-                          <!-- Generic camera -->
-                          <rect x="3" y="8" width="18" height="9" rx="2"/>
-                          <circle cx="12" cy="12.5" r="3"/>
-                          <path d="M7 8l1.5-3h5L15 8"/>
-
-                        <!-- ===== OPTICS / MEDIA / LIGHTING ================================= -->
-                        {% elsif lk contains 'lens' %}
-                          <!-- Lens with aperture blades -->
-                          <circle cx="12" cy="12" r="5.6"/>
-                          <path d="M12 6.6l3 5.1M9 7.9h6M7.9 12l5.1 3M9 16.1l3-5.1M12 17.4l3-5.1M15 16.1H9"/>
-
-                        {% elsif lk contains 'films' or lk contains 'consum' %}
-                          <!-- Film strip -->
-                          <rect x="4" y="6" width="16" height="12" rx="1"/>
-                          <path d="M8 6v12M16 6v12M4 10h16M4 14h16"/>
-                          <!-- sprocket holes -->
-                          <circle cx="5.2" cy="7.5" r="0.35"/><circle cx="5.2" cy="10.5" r="0.35"/><circle cx="5.2" cy="13.5" r="0.35"/><circle cx="5.2" cy="16.5" r="0.35"/>
-                          <circle cx="18.8" cy="7.5" r="0.35"/><circle cx="18.8" cy="10.5" r="0.35"/><circle cx="18.8" cy="13.5" r="0.35"/><circle cx="18.8" cy="16.5" r="0.35"/>
-
-                        {% elsif lk contains 'flash' %}
-                          <!-- Speedlight flash -->
-                          <rect x="8" y="4" width="8" height="5" rx="1"/>
-                          <rect x="7.5" y="10" width="9" height="6" rx="2"/>
-                          <path d="M10.5 16v5M13.5 16v5M10 21h4"/>
-
-                        {% elsif lk contains 'light' %}
-                          <!-- Softbox on stand -->
-                          <polygon points="7,5 14,7 14,13 7,11"/>
-                          <path d="M14 10l4 2"/>
-                          <path d="M12 13v7M9 22h6"/>
-
-                        {% elsif lk contains 'storage' or lk contains 'memory' or lk contains 'sd' or lk contains 'card' %}
-                          <!-- SD / storage -->
-                          <path d="M7 3h7l3 3v15H7z"/>
-                          <path d="M10 6h1M12 6h1M14 6h1"/>
-
-                        <!-- ===== GEAR / ACCESSORIES ======================================== -->
-                        {% elsif lk contains 'binocular' or lk contains 'scope' %}
-                          <!-- Binoculars -->
-                          <circle cx="8.5" cy="14" r="3"/><circle cx="15.5" cy="14" r="3"/>
-                          <path d="M11 13V8l-2-2M13 13V8l2-2"/>
-                          <path d="M9.5 7h5"/>
-
-                        {% elsif lk contains 'drone' %}
-                          <!-- Drone quadcopter -->
-                          <circle cx="12" cy="12" r="1.6"/>
-                          <circle cx="6" cy="6" r="2.1"/><circle cx="18" cy="6" r="2.1"/>
-                          <circle cx="6" cy="18" r="2.1"/><circle cx="18" cy="18" r="2.1"/>
-                          <path d="M8 8l4 4M16 8l-4 4M8 16l4-4M16 16l-4-4"/>
-
-                        {% elsif lk contains 'gimbal' %}
-                          <!-- Handheld gimbal -->
-                          <rect x="13" y="6" width="6" height="8" rx="1"/>
-                          <path d="M13 10h-3l-2 2v6M8 18h4"/>
-                          <circle cx="10" cy="12" r="1"/>
-
-                        {% elsif lk contains 'tripod' %}
-                          <!-- Tripod -->
-                          <rect x="11" y="3" width="2" height="2" rx=".4"/>
-                          <path d="M12 5v3M8 8h8"/>
-                          <path d="M6 21l6-10 6 10M4 21h16"/>
-
-                        {% elsif lk contains 'bag' %}
-                          <!-- Camera bag -->
-                          <rect x="4" y="8" width="16" height="10" rx="2"/>
-                          <path d="M8 8v-1a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v1M4 12h16"/>
-
-                        {% elsif lk contains 'microphone' or lk contains 'mic' %}
-                          <!-- Microphone -->
-                          <rect x="9" y="3" width="6" height="10" rx="3"/>
-                          <path d="M12 13v5M8 18h8"/>
-
-                        {% else %}
-                          <!-- Fallback grid -->
-                          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                          <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
-                        {% endif %}
-                      </svg>
-                    </span>
-                    <span class="mmg-txt">{{ label }}</span>
-                  </a>
-                  <button class="mmg-go" type="button" title="Open {{ label }}" data-go="{{ url }}">→</button>
-                </li>
-              {% endfor %}
-            {% endif %}
-          {% else %}
-            {%- assign brands_links = nil -%}
-            {% if menu_obj and menu_obj.links %}
-              {% for l in menu_obj.links %}
-                {% assign t_norm = l.title | strip | downcase %}
-                {% if t_norm == 'brands' or t_norm contains 'brand' %}{% assign brands_links = l.links %}{% break %}{% endif %}
-              {% endfor %}
-            {% endif %}
-            {% assign fallback_brands = brands_list | default: "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" | newline_to_br | split: '<br />' %}
-            {% if brands_links and brands_links.size > 0 %}
-              {% for b in brands_links %}
-                {% assign bname = b.title | strip %}
-                {%- capture deep_json_b -%}
-                [
-                  {%- for g in b.links -%}
-                    {"title": {{ g.title | json }}, "url": {{ g.url | default: '/search?type=product' | json }}, "items": [
-                      {%- for it in g.links -%}
-                        {"title": {{ it.title | json }}, "url": {{ it.url | default: '/search?type=product' | json }}}{%- unless forloop.last -%},{%- endunless -%}
-                      {%- endfor -%}
-                    ]}{%- unless forloop.last -%},{%- endunless -%}
-                  {%- endfor -%}
-                ]
-                {%- endcapture -%}
-                {%- capture flat_json_b -%}
-                [
-                  {%- for x in b.links -%}
-                    {"title": {{ x.title | json }}, "url": {{ x.url | default: '/search?type=product' | json }} }{%- unless forloop.last -%},{%- endunless -%}
-                  {%- endfor -%}
-                ]
-                {%- endcapture -%}
-                {% if b.url %}{% assign _b_href = b.url %}{% else %}{% capture _b_href %}/search?type=product&q={{ bname | url_encode }}{% endcapture %}{% endif %}
-                <li>
-                  <a class="mmg-pivot" href="{{ _b_href }}" data-label="{{ bname | escape }}" data-base="{{ _b_href }}" data-deep='{{ deep_json_b | strip_newlines | escape }}' data-flat='{{ flat_json_b | strip_newlines | escape }}'>
-                    <span class="mmg-txt">{{ bname }}</span>
-                  </a>
-                  <button class="mmg-go" type="button" title="Open {{ bname }}" data-go="{{ _b_href }}">→</button>
-                </li>
+        <div class="mmg-1col">
+          <ul data-stagger="stores">
+            {% if stores_links and stores_links.size > 0 %}
+              {% for s in stores_links %}
+                <li><a href="{{ s.url | default: '/pages/store-locator' }}">{{ s.title | strip }}</a></li>
               {% endfor %}
             {% else %}
-              {% for b in fallback_brands %}
-                {% assign bname = b | strip %}
-                {% capture _b_href %}/search?q=vendor:%22{{ bname | url_encode }}%22&type=product{% endcapture %}
-                <li>
-                  <a class="mmg-pivot" href="{{ _b_href }}" data-label="{{ bname | escape }}" data-base="{{ _b_href }}" data-deep='[]' data-flat='[]'>
-                    <span class="mmg-txt">{{ bname }}</span>
-                  </a>
-                  <button class="mmg-go" type="button" title="Open {{ bname }}" data-go="{{ _b_href }}">→</button>
-                </li>
+              {%- assign fallback_stores =
+                "Camerahaus Online|/pages/camerahaus-online
+                 Camerahaus Stores|/pages/store-locator
+                 Lazada|https://www.lazada.com.ph/shop/camerahaus/
+                 Shopee|https://shopee.ph/camerahaus"
+                | newline_to_br | split: '<br />' -%}
+              {% for row in fallback_stores %}
+                {%- assign parts = row | split:'|' -%}
+                <li><a href="{{ parts[1] }}">{{ parts[0] }}</a></li>
               {% endfor %}
             {% endif %}
-          {% endif %}
           </ul>
-        </div>
-      </div>
 
-      <!-- Column 2: dynamic -->
-      <div class="mmg-col" data-col="mid">
-        <div class="mmg-head">
-          <h4>{% if _mode == 'cats' %}By Type{% else %}By Category{% endif %}</h4>
-          <div data-mid-cta></div>
+          <div class="mmg-railcta">
+            <a class="mmg-cta" href="{{ stores_fallback_url | default: '/pages/store-locator' }}">View all stores</a>
+          </div>
         </div>
-        <div class="mmg-hr"></div>
-        <ul data-slot="mid" class="mmg-anim"><li><a>Pick a category</a></li></ul>
-      </div>
 
-      <!-- Column 3: dynamic -->
-      <div class="mmg-col" data-col="right">
+      {% elsif _mode == 'cats' %}
+        <!-- ================= CATEGORIES: TEXT LIST ================= -->
         <div class="mmg-head">
-          <h4>{% if _mode == 'cats' %}Top Brands{% else %}Top Collections{% endif %}</h4>
-          {% if _mode == 'cats' %}
-            <div><a class="mmg-btn" href="{{ brands_fallback_url | default: '/search?type=product' }}">View all brands</a></div>
+          <span class="mmg-sectiontag">Shop by category</span>
+        </div>
+
+        <ul class="mmg-catlist" data-stagger="cats">
+          {% assign category_links = cat_links %}
+          {% if category_links and category_links.size > 0 %}
+            {% for c in category_links %}
+              {% assign label = c.title | strip %}
+              {% assign url   = c.url | default: '/collections/all' %}
+              <li>
+                <a class="mmg-catlink" href="{{ url }}">
+                  <span class="mmg-catlabel">{{ label }}</span>
+                </a>
+              </li>
+            {% endfor %}
           {% endif %}
+        </ul>
+
+        <div class="mmg-railcta">
+          <a class="mmg-cta" href="{{ categories_fallback_url | default: '/collections/all' }}">
+            View all categories
+          </a>
         </div>
-        <div class="mmg-hr"></div>
-        <ul data-slot="right" class="mmg-anim"><li><a>…</a></li></ul>
-      </div>
+
+      {% else %}
+        <!-- ================= BRANDS: LOGO TILES ================= -->
+
+        <div class="mmg-head">
+          <span class="mmg-sectiontag">Shop by brand</span>
+          <a class="mmg-cta" href="{{ brands_fallback_url | default: '/pages/brands' }}">
+            <span class="mmg-cta-label">View all brands</span>
+            <span class="mmg-cta-arrow">&gt;</span>
+          </a>
+        </div>
+
+        {% assign brand_rows = "
+AgfaPhoto|agfaphoto-min.png|vendor:AgfaPhoto,
+AKASO|akaso-min.png|vendor:AKASO,
+Aputure|aputure-min.png|vendor:Aputure,
+Benro|benro-min.png|vendor:Benro,
+BetaFPV|betafpv-min.png|vendor:BetaFPV,
+Billingham|billingham-min.png|vendor:Billingham,
+Canon|canon-min.png|vendor:Canon,
+DJI|dji-min.png|vendor:DJI,
+Eirmai|eirmai-min.png|vendor:Eirmai,
+FIMI|fimi-min.png|vendor:FIMI,
+Fujifilm|fujifilm-min.png|vendor:Fujifilm,
+GoPro|gopro-min.png|vendor:GoPro,
+GR|gr-min.png|vendor:Ricoh,
+Holga|holga-min.png|vendor:Holga,
+Hollyland|hollyland-min.png|vendor:Hollyland,
+HoverAir|hoverair-min.png|vendor:HoverAir,
+Hoya|hoya-min.png|vendor:Hoya,
+Insta360|insta360-min.png|vendor:Insta360,
+JJC|jjc-min.png|vendor:JJC,
+K&F Concept|k&f-min.png|vendor:K&F Concept OR vendor:K&F,
+Kenko / Tokina|kenko tokina-min.png|vendor:Kenko OR vendor:Tokina,
+Kipon|kipon-min.png|vendor:Kipon,
+Kodak|kodak-min.png|vendor:Kodak,
+Lensgo|lensgo-min.png|vendor:Lensgo,
+Lowepro|lowepro-min.png|vendor:Lowepro,
+LUMIX|lumix-min.png|vendor:LUMIX OR vendor:Panasonic,
+Lynca|lynca-min.png|vendor:Lynca,
+Manfrotto|manfrotto-min.png|vendor:Manfrotto,
+Meike|meike-min.png|vendor:Meike,
+Nikon|nikon-min.png|vendor:Nikon,
+PanoX|panox-min.png|vendor:PanoX,
+Pentax|pentax-min.png|vendor:Pentax,
+Phottix|phottix-min.png|vendor:Phottix,
+Red Rabbit|red rabbit-min.png|vendor:Red Rabbit,
+Ricoh|ricoh-min.png|vendor:Ricoh,
+Rime Lite|rime lite-min.png|vendor:Rime Lite,
+Rode|rode-min.png|vendor:Rode,
+Ryze|ryze-min.png|vendor:Ryze,
+SanDisk|sandisk-min.png|vendor:SanDisk,
+Saramonic|saramonic-min.png|vendor:Saramonic,
+Shokz|shokz-min.png|vendor:Shokz,
+Sigma|sigma-min.png|vendor:Sigma,
+SIRUI|sirui-min.png|vendor:SIRUI,
+SJCAM|sjcam-min.png|vendor:SJCAM,
+Slik|slik-min.png|vendor:Slik,
+Sony|sony-min.png|vendor:Sony,
+Suneast|suneast-min.png|vendor:Suneast,
+Tamrac|tamrac-min.png|vendor:Tamrac,
+Tamron|tamron-min.png|vendor:Tamron,
+THETA|theta-min.png|vendor:Ricoh,
+ThinkTank|thinktank-min.png|vendor:ThinkTank,
+Tokina|tokina-min.png|vendor:Tokina,
+Ulanzi|ulanzi-min.png|vendor:Ulanzi,
+Yelangu|yelangu-min.png|vendor:Yelangu,
+ZEISS|zeiss-min.png|vendor:ZEISS OR vendor:Carl Zeiss,
+Zhiyun|zhiyun-min.png|vendor:Zhiyun
+" | strip | split: "," %}
+
+        {% assign sorted_rows = brand_rows | sort %}
+
+        <div class="mmg-brandgrid" data-stagger="brands">
+          {% for row in sorted_rows %}
+            {% assign parts = row | strip | split: "|" %}
+            {% assign nm   = parts[0] | strip %}
+            {% assign file = parts[1] | strip %}
+            {% assign q    = parts[2] | strip %}
+
+            {% assign vendor_terms = q | split: ' OR ' %}
+            {% capture vendor_query %}
+              {%- for term in vendor_terms -%}
+                {%- assign v = term | strip | remove: 'vendor:' | strip -%}
+                {%- if forloop.first == false -%} OR {%- endif -%}vendor:"{{ v }}"
+              {%- endfor -%}
+            {% endcapture %}
+            {% assign encoded_q = vendor_query | strip | url_param_escape %}
+            {% assign href = '/search?type=product&q=' | append: encoded_q | append: '&sort_by=best-selling' %}
+
+            <a class="mmg-brandtile"
+               href="{{ href }}"
+               data-name="{{ nm | downcase }}">
+              {% assign src = file | file_url %}
+              {% if src contains 'files' %}
+                <img loading="lazy" src="{{ src }}" width="160" height="54" alt="{{ nm | escape }}">
+              {% else %}
+                <span class="mmg-brandfallback">{{ nm }}</span>
+              {% endif %}
+            </a>
+          {% endfor %}
+        </div>
+
+      {% endif %}
+
     </div>
   </div>
 </div>
+
 <script>
 (() => {
   const MODE = {{ _mode | json }};
-  let s = document.currentScript, wrap = s && s.parentElement;
-  while (wrap && !wrap.matches?.(`[data-mega="${MODE}"]`)) wrap = wrap.parentElement;
-  if (!wrap) return;
 
-  const panel   = wrap.querySelector('.mmg');
-  const pivots  = panel?.querySelector('[data-mmg-pivots]');
-  const slotMid = panel?.querySelector('[data-slot="mid"]');
-  const slotRight = panel?.querySelector('[data-slot="right"]');
-  const midCta  = panel?.querySelector('[data-mid-cta]');
-
-  // --- position helper (called when wrapper is toggled open from the header) ---
-  function pos(){
-    const trig = wrap.querySelector(':scope > a, :scope > button') || wrap;
-    const r=trig.getBoundingClientRect();
-    const L=Math.max(8, Math.min(r.left, innerWidth - panel.offsetWidth - 8));
-    const T=r.bottom;
-    panel.style.setProperty('--mmg-left', L+"px");
-    panel.style.setProperty('--mmg-top',  T+"px");
+  function findWrap() {
+    return (
+      document.querySelector(`[data-mega="${MODE}"]`) ||
+      document.querySelector('[data-mega]')
+    );
   }
 
-  // Reposition any time the header toggles data-open="true"
-  new MutationObserver(muts=>{
-    if (wrap.getAttribute('data-open') === 'true') pos();
-  }).observe(wrap, { attributes:true, attributeFilter:['data-open'] });
+  function initOnce() {
+    const wrap  = findWrap();
+    if (!wrap) return false;
 
-  // ------- (everything below is unchanged behavior INSIDE the panel) -------
-  const esc = s => String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const asArray = x => Array.isArray(x) ? x : [];
+    const panel = wrap.querySelector('.mmg');
+    if (!panel) return false;
 
-  function pickGroup(groups, want){
-    const keysMid = [/type/,/device/,/by type/,/category/,/shop/];
-    const keysRightCats = MODE==='cats' ? [/brand/,/brands/,/collection/,/popular/,/best/] : [/best/,/popular/,/top/,/featured/,/hot/,/bestseller/];
-    const arr = asArray(groups);
-    if(want==='mid'){
-      let g = arr.find(x => keysMid.some(rx => rx.test((x.title||'').toLowerCase())));
-      return g || arr[0] || {title:'', url:'#', items:[]};
-    }else{
-      let g = arr.find(x => keysRightCats.some(rx => rx.test((x.title||'').toLowerCase())));
-      return g || {title:'', url:'#', items:[]};
+    const placeholder = document.createComment('mmg-placeholder');
+    const overlay = document.createElement('div'); overlay.className = 'mmg-overlay';
+
+    function headerEl(){
+      const h = document.getElementById('ch-header-{{ section.id }}');
+      return h || document.querySelector('[data-ch-header], header.site-header, header');
     }
+    function calcTopOffset(){
+      const header = headerEl();
+      const band   = header?.querySelector('.nav-band');
+      let top = 0;
+      if (band){
+        const cs = getComputedStyle(band);
+        const r  = band.getBoundingClientRect();
+        top = (cs.position === 'fixed' || band.classList.contains('is-fixed'))
+              ? Math.round(r.bottom) : Math.round(header.getBoundingClientRect().bottom);
+      } else if (header){
+        top = Math.round(header.getBoundingClientRect().bottom);
+      }
+      return Math.max(0, Math.min(top, window.innerHeight * 0.5));
+    }
+
+    function setOffsets(){
+      const top = calcTopOffset();
+      panel.style.top = top + 'px';
+      panel.style.maxHeight = `calc(100vh - ${top}px)`;
+    }
+
+    function applyStagger(nodes, step=22){
+      if(!nodes) return;
+      let i=0;
+      [...nodes].forEach(el=>{
+        el.style.animationDelay = (0.06 + (i*step/1000)) + 's';
+        el.style.willChange = 'transform,opacity';
+        i++;
+      });
+    }
+
+    function mount(){
+      if (panel.parentNode !== document.body){
+        panel.parentNode.insertBefore(placeholder, panel);
+        document.body.appendChild(panel);
+      }
+      if (!overlay.parentNode){
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', ()=> wrap.setAttribute('data-open','false'));
+      }
+      setOffsets();
+      panel.classList.add('is-open','mmg-animate');
+      requestAnimationFrame(()=> overlay.classList.add('is-open'));
+
+      const cats   = panel.querySelector('[data-stagger="cats"]');
+      const brands = panel.querySelector('[data-stagger="brands"]');
+      const stores = panel.querySelector('[data-stagger="stores"]');
+      if (cats)   applyStagger(cats.children);
+      if (brands) applyStagger(brands.children);
+      if (stores) applyStagger(stores.children);
+    }
+
+    function unmount(){
+      overlay.classList.remove('is-open');
+      overlay.remove();
+      panel.classList.remove('is-open','mmg-animate');
+      if (placeholder.parentNode){
+        placeholder.parentNode.insertAdjacentElement('beforebegin', panel);
+        placeholder.remove();
+      }
+      panel.style.top = '';
+      panel.style.maxHeight = '';
+    }
+
+    const mo = new MutationObserver(()=> {
+      wrap.getAttribute('data-open')==='true' ? mount() : unmount();
+    });
+    mo.observe(wrap, { attributes:true, attributeFilter:['data-open'] });
+
+    if (wrap.getAttribute('data-open') === 'true') mount();
+
+    window.addEventListener('scroll', setOffsets,  {passive:true});
+    window.addEventListener('resize', setOffsets,  {passive:true});
+    panel.addEventListener('mmg:reflow', setOffsets);
+
+    window.CH_Mega = window.CH_Mega || {
+      open: (mode=MODE)  => (document.querySelector(`[data-mega="${mode}"]`)||wrap)?.setAttribute('data-open','true'),
+      close:(mode=MODE)  => (document.querySelector(`[data-mega="${mode}"]`)||wrap)?.setAttribute('data-open','false')
+    };
+
+    return true;
   }
-  function extractMidItems(deep, flat){
-    const groups = asArray(deep);
-    if (!groups.length) return asArray(flat);
-    const allNoItems = groups.every(g => !asArray(g.items).length);
-    if (allNoItems) return groups.map(g => ({ title: g.title, url: g.url }));
-    const gMid = pickGroup(groups,'mid');
-    const cand = asArray(gMid.items);
-    return cand.length ? cand : groups.flatMap(g => asArray(g.items));
+
+  function boot(){
+    if (initOnce()) return;
+    let tries = 0, max = 20;
+    const iv = setInterval(()=>{
+      tries++;
+      if (initOnce() || tries>=max) clearInterval(iv);
+    }, 100);
   }
-  function extractRightItems(deep){ const g = pickGroup(deep,'right'); return asArray(g.items); }
-  function animateSlot(ul){ ul.classList.remove('is-in'); [...ul.children].forEach((li,i)=> li.style.transitionDelay = (i*12)+'ms'); requestAnimationFrame(()=> ul.classList.add('is-in')); }
-  function renderList(slot, items, baseUrl){
-    slot.innerHTML = '';
-    const list = asArray(items);
-    if(!list.length){ const li=document.createElement('li'); li.innerHTML = `<a href="${baseUrl||'#'}">View all</a>`; slot.appendChild(li); animateSlot(slot); return; }
-    list.slice(0, 16).forEach(it => { const li=document.createElement('li'); li.innerHTML = `<a href="${it.url || baseUrl || '#'}">${esc(it.title || '')}</a>`; slot.appendChild(li); });
-    animateSlot(slot);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, {once:true});
+  } else {
+    boot();
   }
-  function globalBrandsFallback(){
-    const list = [];
-    {% assign _brands_from_menu = nil %}
-    {% if menu_obj and menu_obj.links %}
-      {% for l in menu_obj.links %}
-        {% assign t_norm = l.title | strip | downcase %}
-        {% if t_norm == 'brands' or t_norm contains 'brand' %}{% assign _brands_from_menu = l.links %}{% break %}{% endif %}
-      {% endfor %}
-    {% endif %}
-    {% if _brands_from_menu and _brands_from_menu.size > 0 %}
-      {% for b in _brands_from_menu limit:12 %}
-        {% assign _title = b.title | strip %}
-        {% if b.url %}{% assign _href = b.url %}{% else %}{% capture _href %}/search?type=product&q={{ _title | url_encode }}{% endcapture %}{% endif %}
-        list.push({ title: {{ _title | json }}, url: {{ _href | strip | json }} });
-      {% endfor %}
-    {% else %}
-      {% assign fb = brands_list | default: "Fujifilm\nSony\nRicoh\nDJI\nMoment\nPeak Design\nRØDE\nModule 8" | newline_to_br | split: '<br />' %}
-      {% for b in fb limit:12 %}
-        {% assign _title = b | strip %}
-        {% capture _href %}/search?type=product&q={{ 'vendor:"' | append: _title | append: '"' | url_encode }}{% endcapture %}
-        list.push({ title: {{ _title | json }}, url: {{ _href | strip | json }} });
-      {% endfor %}
-    {% endif %}
-    return list;
-  }
-  function handlePivot(a){
-    const panel = wrap.querySelector('.mmg'); const pivots = panel.querySelector('[data-mmg-pivots]');
-    const slotMid = panel.querySelector('[data-slot="mid"]'); const slotRight = panel.querySelector('[data-slot="right"]'); const midCta = panel.querySelector('[data-mid-cta]');
-    pivots.querySelectorAll('a').forEach(x => x.removeAttribute('aria-current')); a.setAttribute('aria-current','true');
-    const label = a.getAttribute('data-label') || ''; const baseUrl = a.getAttribute('data-base') || a.getAttribute('href') || '#';
-    let deep=[], flat=[];
-    try{ deep = JSON.parse(a.getAttribute('data-deep')||'[]'); }catch(_){}
-    try{ flat = JSON.parse(a.getAttribute('data-flat')||'[]'); }catch(_){}
-    const midItems = extractMidItems(deep, flat);
-    if (midCta) midCta.innerHTML = `<a class="mmg-btn" href="${baseUrl}">Shop all ${label.replace(/&/g,'&amp;')}</a>`;
-    renderList(slotMid, midItems, baseUrl);
-    if(MODE==='cats'){ const rightItems = extractRightItems(deep); renderList(slotRight, rightItems.length? rightItems : globalBrandsFallback(), baseUrl); }
-    else{ renderList(slotRight, extractRightItems(deep), baseUrl); }
-  }
-  // keep HOVER inside the open panel
-  panel?.querySelectorAll('a.mmg-pivot').forEach(a=>{
-    a.addEventListener('mouseenter', ()=>handlePivot(a));
-    a.addEventListener('click', e=>{ if(e.detail>=2) return; e.preventDefault(); handlePivot(a); });
-  });
-  // select first by default
-  const first = panel?.querySelector('a.mmg-pivot') || panel?.querySelector('a'); if(first) handlePivot(first);
 })();
 </script>

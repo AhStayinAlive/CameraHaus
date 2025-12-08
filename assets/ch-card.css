@@ -1,0 +1,1824 @@
+/* ===== Desktop-only top gradient overlay on image; removed on mobile ===== */
+.ch-card__media {
+    position: relative;
+    overflow: hidden;
+}
+
+.ch-card__media::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 64px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, .22), rgba(0, 0, 0, 0));
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .16s ease;
+}
+
+@media (hover:hover) {
+    .ch-card:hover .ch-card__media::after {
+        opacity: 1;
+    }
+}
+
+@media (hover:none),
+(max-width:767px) {
+    .ch-card__media::after {
+        content: none !important;
+        display: none !important;
+    }
+}
+
+/* ===== Hover alt-image swap (only when .has-alt is present) ===== */
+.ch-card__img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    transition: opacity .18s ease;
+}
+
+.ch-card__img--alt {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+@media (hover:hover) {
+
+    .ch-card:hover .ch-card__media.has-alt .ch-card__img--alt,
+    .ch-card:focus-within .ch-card__media.has-alt .ch-card__img--alt {
+        opacity: 1;
+    }
+
+    .ch-card:hover .ch-card__media.has-alt .ch-card__img[data-img-main],
+    .ch-card:focus-within .ch-card__media.has-alt .ch-card__img[data-img-main] {
+        opacity: .02;
+    }
+}
+
+@media (hover:none) {
+    .ch-card__img--alt {
+        display: none !important;
+    }
+}
+
+/* ===== Actions: slide in from right on desktop, red icon on hover ===== */
+.ch-actions-tr {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 8;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+@media (hover:hover) {
+    .ch-actions-tr {
+        opacity: 0;
+        transform: translateX(10px);
+        transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .ch-card:hover .ch-actions-tr,
+    .ch-card:focus-within .ch-actions-tr {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.ch-iconbtn {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 9999px;
+    background: rgba(17, 24, 39, .16);
+    border: 1px solid rgba(255, 255, 255, .65);
+    backdrop-filter: saturate(1.1) blur(2px);
+    transition: transform .12s ease, background .12s ease, border-color .12s ease;
+}
+
+.ch-iconbtn svg {
+    width: 18px;
+    height: 18px;
+    stroke: #fff;
+    transition: stroke .12s ease;
+}
+
+.ch-iconbtn:hover,
+.ch-iconbtn:focus-visible {
+    background: #fff;
+    border-color: #fff;
+    transform: translateX(0) scale(1.05);
+}
+
+.ch-iconbtn:hover svg,
+.ch-iconbtn:focus-visible svg {
+    stroke: #e11d48;
+}
+
+.ch-iconbtn--wish[aria-pressed="true"],
+.ch-iconbtn--wish.is-active {
+    background: #e11d48;
+    border-color: #e11d48;
+}
+
+.ch-iconbtn--wish[aria-pressed="true"] svg,
+.ch-iconbtn--wish.is-active svg {
+    stroke: #fff;
+}
+
+/* Mobile: wishlist always visible; hide quick view */
+@media (hover:none),
+(max-width:767px) {
+    .ch-actions-tr {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .ch-iconbtn--qv {
+        display: none !important;
+    }
+}
+
+/* ===== Tooltip bubble (desktop only) ===== */
+.ch-pop {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%) translateX(6px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: #0b1220;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, .22);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .12s, transform .12s;
+}
+
+.ch-pop::after {
+    content: "";
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 6px solid #0b1220;
+}
+
+.ch-iconbtn:hover .ch-pop,
+.ch-iconbtn:focus-visible .ch-pop {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+@media (hover:none) {
+    .ch-pop {
+        display: none !important;
+    }
+}
+
+/* ===== Minimalist badges ===== */
+.ch-badgestack-left {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 7;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ch-badge {
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 700;
+}
+
+/* Discount tag: soft yellow pill */
+.ch-badge--tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 9999px;
+    background: rgba(250, 204, 21, .12);
+    border: 1px solid rgba(250, 204, 21, .45);
+    color: #b91c1c;
+}
+
+/* Stock pill: soft red */
+.ch-badge--stock {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 9999px;
+    background: rgba(225, 29, 72, .08);
+    border: 1px solid rgba(225, 29, 72, .25);
+    color: #b91c1c;
+}
+
+.ch-badge--stock.is-out {
+    background: rgba(17, 24, 39, .04);
+    border: 1px solid rgba(17, 24, 39, .12);
+    color: #111827;
+}
+
+/* Smaller badges on small screens */
+@media (max-width:480px) {
+
+    .ch-badge--tag,
+    .ch-badge--stock {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+}
+
+/* ---------- IMAGE HOVER: ONLY SWAP IF HAS ALT ---------- */
+.ch-card__img {
+    transition: opacity .18s ease;
+}
+
+.ch-card__img--alt {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+@media (hover:hover) {
+
+    /* Show alt and fade primary ONLY when .has-alt exists */
+    .ch-card:hover .ch-card__media.has-alt .ch-card__img--alt,
+    .ch-card:focus-within .ch-card__media.has-alt .ch-card__img--alt {
+        opacity: 1;
+    }
+
+    .ch-card:hover .ch-card__media.has-alt .ch-card__img[data-img-main],
+    .ch-card:focus-within .ch-card__media.has-alt .ch-card__img[data-img-main] {
+        opacity: .02;
+    }
+
+    /* Guard: if NO alt, never fade the primary */
+    .ch-card:hover .ch-card__media:not(.has-alt) .ch-card__img[data-img-main],
+    .ch-card:focus-within .ch-card__media:not(.has-alt) .ch-card__img[data-img-main] {
+        opacity: 1 !important;
+    }
+}
+
+/* On touch, no alt swap at all */
+@media (hover:none) {
+    .ch-card__img--alt {
+        display: none !important;
+    }
+}
+
+/* ---------- CARD WIDTH (let grid control width, keep cards uniform) ---------- */
+.ch-card {
+    width: 100%;
+}
+
+/* ---------- CONSISTENT ROW ALIGNMENT ---------- */
+/* Turn body into a simple grid so all rows align between cards */
+.ch-card__body {
+    display: grid !important;
+    grid-auto-rows: min-content;
+    /* vendor | title | price | rating | (flex spacer) | CTA */
+    grid-template-rows:
+        min-content min-content min-content min-content 1fr min-content;
+    gap: 8px;
+}
+
+/* Vendor: single-line height so it always occupies the same space */
+.ch-card__vendor {
+    line-height: 1.2;
+    min-height: calc(1em * 1.2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Title: clamp to 2 lines AND reserve exactly 2 lines of height */
+.ch-card__title {
+    --lh: 1.28;
+    font-size: 14px;
+    line-height: var(--lh);
+    margin: 2px 0 0;
+}
+
+.ch-card__titlelink {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+}
+
+.ch-card__title {
+    min-height: calc(2 * 1em * var(--lh));
+}
+
+/* reserves space for 2 lines */
+
+/* Rating row: reserve a line even when empty/hidden */
+.ch-rating {
+    min-height: 18px;
+}
+
+/* CTA sits at the bottom uniformly thanks to the grid spacer above it */
+.ch-cta {
+    margin-top: 0;
+}
+
+/* === CTA ROW ALWAYS ALIGNS ACROSS CARDS === */
+/* We already use a grid with a spacer; ensure reserved heights for rows above CTA */
+.ch-card__body {
+    display: grid !important;
+    grid-auto-rows: min-content;
+    grid-template-rows:
+        min-content
+        /* vendor */
+        min-content
+        /* title (2 lines reserved below) */
+        min-content
+        /* price (2-line stack reserved above) */
+        min-content
+        /* rating */
+        1fr
+        /* spacer pushes CTA to bottom */
+        min-content;
+    /* CTA */
+    gap: 8px;
+}
+
+/* Title: always reserve exactly 2 lines */
+.ch-card__title {
+    --title-lh: 1.28;
+}
+
+.ch-card__title {
+    min-height: calc(2 * 1em * var(--title-lh));
+}
+
+.ch-card__titlelink {
+    line-height: var(--title-lh);
+}
+
+/* Rating: reserve a line even before the widget paints */
+.ch-rating {
+    min-height: 18px;
+}
+
+/* === LOCKED BASELINES (put at the very end) === */
+
+/* Title: always reserve exactly 2 lines */
+.ch-card .ch-card__titlelink {
+    line-height: 1.28 !important;
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    -webkit-line-clamp: 2 !important;
+    overflow: hidden !important;
+}
+
+.ch-card .ch-card__title {
+    font-size: 14px !important;
+    min-height: 36px !important;
+    /* 14px * 1.28 * 2 ≈ 36px */
+    margin: 2px 0 0 !important;
+}
+
+/* Vendor & Rating rows: fixed line heights so CTA sits at the same baseline */
+.ch-card .ch-card__vendor {
+    min-height: 16px !important;
+    line-height: 1.2 !important;
+}
+
+.ch-card .ch-rating {
+    min-height: 18px !important;
+}
+
+/* Body grid: spacer before CTA so buttons pin to the bottom uniformly */
+.ch-card .ch-card__body {
+    display: grid !important;
+    grid-auto-rows: min-content !important;
+    grid-template-rows:
+        min-content
+        /* vendor */
+        min-content
+        /* title (2 lines reserved above) */
+        min-content
+        /* price (2 lines reserved above) */
+        min-content
+        /* rating */
+        1fr
+        /* spacer */
+        min-content
+        /* CTA */
+        !important;
+    gap: 8px !important;
+}
+
+/* === Pill badges (like your refs) === */
+.ch-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 1;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .06);
+}
+
+/* SALE: solid red pill with white text */
+.ch-badge--sale {
+    background: #e11d48;
+    /* rose-600 */
+    color: #fff;
+}
+
+/* STOCK: same pill look; red for low-stock, gray for OOS */
+.ch-badge--stock {
+    background: #ef4444;
+    /* red-500 */
+    color: #fff;
+}
+
+.ch-badge--stock.is-out {
+    background: #e5e7eb;
+    /* gray-200 */
+    color: #111827;
+}
+
+/* === Actions: white circle, black icon; icon turns red on hover === */
+.ch-actions-tr {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 8;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ch-iconbtn {
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    display: grid;
+    place-items: center;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+
+.ch-iconbtn svg {
+    width: 18px;
+    height: 18px;
+    stroke: #111;
+    transition: stroke .12s ease;
+}
+
+.ch-iconbtn:hover,
+.ch-iconbtn:focus-visible {
+    border-color: #f3a2a6;
+    box-shadow: 0 2px 8px rgba(225, 29, 72, .12);
+}
+
+.ch-iconbtn:hover svg,
+.ch-iconbtn:focus-visible svg {
+    stroke: #e11d48;
+}
+
+/* mobile: keep quick view hidden, wishlist visible (your current rule can remain) */
+
+/* === OOS button visual (optional) === */
+.ch-atcbtn--oos {
+    background: #fff;
+    color: #6b7280;
+    border: 1.5px solid #d1d5db;
+}
+
+.ch-atcbtn--oos:hover,
+.ch-atcbtn--oos:focus-visible {
+    background: #f3f4f6;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+/* === Unified square badge for SALE & STOCK === */
+.ch-card .ch-badge--pill,
+.ch-card .ch-badge--tag,
+/* legacy class fallback */
+.ch-card .ch-badge--stock {
+    /* legacy class fallback */
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 4px 8px !important;
+    /* compact, “very close” look */
+    border-radius: 8px !important;
+    /* square-ish, not a pill */
+    background: #e03a2f !important;
+    /* brand red */
+    color: #fff !important;
+    border: 0 !important;
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    /* lighter type */
+    line-height: 1 !important;
+    letter-spacing: .1px;
+    /* subtle readability */
+    box-shadow: none !important;
+    /* keep it flat like the ref */
+}
+
+/* Low/Out-of-stock nuance (same shape, optional color tweak) */
+.ch-card .ch-badge--pill.is-stock.is-crit {
+    /* e.g., “2 left” */
+    background: #e03a2f !important;
+    /* keep red */
+    color: #fff !important;
+}
+
+/* Out of stock can stay neutral if you prefer contrast */
+.ch-card .ch-badge--pill.is-out {
+    background: #e5e7eb !important;
+    /* light gray */
+    color: #111827 !important;
+}
+
+/* Badge rail spacing stays tidy */
+.ch-badgestack-left {
+    gap: 6px !important;
+}
+
+/* =============== BADGE: reference look (use for BOTH sale + stock) =============== */
+.ch-badgestack-left {
+    top: 10px !important;
+    left: 10px !important;
+    gap: 8px !important;
+}
+
+.ch-badge--tag,
+.ch-badge--stock {
+    /* size & shape */
+    padding: 6px 10px !important;
+    border-radius: 6px !important;
+    /* small rounded square */
+    min-height: 26px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+
+    /* look */
+    background: #E03A2F !important;
+    /* solid red like sample */
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 2px 6px rgba(224, 58, 47, .18) !important;
+
+    /* type */
+    font-weight: 500 !important;
+    /* light(er) feel */
+    font-size: 12px !important;
+    line-height: 1 !important;
+    letter-spacing: .1px !important;
+    text-transform: none !important;
+}
+
+/* kill any ribbon notch/extra effects from older styles */
+.ch-badge--tag::after,
+.ch-badge--stock::after {
+    display: none !important;
+}
+
+/* Optional: gray out ONLY when completely out-of-stock.
+   Remove this block if you want red even when out. */
+.ch-badge--stock.is-out {
+    background: #9CA3AF !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+}
+
+/* =================== ACTION ICONS: white circle, black icon → red on hover =================== */
+.ch-actions-tr {
+    top: 10px !important;
+    right: 10px !important;
+}
+
+.ch-iconbtn {
+    width: 36px !important;
+    height: 36px !important;
+    background: #fff !important;
+    /* white circle */
+    border: 1px solid #E5E7EB !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .10) !important;
+    backdrop-filter: none !important;
+}
+
+.ch-iconbtn svg {
+    stroke: #111827 !important;
+    /* black icon */
+    width: 18px !important;
+    height: 18px !important;
+}
+
+.ch-iconbtn:hover svg,
+.ch-iconbtn:focus-visible svg {
+    stroke: #E11D48 !important;
+    /* icon turns red on hover */
+}
+
+/* Saved state (wishlist on): keep white icon on red circle */
+.ch-iconbtn--wish[aria-pressed="true"],
+.ch-iconbtn--wish.is-active {
+    background: #E11D48 !important;
+    border-color: #E11D48 !important;
+    box-shadow: 0 6px 16px rgba(225, 29, 72, .28) !important;
+}
+
+.ch-iconbtn--wish[aria-pressed="true"] svg,
+.ch-iconbtn--wish.is-active svg {
+    stroke: #ffffff !important;
+}
+
+/* =========================
+   REFERENCE-STYLE BADGE CHIP
+   (use for BOTH sale & stock)
+   ========================= */
+.ch-badgestack-left {
+    top: 12px !important;
+    left: 12px !important;
+    gap: 8px !important;
+}
+
+.ch-badge--tag,
+.ch-badge--stock {
+    /* exact box */
+    display: inline-block !important;
+    height: 26px !important;
+    line-height: 26px !important;
+    /* perfect vertical centering */
+    padding: 0 10px !important;
+    /* same side padding as ref */
+    border-radius: 6px !important;
+    /* small rounded-square, not pill */
+    border: none !important;
+
+    /* color + subtle depth */
+    background: #E04B3C !important;
+    /* close to ref red */
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(224, 75, 60, .18) !important;
+
+    /* type (lighter feel) */
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    /* light/medium */
+    letter-spacing: .1px !important;
+}
+
+/* if you want OUT OF STOCK to gray out (optional) */
+.ch-badge--stock.is-out {
+    background: #9CA3AF !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+}
+
+/* kill any old ribbon notches/variants */
+.ch-badge--tag::after,
+.ch-badge--stock::after {
+    display: none !important;
+}
+
+/* ensure the minus sign looks like the ref (true minus, not hyphen) */
+.ch-badge--tag:before,
+.ch-badge--stock:before {
+    content: "" !important;
+    /* we already render “−{{ pct_save }}%” in HTML */
+}
+
+/* =========================
+   ACTION ICONS (ref style)
+   ========================= */
+.ch-actions-tr {
+    top: 12px !important;
+    right: 12px !important;
+}
+
+.ch-iconbtn {
+    width: 36px !important;
+    height: 36px !important;
+    background: #fff !important;
+    /* white circle */
+    border: 1px solid #E5E7EB !important;
+    border-radius: 999px !important;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .10) !important;
+    backdrop-filter: none !important;
+}
+
+.ch-iconbtn svg {
+    width: 18px !important;
+    height: 18px !important;
+    stroke: #111827 !important;
+    /* black icon */
+}
+
+.ch-iconbtn:hover svg,
+.ch-iconbtn:focus-visible svg {
+    stroke: #E11D48 !important;
+}
+
+/* turns red on hover */
+
+/* active wishlist = solid red circle with white icon */
+.ch-iconbtn--wish[aria-pressed="true"],
+.ch-iconbtn--wish.is-active {
+    background: #E11D48 !important;
+    border-color: #E11D48 !important;
+    box-shadow: 0 6px 16px rgba(225, 29, 72, .22) !important;
+}
+
+.ch-iconbtn--wish[aria-pressed="true"] svg,
+.ch-iconbtn--wish.is-active svg {
+    stroke: #fff !important;
+}
+
+/* Qty | long ATC | View box */
+.ch-qv-cta-row {
+    display: grid;
+    grid-template-columns: 130px minmax(0, 1fr) auto;
+    /* qty | ATC fills | view */
+    gap: 10px;
+    align-items: center;
+    margin-top: .6rem;
+}
+
+/* Long Add to cart */
+.ch-atc-btn {
+    height: 38px;
+    border-radius: 9999px;
+    background: #d12f24;
+    color: #fff;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    width: 100%;
+    /* ← makes it long */
+    cursor: pointer;
+    position: relative;
+    transition: background .1s ease;
+    font-size: .78rem;
+}
+
+.ch-atc-btn:hover {
+    background: #B3281F;
+}
+
+/* View = boxed button that turns yellow on hover */
+.ch-view-btn {
+    height: 38px;
+    border-radius: 8px;
+    background: #fff;
+    color: #0f172a;
+    border: 1px solid #0f172a;
+    padding: 0 14px;
+    font-size: .78rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.ch-view-btn:hover,
+.ch-view-btn:focus-visible {
+    background: #facc15;
+    /* yellow hover */
+    border-color: #facc15;
+    color: #0f172a;
+}
+
+/* Mobile: stack qty on first row; ATC fills; View stays to the right */
+@media (max-width: 991px) {
+    .ch-qv-cta-row {
+        grid-template-columns: 1fr 1fr auto;
+        grid-template-areas:
+            "qty qty qty"
+            "atc atc view";
+    }
+
+    .ch-qty {
+        grid-area: qty;
+    }
+
+    .ch-atc-btn {
+        grid-area: atc;
+    }
+
+    .ch-view-btn {
+        grid-area: view;
+        justify-self: end;
+    }
+}
+
+/* Wrapper: 2 rows (top: qty + view, bottom: long ATC) */
+.ch-qv-cta {
+    display: grid;
+    gap: 10px;
+    margin-top: .6rem;
+}
+
+/* Row 1: qty (unchanged by us) + View button */
+.ch-qv-cta-top {
+    display: grid;
+    grid-template-columns: 130px auto;
+    /* qty | view */
+    gap: 10px;
+    align-items: center;
+}
+
+@media (max-width:991px) {
+    .ch-qv-cta-top {
+        grid-template-columns: 1fr auto;
+    }
+}
+
+/* Long ATC (single button on its own row) */
+.ch-atc-btn {
+    height: 38px;
+    border-radius: 9999px;
+    background: #d12f24;
+    color: #fff;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    cursor: pointer;
+    position: relative;
+    transition: background .1s ease;
+    font-size: .78rem;
+}
+
+.ch-atc-btn--full {
+    width: 100%;
+}
+
+.ch-atc-btn:hover {
+    background: #B3281F;
+}
+
+/* View button = boxed; turns yellow on hover */
+.ch-view-btn {
+    height: 38px;
+    border-radius: 8px;
+    background: #fff;
+    color: #0f172a;
+    border: 1px solid #0f172a;
+    padding: 0 14px;
+    font-size: .78rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.ch-view-btn:hover,
+.ch-view-btn:focus-visible {
+    background: #facc15;
+    /* yellow */
+    border-color: #facc15;
+    color: #0f172a;
+}
+
+/* Right column is already flex; pin order to ensure Trust is under CTAs */
+.ch-qv-info-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.ch-qv-cta {
+    order: 2;
+}
+
+.ch-trust-card {
+    order: 3;
+    margin-top: .5rem;
+}
+
+/* Two-row CTA layout (qty + view, then long ATC) */
+.ch-qv-cta {
+    display: grid;
+    gap: 10px;
+    margin-top: .6rem;
+}
+
+/* Row 1: prevent the qty from shrinking and keep its internals centered */
+.ch-qv-cta-top {
+    display: grid;
+    grid-template-columns: max-content auto;
+    /* qty uses its natural width */
+    gap: 10px;
+    align-items: center;
+}
+
+/* Qty: keep original look, but stop it from squishing */
+.ch-qty {
+    min-width: 170px;
+    /* fits − [ 1 ] + comfortably; bump if you use bigger fonts */
+    width: max-content;
+    /* use natural width */
+}
+
+.ch-qty__input {
+    text-align: center;
+}
+
+/* ensure centered number */
+
+/* Long ATC on its own row */
+.ch-atc-btn {
+    height: 38px;
+    border-radius: 9999px;
+    background: #d12f24;
+    color: #fff;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    cursor: pointer;
+    position: relative;
+    transition: background .1s ease;
+    font-size: .78rem;
+}
+
+.ch-atc-btn--full {
+    width: 100%;
+}
+
+.ch-atc-btn:hover {
+    background: #B3281F;
+}
+
+/* View button: boxed + arrow animation + yellow hover */
+.ch-view-btn {
+    height: 38px;
+    border-radius: 8px;
+    background: #fff;
+    color: #0f172a;
+    border: 1px solid #0f172a;
+    padding: 0 14px;
+    font-size: .78rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    line-height: 1;
+    transition: border-color .15s ease, background .15s ease;
+}
+
+.ch-view-arrow {
+    display: inline-block;
+    transition: transform .18s ease;
+}
+
+.ch-view-btn:hover,
+.ch-view-btn:focus-visible {
+    background: #facc15;
+    border-color: #facc15;
+    color: #0f172a;
+}
+
+.ch-view-btn:hover .ch-view-arrow,
+.ch-view-btn:focus-visible .ch-view-arrow {
+    transform: translateX(4px);
+    /* slide arrow to the right on hover/focus */
+}
+
+/* Mobile: stack nicely */
+@media (max-width: 991px) {
+    .ch-qv-cta-top {
+        grid-template-columns: 1fr auto;
+    }
+}
+
+/* Qty layout: perfectly centered, equal button widths */
+.ch-qty {
+    display: flex;
+    align-items: center;
+    height: 38px;
+    border: 1px solid #1f2937;
+    border-radius: 9999px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.ch-qty__btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    line-height: 1;
+}
+
+.ch-qty__input {
+    width: 64px;
+    min-width: 64px;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: #fff;
+    font-weight: 600;
+    font-size: .85rem;
+    -moz-appearance: textfield;
+}
+
+.ch-qty__input::-webkit-outer-spin-button,
+.ch-qty__input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* View button: yellow on hover + arrow slide */
+.ch-view-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ch-view-arrow {
+    display: inline-block;
+    transition: transform .18s ease;
+}
+
+.ch-view-btn:hover .ch-view-arrow,
+.ch-view-btn:focus-visible .ch-view-arrow {
+    transform: translateX(4px);
+}
+
+.ch-view-btn:hover,
+.ch-view-btn:focus-visible {
+    background: #facc15;
+    border-color: #facc15;
+    color: #0f172a;
+}
+
+/* Trust card spacing in the right column */
+.ch-qv-info-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.ch-trust-card {
+    margin-top: .6rem;
+}
+
+.ch-qv-info-col {
+    display: flex;
+    flex-direction: column;
+}
+
+.ch-qv-cta {
+    order: 1;
+}
+
+/* qty + View (top row) */
+.ch-qv-row--bottom {
+    order: 2;
+}
+
+/* long ATC (bottom row) */
+.ch-trust-card {
+    order: 3;
+}
+
+/* trust box under CTAs */
+/* Desktop-only: pull the first footer column to the left */
+@media (min-width: 990px) {
+
+    /* Shift the WHOLE first column (the one that contains the social block) */
+    .site-footer .flex-footer>.flex__item:first-child {
+        margin-left: -48px !important;
+        /* tweak: -32, -64, etc. */
+    }
+}
+
+/* keyframes: translate + rotate together so it never "droops" */
+@keyframes atcspin {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+
+}
+
+/* ---------- Base card ---------- */
+.ch-card,
+.ch-card *:not(svg):not(style) {
+    font-family: var(--font-sans);
+}
+
+.ch-card {
+    --brand: #e03a2f;
+    --brand-600: #d12f24;
+    --ch-text: #0F172A;
+    --ch-muted: #6B7280;
+    --ch-star: #8B1C1C;
+    position: relative;
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+    transition: box-shadow .18s, border-color .18s, transform .18s;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+@media (hover:hover) {
+    .ch-card:hover {
+        border-color: #D1D5DB;
+        box-shadow: 0 6px 18px rgba(16, 24, 40, .08);
+        transform: translateY(-1px);
+    }
+}
+
+.ch-card__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.ch-card a,
+.ch-card button {
+    cursor: pointer;
+}
+
+/* ---------- Media + loader ---------- */
+.ch-card__mediawrap {
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto;
+}
+
+.ch-card__media {
+    margin: 0 !important;
+    border-radius: 12px 12px 0 0 !important;
+    background: #fff;
+    aspect-ratio: 1/1;
+    position: relative;
+    display: block;
+    overflow: hidden;
+}
+
+.ch-card__img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+}
+
+.ch-card__media::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: #fff url("chicon.png") center/56px 56px no-repeat;
+    opacity: 0;
+    transition: opacity .18s ease;
+}
+
+.ch-card__media:not([data-loaded="true"])::before {
+    opacity: .5;
+}
+
+/* ---------- Body ---------- */
+.ch-card__body {
+    position: relative;
+    z-index: 2;
+    padding: 10px 8px 10px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.ch-card__vendor {
+    font-size: 12px;
+    line-height: 1;
+    color: #9CA3AF;
+}
+
+.ch-card__title {
+    margin: 2px 0 0;
+    line-height: 1.28;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.ch-card__titlelink {
+    position: relative;
+    color: #111;
+    text-decoration: none;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    white-space: normal;
+    transition: color .18s ease;
+    outline-offset: 3px;
+}
+
+.ch-card:hover .ch-card__titlelink,
+.ch-card:focus-within .ch-card__titlelink {
+    color: #111;
+}
+
+
+/* kill the compact compare to avoid duplicate original prices */
+.ch-price__compare--compact {
+    display: none !important;
+}
+
+.ch-price__save {
+    display: block;
+    margin-top: 2px;
+    color: #B42318;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+@media (min-width:481px) {
+    .ch-price[data-range="true"] .ch-price__cur::before {
+        content: 'From ';
+        font-weight: 600;
+    }
+}
+
+/* ---------- Rating ---------- */
+.ch-rating {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ch-stars {
+    display: flex;
+    gap: 2px;
+}
+
+.ch-star path {
+    stroke: var(--ch-star);
+    stroke-width: 1.2;
+}
+
+.ch-star.is-full path {
+    fill: var(--ch-star);
+}
+
+.ch-star.is-empty path {
+    fill: transparent;
+}
+
+.ch-rating__count {
+    color: var(--ch-muted);
+    font-size: 11px;
+}
+
+.ch-rating__oke {
+    display: flex;
+    align-items: center;
+}
+
+/* ---------- CTA row + Add to cart button ---------- */
+.ch-cta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+    flex-wrap: wrap;
+}
+
+.ch-atc {
+    display: contents !important;
+}
+
+/* outline by default, solid red on hover; same for mobile & desktop */
+.sbtn.ch-atcbtn {
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    background: #fff;
+    color: var(--brand);
+    border: 1.5px solid var(--brand);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    line-height: 32px;
+    flex: 1 0 auto;
+    min-width: 120px;
+    transition: background .12s, border-color .12s, color .12s;
+    position: relative;
+}
+
+.sbtn.ch-atcbtn:hover,
+.sbtn.ch-atcbtn:focus-visible {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+    outline: 2px solid transparent;
+}
+
+.sbtn.ch-atcbtn[disabled] {
+    cursor: not-allowed;
+}
+
+/* Hide ATC text when loading on the product card */
+.ch-atcbtn.is-adding .ch-atcbtn__txt {
+    opacity: 0;
+}
+
+@keyframes chspin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* hide any legacy wishlist button in CTA area */
+.ch-cta .ch-wishbtn {
+    display: none !important;
+}
+
+/* ---------- Mini gallery (unchanged) ---------- */
+.ch-mini {
+    position: absolute;
+    left: 8px;
+    right: 48px;
+    bottom: 8px;
+    z-index: 5;
+    padding: 0;
+    background: transparent;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.ch-mini__track {
+    display: flex;
+    gap: 6px;
+    padding: 4px 6px;
+    overflow: hidden;
+    scrollbar-width: none;
+}
+
+.ch-mini__track::-webkit-scrollbar {
+    display: none;
+}
+
+.ch-mini__thumb {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid #E5E7EB;
+    background: #fff;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+
+.ch-mini__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+.ch-mini__thumb:hover {
+    transform: translateY(-1px);
+}
+
+.ch-mini__thumb.is-active {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 2px rgba(224, 58, 47, .15);
+}
+
+.ch-mini__thumb:focus-visible {
+    outline: 2px solid transparent;
+    box-shadow: 0 0 0 3px rgba(224, 58, 47, .20);
+}
+
+@media (min-width:768px) {
+    .ch-mini__track .ch-mini__thumb:nth-child(n+6) {
+        display: none !important;
+    }
+}
+
+@media (max-width:767px),
+(hover:none) {
+    .ch-mini {
+        left: 6px;
+        right: 44px;
+        bottom: 6px;
+    }
+
+    .ch-mini__track {
+        padding: 3px 4px;
+        gap: 4px;
+    }
+
+    .ch-mini__thumb {
+        width: 30px;
+        height: 30px;
+    }
+
+    .ch-mini__track .ch-mini__thumb:nth-child(n+4) {
+        display: none !important;
+    }
+}
+
+/* ---------- Left badge stack ---------- */
+.ch-badgestack-left {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 7;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+/* stock/info chip sizes */
+.ch-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 10.5px;
+    line-height: 1;
+    background: #FFF7ED;
+    border: 1px solid #FED7AA;
+    color: #B45309;
+}
+
+.ch-chip__ico {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+}
+
+.ch-chip--stock.is-crit,
+.ch-chip--stock.is-out {
+    background: #FEE2E2;
+    border-color: #FCA5A5;
+    color: #B91C1C;
+}
+
+.ch-chip--stock.is-warn {
+    background: #FEF3C7;
+    border-color: #FCD34D;
+    color: #92400E;
+}
+
+/* ---------- Photo actions (icons only) ---------- */
+/* Keep the actions INSIDE the left stack so they sit directly under the badge when present. */
+.ch-media-actions {
+    position: static;
+    /* respect the stack flow */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity .18s ease, transform .18s ease;
+}
+
+/* Show on hover for hover-capable devices */
+@media (hover:hover) {
+
+    .ch-card:hover .ch-media-actions,
+    .ch-card:focus-within .ch-media-actions {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Icon-only buttons */
+.ch-act {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    color: #374151;
+    display: grid;
+    place-items: center;
+    transition: color .12s ease, transform .12s ease;
+}
+
+.ch-act svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    fill: none;
+}
+
+.ch-act:hover,
+.ch-act:focus-visible {
+    color: #D12F24;
+    transform: scale(1.06);
+}
+
+.ch-act:focus-visible {
+    outline: 2px solid #d1d5db;
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* Accessible tooltip helper (optional, if you add data-tooltip="...") */
+.ch-act[data-tooltip] {
+    position: relative;
+}
+
+.ch-act[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 26px;
+    top: 50%;
+    transform: translateY(-50%) translateX(6px);
+    background: #0f172a;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 6px;
+    border-radius: 6px;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .12s ease, transform .12s ease;
+}
+
+.ch-act:hover::after,
+.ch-act:focus-visible::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+/* ---------- Mobile tweaks ---------- */
+@media (max-width:480px) {
+    .ch-card__media {
+        aspect-ratio: 4/3 !important;
+    }
+
+    .ch-card__body {
+        padding: 8px 6px 8px !important;
+        gap: 6px;
+    }
+
+    .ch-card__vendor {
+        font-size: 10px;
+    }
+
+    .ch-card__title {
+        font-size: 12.6px;
+    }
+
+    .ch-price__cur {
+        font-size: 14px;
+    }
+
+    .ch-price__compare {
+        font-size: 10.5px;
+    }
+
+    .ch-price__save {
+        font-size: 10px;
+    }
+
+    .sbtn.ch-atcbtn {
+        height: 30px;
+        font-size: 12px;
+        padding: 0 12px;
+    }
+
+    /* Smaller icons; always visible on touch */
+    .ch-media-actions {
+        opacity: 1;
+        transform: none;
+    }
+
+    .ch-act {
+        width: 24px;
+        height: 24px;
+    }
+
+    .ch-act svg {
+        width: 16.5px;
+        height: 16.5px;
+        stroke-width: 1.6;
+    }
+
+    /* Keep badge from overlapping heart by nudging the badge right if both exist */
+    .ch-badgestack-left .ch-chip+.ch-media-actions {
+        margin-top: 2px;
+    }
+}
+
+/* Hide Quick View on mobile/touch */
+@media (hover:none),
+(max-width:767px) {
+    .ch-act--qv {
+        display: none !important;
+    }
+}
+
+.ch-atcbtn__ico {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* Desktop: show at most 3 thumbs */
+@media (min-width:768px) {
+    .ch-mini__track .ch-mini__thumb:nth-child(n+4) {
+        display: none !important;
+    }
+}
+
+/* Mobile/touch: hide mini-gallery; show small dots */
+@media (max-width:767px),
+(hover:none) {
+    .ch-mini {
+        display: none !important;
+    }
+
+    .ch-dots {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        display: flex;
+        gap: 6px;
+        z-index: 6;
+        padding: 4px 6px;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, .75);
+        box-shadow: 0 2px 8px rgba(15, 23, 42, .10);
+    }
+
+    .ch-dots .ch-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 9999px;
+        background: #111;
+        opacity: .35;
+        transform: scale(.9);
+        transition: opacity .12s, transform .12s;
+    }
+
+    .ch-dots .ch-dot.is-active {
+        opacity: .95;
+        transform: scale(1.15);
+    }
+}
+
+/* Top gradient for overlay contrast */
+.ch-card__media::after {
+    content: "";
+    background: linear-gradient(to bottom, rgba(0, 0, 0, .22), rgba(0, 0, 0, 0));
+    pointer-events: none;
+}
+
+/* Equal outer spacing for 2-col grids (Collection + Search) */
+@media (max-width: 1023px) {
+
+    body.template-collection #CollectionProductGrid .grid,
+    body.template-search #CollectionProductGrid .grid {
+        /* ensure true 2 equal columns */
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+
+        /* your preferred spacing */
+        gap: 12px !important;
+
+        /* IMPORTANT: equal left/right outer gutter */
+        padding-left: 12px !important;
+        padding-right: 12px !important;
+
+        /* neutralize any old layout tricks */
+        margin: 0 !important;
+    }
+
+    /* Remove old item padding that can cause asymmetry */
+    body.template-collection #CollectionProductGrid .grid__item,
+    body.template-search #CollectionProductGrid .grid__item {
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Keep your card sizing as-is (fill the column) */
+    body.template-collection #CollectionProductGrid .ch-card,
+    body.template-search #CollectionProductGrid .ch-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: unset !important;
+    }
+}
+
+/* Missing Price Styles */
+.ch-price {
+    line-height: 1.3;
+    font-weight: 700;
+    color: #111;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.ch-price__cur {
+    font-size: 15px;
+    color: #e03a2f;
+    letter-spacing: -0.4px;
+    font-weight: 700;
+}
+
+.ch-price__compare {
+    font-size: 12px;
+    font-weight: 400;
+    text-decoration: line-through;
+    color: #9ca3af;
+}
+
+.ch-price__compare--compact {
+    display: none;
+}
+
+.ch-price__save {
+    font-size: 11px;
+    font-weight: 700;
+    color: #b91c1c;
+}
+
+.ch-price[data-range="true"] .ch-price__cur::before {
+    content: 'From ';
+    font-weight: 600;
+    font-size: 12px;
+    color: #6b7280;
+    margin-right: 2px;
+}
+
+/* Ensure rating is visible */
+.ch-rating {
+    min-height: 16px;
+    margin-top: 2px;
+}
+
+.ch-rating__count {
+    font-size: 11px;
+    color: #6b7280;
+    margin-left: 4px;
+}

@@ -1,0 +1,14 @@
+{%- layout none -%}
+{%- assign seen = '' -%}
+{%- assign out = '' -%}
+{%- paginate collection.products by 1000 -%}
+  {%- for product in collection.products -%}
+    {%- assign v = product.vendor | strip -%}
+    {%- if v != blank and seen contains v | default: false == false -%}{% endif -%}
+    {%- unless v == blank or seen contains '|' | append: v | append: '|' -%}
+      {%- capture seen -%}{{ seen }}|{{ v }}|{%- endcapture -%}
+      {%- capture out -%}{{ out }}{"title":{{ v | json }}},{%- endcapture -%}
+    {%- endunless -%}
+  {%- endfor -%}
+{%- endpaginate -%}
+[{% if out != blank %}{{ out | trim: ',' }}{% endif %}]

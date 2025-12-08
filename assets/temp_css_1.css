@@ -1,0 +1,1682 @@
+/* Extracted from snippets/product-card.liquid */
+.ch-card,
+.ch-card *:not(svg):not(style) {
+    font-family: var(--font-sans);
+}
+
+.ch-card {
+    --brand: #e03a2f;
+    --brand-600: #d12f24;
+    --ch-text: #0F172A;
+    --ch-muted: #6B7280;
+    --ch-star: #8B1C1C;
+    position: relative;
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+    transition: box-shadow .18s, border-color .18s, transform .18s;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+@media (hover:hover) {
+    .ch-card:hover {
+        border-color: #D1D5DB;
+        box-shadow: 0 6px 18px rgba(16, 24, 40, .08);
+        transform: translateY(-1px);
+    }
+}
+
+.ch-card__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+}
+
+.ch-card a,
+.ch-card button {
+    cursor: pointer;
+}
+
+/* ---------- Media + loader ---------- */
+.ch-card__mediawrap {
+    position: relative;
+    z-index: 2;
+    flex: 0 0 auto;
+}
+
+.ch-card__media {
+    margin: 0 !important;
+    border-radius: 12px 12px 0 0 !important;
+    background: #fff;
+    aspect-ratio: 1/1;
+    position: relative;
+    display: block;
+    overflow: hidden;
+}
+
+.ch-card__img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+}
+
+.ch-card__media::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background:#fff url({{ 'chicon.png' | asset_url }}) center/56px 56px no-repeat;
+    opacity: 0;
+    transition: opacity .18s ease;
+}
+
+.ch-card__media:not([data-loaded="true"])::before {
+    opacity: .5;
+}
+
+/* ---------- Body ---------- */
+.ch-card__body {
+    position: relative;
+    z-index: 2;
+    padding: 10px 12px 12px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.ch-card__vendor {
+    font-size: 12px;
+    line-height: 1;
+    color: #9CA3AF;
+}
+
+.ch-card__title {
+    margin: 2px 0 0;
+    line-height: 1.28;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.ch-card__titlelink {
+    position: relative;
+    color: #111;
+    text-decoration: none;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    white-space: normal;
+    transition: color .18s ease;
+    outline-offset: 3px;
+}
+
+.ch-card:hover .ch-card__titlelink,
+.ch-card:focus-within .ch-card__titlelink {
+    color: #111;
+}
+
+/* kill the compact compare to avoid duplicate original prices */
+.ch-price__compare--compact {
+    display: none !important;
+}
+
+.ch-price__save {
+    display: block;
+    margin-top: 2px;
+    color: #B42318;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+@media (min-width:481px) {
+    .ch-price[data-range="true"] .ch-price__cur::before {
+        content: 'From ';
+        font-weight: 600;
+    }
+}
+
+/* ---------- Rating ---------- */
+.ch-rating {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ch-stars {
+    display: flex;
+    gap: 2px;
+}
+
+.ch-star path {
+    stroke: var(--ch-star);
+    stroke-width: 1.2;
+}
+
+.ch-star.is-full path {
+    fill: var(--ch-star);
+}
+
+.ch-star.is-empty path {
+    fill: transparent;
+}
+
+.ch-rating__count {
+    color: var(--ch-muted);
+    font-size: 11px;
+}
+
+.ch-rating__oke {
+    display: flex;
+    align-items: center;
+}
+
+/* ---------- CTA row + Add to cart button ---------- */
+.ch-cta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+    flex-wrap: wrap;
+}
+
+.ch-atc {
+    display: contents !important;
+}
+
+/* outline by default, solid red on hover; same for mobile & desktop */
+.sbtn.ch-atcbtn {
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    background: #fff;
+    color: var(--brand);
+    border: 1.5px solid var(--brand);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    line-height: 32px;
+    flex: 1 0 auto;
+    min-width: 120px;
+    transition: background .12s, border-color .12s, color .12s;
+    position: relative;
+}
+
+.sbtn.ch-atcbtn:hover,
+.sbtn.ch-atcbtn:focus-visible {
+    background: var(--brand);
+    border-color: var(--brand);
+    color: #fff;
+    outline: 2px solid transparent;
+}
+
+.sbtn.ch-atcbtn[disabled] {
+    cursor: not-allowed;
+}
+
+/* Hide ATC text when loading on the product card */
+.ch-atcbtn.is-adding .ch-atcbtn__txt {
+    opacity: 0;
+}
+
+@keyframes chspin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* hide any legacy wishlist button in CTA area */
+.ch-cta .ch-wishbtn {
+    display: none !important;
+}
+
+/* ---------- Mini gallery (unchanged) ---------- */
+.ch-mini {
+    position: absolute;
+    left: 8px;
+    right: 48px;
+    bottom: 8px;
+    z-index: 5;
+    padding: 0;
+    background: transparent;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.ch-mini__track {
+    display: flex;
+    gap: 6px;
+    padding: 4px 6px;
+    overflow: hidden;
+    scrollbar-width: none;
+}
+
+.ch-mini__track::-webkit-scrollbar {
+    display: none;
+}
+
+.ch-mini__thumb {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: 1px solid #E5E7EB;
+    background: #fff;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s, transform .15s;
+}
+
+.ch-mini__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+.ch-mini__thumb:hover {
+    transform: translateY(-1px);
+}
+
+.ch-mini__thumb.is-active {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 2px rgba(224, 58, 47, .15);
+}
+
+.ch-mini__thumb:focus-visible {
+    outline: 2px solid transparent;
+    box-shadow: 0 0 0 3px rgba(224, 58, 47, .20);
+}
+
+@media (min-width:768px) {
+    .ch-mini__track .ch-mini__thumb:nth-child(n+6) {
+        display: none !important;
+    }
+}
+
+@media (max-width:767px),
+(hover:none) {
+    .ch-mini {
+        left: 6px;
+        right: 44px;
+        bottom: 6px;
+    }
+
+    .ch-mini__track {
+        padding: 3px 4px;
+        gap: 4px;
+    }
+
+    .ch-mini__thumb {
+        width: 30px;
+        height: 30px;
+    }
+
+    .ch-mini__track .ch-mini__thumb:nth-child(n+4) {
+        display: none !important;
+    }
+}
+
+/* ---------- Left badge stack ---------- */
+.ch-badgestack-left {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 7;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+/* stock/info chip sizes */
+.ch-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 9px;
+    border-radius: 9999px;
+    font-weight: 700;
+    font-size: 10.5px;
+    line-height: 1;
+    background: #FFF7ED;
+    border: 1px solid #FED7AA;
+    color: #B45309;
+}
+
+.ch-chip__ico {
+    width: 14px;
+    height: 14px;
+    flex: 0 0 14px;
+}
+
+.ch-chip--stock.is-crit,
+.ch-chip--stock.is-out {
+    background: #FEE2E2;
+    border-color: #FCA5A5;
+    color: #B91C1C;
+}
+
+.ch-chip--stock.is-warn {
+    background: #FEF3C7;
+    border-color: #FCD34D;
+    color: #92400E;
+}
+
+/* ---------- Photo actions (icons only) ---------- */
+/* Keep the actions INSIDE the left stack so they sit directly under the badge when present. */
+.ch-media-actions {
+    position: static;
+    /* respect the stack flow */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity .18s ease, transform .18s ease;
+}
+
+/* Show on hover for hover-capable devices */
+@media (hover:hover) {
+
+    .ch-card:hover .ch-media-actions,
+    .ch-card:focus-within .ch-media-actions {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Icon-only buttons */
+.ch-act {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    color: #374151;
+    display: grid;
+    place-items: center;
+    transition: color .12s ease, transform .12s ease;
+}
+
+.ch-act svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    fill: none;
+}
+
+.ch-act:hover,
+.ch-act:focus-visible {
+    color: #D12F24;
+    transform: scale(1.06);
+}
+
+.ch-act:focus-visible {
+    outline: 2px solid #d1d5db;
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* Accessible tooltip helper (optional, if you add data-tooltip="...") */
+.ch-act[data-tooltip] {
+    position: relative;
+}
+
+.ch-act[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: 26px;
+    top: 50%;
+    transform: translateY(-50%) translateX(6px);
+    background: #0f172a;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 6px;
+    border-radius: 6px;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, .18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .12s ease, transform .12s ease;
+}
+
+.ch-act:hover::after,
+.ch-act:focus-visible::after {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+/* ---------- Mobile tweaks ---------- */
+@media (max-width:480px) {
+    .ch-card__media {
+        aspect-ratio: 4/3 !important;
+    }
+
+    .ch-card__body {
+        padding: 8px 10px 10px !important;
+        gap: 6px;
+    }
+
+    .ch-card__vendor {
+        font-size: 10px;
+    }
+
+    .ch-card__title {
+        font-size: 12.6px;
+    }
+
+    .ch-price__cur {
+        font-size: 14px;
+    }
+
+    .ch-price__compare {
+        font-size: 10.5px;
+    }
+
+    .ch-price__save {
+        font-size: 10px;
+    }
+
+    .sbtn.ch-atcbtn {
+        height: 30px;
+        font-size: 12px;
+        padding: 0 12px;
+    }
+
+    /* Smaller icons; always visible on touch */
+    .ch-media-actions {
+        opacity: 1;
+        transform: none;
+    }
+
+    .ch-act {
+        width: 24px;
+        height: 24px;
+    }
+
+    .ch-act svg {
+        width: 16.5px;
+        height: 16.5px;
+        stroke-width: 1.6;
+    }
+
+    /* Keep badge from overlapping heart by nudging the badge right if both exist */
+    .ch-badgestack-left .ch-chip+.ch-media-actions {
+        margin-top: 2px;
+    }
+}
+
+/* Hide Quick View on mobile/touch */
+@media (hover:none),
+(max-width:767px) {
+    .ch-act--qv {
+        display: none !important;
+    }
+}
+
+.ch-atcbtn__ico {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+}
+
+/* Desktop: show at most 3 thumbs */
+@media (min-width:768px) {
+    .ch-mini__track .ch-mini__thumb:nth-child(n+4) {
+        display: none !important;
+    }
+}
+
+/* Mobile/touch: hide mini-gallery; show small dots */
+@media (max-width:767px),
+(hover:none) {
+    .ch-mini {
+        display: none !important;
+    }
+
+    .ch-dots {
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        display: flex;
+        gap: 6px;
+        z-index: 6;
+        padding: 4px 6px;
+        border-radius: 9999px;
+        background: rgba(255, 255, 255, .75);
+        box-shadow: 0 2px 8px rgba(15, 23, 42, .10);
+    }
+
+    .ch-dots .ch-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 9999px;
+        background: #111;
+        opacity: .35;
+        transform: scale(.9);
+        transition: opacity .12s, transform .12s;
+    }
+
+    .ch-dots .ch-dot.is-active {
+        opacity: .95;
+        transform: scale(1.15);
+    }
+}
+
+/* Top gradient for overlay contrast */
+.ch-card__media::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 60px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, .22), rgba(0, 0, 0, 0));
+    pointer-events: none;
+}
+
+/* Badge rail (top-left) */
+.ch-badgestack-left {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 7;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-start;
+}
+
+.ch-badge {
+    font-size: 12px;
+    line-height: 1;
+    font-weight: 700;
+    padding: 6px 8px;
+    border-radius: 9999px;
+}
+
+/* Yellow ribbon for % off */
+.ch-badge--ribbon {
+    color: #b91c1c;
+    background: #fde047;
+    position: relative;
+    padding: 6px 10px 6px 12px;
+}
+
+.ch-badge--ribbon::before {
+    content: "";
+    position: absolute;
+    left: -8px;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    background: #fde047;
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 60%);
+}
+
+/* Red pill for low stock / out */
+.ch-badge--stock {
+    background: #ef4444;
+    color: #fff;
+}
+
+.ch-badge--stock.is-out {
+    background: #9ca3af;
+    color: #111;
+}
+
+/* optional */
+
+/* Fixed actions (top-right): wishlist + quick view stacked) */
+.ch-actions-tr {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 8;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+.ch-iconbtn {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 9999px;
+    background: rgba(0, 0, 0, .16);
+    border: 1px solid rgba(255, 255, 255, .65);
+    color: #111;
+    backdrop-filter: saturate(1.2) blur(2px);
+    transition: transform .12s ease, background .12s ease, border-color .12s ease;
+}
+
+.ch-iconbtn svg {
+    width: 18px;
+    height: 18px;
+    stroke: #fff;
+}
+
+.ch-iconbtn:hover,
+.ch-iconbtn:focus-visible {
+    transform: scale(1.05);
+    border-color: #fff;
+}
+
+/* Saved state: solid brand red */
+.ch-iconbtn--wish[aria-pressed="true"],
+.ch-iconbtn--wish.is-active {
+    background: #e11d48;
+    border-color: #e11d48;
+}
+
+/* Hide Quick View on touch */
+@media (hover:none),
+(max-width:767px) {
+    .ch-iconbtn--qv {
+        display: none !important;
+    }
+}
+
+/* Typography sizing (brand/vendor/title/price) */
+.ch-card__vendor {
+    font-size: 12.5px;
+    color: #9CA3AF;
+    font-weight: 500;
+}
+
+.ch-card__title {
+    font-size: 15px;
+}
+
+.ch-price__cur {
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.ch-price__compare {
+    font-size: 12.5px;
+}
+
+/* Remove old stock chip + left action stack styles */
+.ch-media-actions {
+    display: none !important;
+}
+
+.ch-chip,
+.ch-chip--stock {
+    display: none !important;
+}
+
+/* retiring old chip styles */
+/* ========== Desktop-only top overlay ========== */
+.ch-card__media::after {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 64px;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, .22), rgba(0, 0, 0, 0));
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .16s ease;
+}
+
+@media (hover:hover) {
+    .ch-card:hover .ch-card__media::after {
+        opacity: 1;
+    }
+}
+
+@media (hover:none) {
+    .ch-card__media::after {
+        display: none !important;
+    }
+}
+
+/* ========== Actions: appear on hover desktop, always visible on touch ========== */
+@media (hover:hover) {
+    .ch-actions-tr {
+        opacity: 0;
+        transform: translateY(-6px);
+        transition: opacity .18s, transform .18s;
+    }
+
+    .ch-card:hover .ch-actions-tr,
+    .ch-card:focus-within .ch-actions-tr {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (hover:none) {
+    .ch-actions-tr {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* Icon buttons (unchanged base) */
+.ch-iconbtn {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 9999px;
+    background: rgba(17, 24, 39, .16);
+    border: 1px solid rgba(255, 255, 255, .65);
+    backdrop-filter: saturate(1.1) blur(2px);
+    transition: transform .12s, background .12s, border-color .12s;
+}
+
+.ch-iconbtn svg {
+    width: 18px;
+    height: 18px;
+    stroke: #fff;
+}
+
+.ch-iconbtn:hover,
+.ch-iconbtn:focus-visible {
+    transform: scale(1.05);
+    border-color: #fff;
+}
+
+.ch-iconbtn--wish[aria-pressed="true"],
+.ch-iconbtn--wish.is-active {
+    background: #e11d48;
+    border-color: #e11d48;
+}
+
+/* ---- Tooltip bubble like your sample ---- */
+.ch-pop {
+    position: absolute;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%) translateX(6px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: #0b1220;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, .22);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .12s, transform .12s;
+}
+
+.ch-pop::after {
+    /* little pointer */
+    content: "";
+    position: absolute;
+    right: -6px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-top: 6px solid transparent;
+    border-bottom: 6px solid transparent;
+    border-left: 6px solid #0b1220;
+}
+
+.ch-iconbtn:hover .ch-pop,
+.ch-iconbtn:focus-visible .ch-pop {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+}
+
+/* Hide bubbles on touch */
+@media (hover:none) {
+    .ch-pop {
+        display: none !important;
+    }
+}
+
+/* ========== Badge rail (prettier) ========== */
+.ch-badgestack-left {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    z-index: 7;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Discount TAG (soft yellow + notch) */
+.ch-badge--tag {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #b91c1c;
+    background: #fff7cc;
+    border: 1px solid #fde68a;
+    padding: 6px 12px 6px 10px;
+    border-radius: 9999px 8px 8px 9999px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .02);
+}
+
+.ch-badge--tag::after {
+    content: "";
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 14px;
+    background: #fff7cc;
+    border: 1px solid #fde68a;
+    border-left: 0;
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+    border-radius: 0 2px 2px 0;
+}
+
+/* Stock PILL (light red, rounded) */
+.ch-badge--stock {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #b91c1c;
+    background: #fee2e2;
+    border: 1px solid #fecaca;
+    padding: 6px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .02);
+}
+
+.ch-badge--stock.is-out {
+    color: #111827;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+}
+
+/* Smaller badges on mobile */
+@media (max-width:480px) {
+    .ch-badge--tag {
+        font-size: 11px;
+        padding: 4px 8px 4px 8px;
+    }
+
+    .ch-badge--tag::after {
+        width: 6px;
+        height: 12px;
+        right: -6px;
+    }
+
+    .ch-badge--stock {
+        font-size: 11px;
+        padding: 4px 8px;
+    }
+}
+
+/* Discount: soft yellow pill, red text; no notch */
+.ch-badge--tag {
+    /* layout */
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 9999px;
+
+    /* look */
+    background: rgba(250, 204, 21, .12);
+    /* yellow-400 @12% */
+    border: 1px solid rgba(250, 204, 21, .45);
+    color: #b91c1c;
+    /* red-700 */
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+
+    /* remove any old notch/pseudo */
+    box-shadow: none;
+    position: relative;
+}
+
+.ch-badge--tag::after {
+    display: none !important;
+}
+
+/* kill ribbon notch */
+
+/* Stock: soft rose pill, neutral text */
+.ch-badge--stock {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 9px;
+    border-radius: 9999px;
+
+    background: rgba(225, 29, 72, .08);
+    /* rose-600 @8% */
+    border: 1px solid rgba(225, 29, 72, .25);
+    color: #b91c1c;
+    /* red-700 */
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.ch-badge--stock.is-out {
+    background: rgba(17, 24, 39, .04);
+    /* slate @4% */
+    border: 1px solid rgba(17, 24, 39, .12);
+    color: #111827;
+}
+
+/* Smaller badges on mobile for less clutter */
+@media (max-width:480px) {
+
+    .ch-badge--tag,
+    .ch-badge--stock {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+}
+
+/* ---------- Mini gallery: subtle active state ---------- */
+.ch-mini__thumb {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #E5E7EB;
+    /* light gray */
+    background: #fff;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    transition: border-color .12s, box-shadow .12s, transform .12s;
+}
+
+.ch-mini__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 9px;
+}
+
+/* Minimal active: dark neutral border + faint ring, no bright red */
+.ch-mini__thumb.is-active {
+    border-color: #0f172a;
+    /* slate-900 */
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, .06);
+    /* faint ring */
+    transform: none;
+}
+
+/* Keyboard focus: visible but calm */
+.ch-mini__thumb:focus-visible {
+    outline: 2px solid transparent;
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, .14);
+}
+
+/* Hover (desktop only): tiny lift */
+@media (hover:hover) {
+    .ch-mini__thumb:hover {
+        transform: translateY(-1px);
+    }
+}
+
+/* Mobile: smaller thumbs, still minimal */
+@media (max-width:767px) {
+    .ch-mini__thumb {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+    }
+}
+
+/* Mobile/touch: wishlist always visible, quick view hidden */
+@media (hover:none),
+(max-width:767px) {
+    .ch-actions-tr {
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .ch-iconbtn--qv {
+        /* hide Quick View on mobile */
+        display: none !important;
+    }
+}
+
+/* Mobile/touch: remove the dark top overlay on the image */
+@media (hover:none),
+(max-width:767px) {
+    .ch-card__media::after {
+        content: none !important;
+        display: none !important;
+    }
+}
+
+/* === Mini gallery: perfect squares, no rounding === */
+.ch-mini__thumb {
+    width: 40px;
+    /* desktop size */
+    aspect-ratio: 1 / 1;
+    /* keep it square even if width changes */
+    height: auto;
+    /* let aspect-ratio control height */
+    border: 1px solid #E5E7EB;
+    border-radius: 0 !important;
+    /* remove rounded corners */
+    overflow: hidden;
+    /* crop image cleanly */
+    background: #fff;
+    display: grid;
+    place-items: center;
+    transition: border-color .12s, box-shadow .12s, transform .12s;
+}
+
+.ch-mini__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* square crop */
+    border-radius: 0 !important;
+}
+
+/* Subtle active/focus ring, square edges */
+.ch-mini__thumb.is-active {
+    border-color: #0f172a;
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, .06);
+}
+
+.ch-mini__thumb:focus-visible {
+    outline: 2px solid transparent;
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, .14);
+}
+
+/* Mobile size */
+@media (max-width:767px) {
+    .ch-mini__thumb {
+        width: 32px;
+    }
+}
+
+/* Media container stays the same */
+.ch-card__media {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Base image */
+.ch-card__img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    transition: opacity .18s ease;
+}
+
+/* Secondary image sits on top and fades in on hover (desktop) */
+.ch-card__img--alt {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    /* purely visual */
+}
+
+/* Desktop hover/focus swap */
+@media (hover:hover) {
+
+    .ch-card:hover .ch-card__img--alt,
+    .ch-card:focus-within .ch-card__img--alt {
+        opacity: 1;
+    }
+
+    /* optional crossfade of primary */
+    .ch-card:hover .ch-card__img[data-img-main],
+    .ch-card:focus-within .ch-card__img[data-img-main] {
+        opacity: .02;
+    }
+}
+
+/* Touch/mobile: never swap (no hover) */
+@media (hover:none) {
+    .ch-card__img--alt {
+        display: none !important;
+    }
+}
+
+/* --- MOBILE: wishlist smaller & pinned to very top-left --- */
+@media (max-width:767px) {
+    .ch-actions-tr {
+        left: 6px !important;
+        right: auto !important;
+        top: 6px !important;
+        z-index: 12 !important;
+        /* above everything */
+        align-items: flex-start !important;
+    }
+
+    .ch-iconbtn {
+        /* smaller heart */
+        width: 26px !important;
+        height: 26px !important;
+    }
+
+    .ch-iconbtn svg {
+        width: 16px !important;
+        height: 16px !important;
+    }
+
+    .ch-badgestack-left {
+        /* nudge badges under the heart */
+        top: 34px !important;
+        left: 6px !important;
+    }
+}
+
+.ch-card .ch-price__cur {
+    order: 1 !important;
+}
+
+.ch-card .ch-price__compare {
+    order: 2 !important;
+    white-space: nowrap !important;
+    text-decoration: line-through !important;
+    color: #6B7280 !important;
+}
+
+/* --- PRICE: always side-by-side; slashed on the RIGHT (no wrapping) --- */
+.ch-card .ch-price .ch-price__row {
+    flex-direction: row !important;
+    align-items: baseline !important;
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+    min-height: 22px !important;
+}
+
+.ch-card .ch-price__cur {
+    order: 1 !important;
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    color: var(--brand) !important;
+    white-space: nowrap !important;
+}
+
+.ch-card .ch-price__compare {
+    order: 2 !important;
+    text-decoration: line-through !important;
+    color: #6B7280 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    /* fixes the clipping */
+    text-overflow: clip !important;
+}
+
+/* --- FINAL FIX: price line never wraps or clips --- */
+.ch-card .ch-price,
+.ch-card .ch-price .ch-price__row {
+    overflow: visible !important;
+}
+
+.ch-card .ch-price .ch-price__row {
+    display: flex !important;
+    align-items: baseline !important;
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+}
+
+.ch-card .ch-price__cur,
+.ch-card .ch-price__compare {
+    flex: 0 0 auto !important;
+    /* don’t shrink */
+    white-space: nowrap !important;
+}
+
+.ch-card .ch-price__compare {
+    display: inline-block !important;
+    max-width: none !important;
+    /* kill any legacy max-width */
+    text-overflow: clip !important;
+    overflow: visible !important;
+    color: #6B7280 !important;
+    text-decoration: line-through !important;
+}
+
+@keyframes chspin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* keyframes: translate + rotate together so it never "droops" */
+@keyframes atcspin {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* Standalone QV Styles */
+.stand-qv {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    background: rgba(0, 0, 0, .12);
+}
+
+.stand-qv__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(1px);
+}
+
+.stand-qv__panel {
+    position: relative;
+    background: #fff;
+    border-radius: 20px;
+    max-width: 1080px;
+    width: min(1080px, 96vw);
+    max-height: 92vh;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.22);
+    z-index: 1;
+    transform-origin: center;
+    animation: qvIn .16s ease;
+}
+
+.stand-qv__panel.is-closing {
+    animation: qvOut .13s ease forwards;
+}
+
+@keyframes qvIn {
+    from {
+        transform: translateY(8px) scale(.97);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes qvOut {
+    from {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateY(8px) scale(.97);
+        opacity: 0;
+    }
+}
+
+.stand-qv__close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    background: rgba(248, 250, 252, 0.65);
+    border-radius: 999px;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    color: #0f172a;
+    transition: transform .12s ease;
+    z-index: 20;
+}
+
+.stand-qv__close:hover {
+    transform: scale(1.04);
+}
+
+.ch-qv-panel {
+    flex-direction: row;
+}
+
+.ch-qv-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
+    gap: 1.8rem;
+    align-items: flex-start;
+    width: 100%;
+    padding: 1.6rem 1.6rem 1.2rem;
+}
+
+.ch-qv-media-col,
+.ch-qv-info-col {
+    min-width: 0;
+}
+
+.ch-qv-media {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.ch-qv-media-main {
+    position: relative;
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    min-height: 420px;
+}
+
+.ch-qv-media-main__item {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .22s ease;
+}
+
+.ch-qv-media-main__item.is-shown {
+    opacity: 1;
+    visibility: visible;
+    z-index: 2;
+}
+
+.ch-qv-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.ch-qv-media-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, .05);
+    background: rgba(255, 255, 255, .75);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    z-index: 5;
+}
+
+.ch-qv-media-nav--prev {
+    left: 10px;
+}
+
+.ch-qv-media-nav--next {
+    right: 10px;
+}
+
+.ch-qv-thumbs {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.ch-qv-thumb {
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 6px;
+    padding: 3px;
+    cursor: pointer;
+}
+
+.ch-qv-thumb.is-active {
+    border-color: #d12f24;
+}
+
+.ch-qv-thumb img {
+    width: 74px;
+    height: auto;
+    display: block;
+}
+
+.ch-qv-info-col {
+    display: flex;
+    flex-direction: column;
+    gap: .75rem;
+    max-height: calc(92vh - 3.6rem);
+    overflow-y: auto;
+    padding-right: .4rem;
+}
+
+/* thinner rail */
+.ch-qv-info-col::-webkit-scrollbar {
+    width: 5px;
+}
+
+.ch-qv-info-col::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ch-qv-info-col::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, .4);
+    border-radius: 20px;
+}
+
+.ch-qv-vendor {
+    font-size: .8rem;
+    color: #9CA3AF;
+    text-transform: capitalize;
+}
+
+.ch-qv-title {
+    font-size: 1.65rem;
+    font-weight: 600;
+    margin: 0;
+    color: #111;
+}
+
+.ch-qv-price-block {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+
+.ch-qv-price-line {
+    display: flex;
+    align-items: baseline;
+    gap: .6rem;
+}
+
+.ch-qv-price {
+    color: #d12f24;
+    font-weight: 700;
+    font-size: 1.45rem;
+}
+
+.ch-qv-price-compare {
+    color: #9ca3af;
+    text-decoration: line-through;
+}
+
+.ch-qv-save {
+    color: #b42318;
+    font-size: .78rem;
+}
+
+.ch-qv-topdesc {
+    font-size: .85rem;
+    color: #6b7280;
+    line-height: 1.4;
+    max-width: 38rem;
+}
+
+.ch-qv-rating-row {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    color: #6b7280;
+    font-size: .72rem;
+}
+
+/* smaller option bar */
+.ch-optionbar {
+    position: relative;
+    margin-top: .2rem;
+    margin-bottom: .2rem;
+    z-index: 40;
+}
+
+.ch-optionbar__btn {
+    width: 100%;
+    background: #fff;
+    border: 1px solid rgba(17, 17, 17, .08);
+    border-radius: 12px;
+    min-height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 10px 4px 12px;
+    cursor: pointer;
+    transition: box-shadow .12s ease, border .12s ease;
+}
+
+.ch-optionbar__btn:hover {
+    border: 1px solid rgba(17, 17, 17, .15);
+    box-shadow: 0 4px 16px rgba(17, 17, 17, .02);
+}
+
+.ch-optionbar__label {
+    font-size: .78rem;
+    color: #4b5563;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ch-optionbar__ico {
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    color: #9ca3af;
+    transition: transform .16s ease;
+    position: relative;
+}
+
+.ch-optionbar.is-open .ch-optionbar__ico {
+    transform: rotate(180deg);
+}
+
+.ch-optionbar__pop {
+    position: absolute;
+    left: 0;
+    top: calc(100% + 6px);
+    min-width: 100%;
+    background: #fff;
+    border: 1px solid rgba(17, 17, 17, .04);
+    border-radius: 14px;
+    box-shadow: 0 16px 34px rgba(17, 17, 17, .12);
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity .12s ease, transform .12s ease;
+    max-height: 240px;
+}
+
+.ch-optionbar.is-open .ch-optionbar__pop {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.ch-optionbar__list {
+    list-style: none;
+    margin: 0;
+    padding: 4px 0;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.ch-optionbar__item {
+    padding: 7px 10px 7px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    transition: background .12s ease;
+    font-size: .75rem;
+}
+
+.ch-optionbar__item:hover {
+    background: #f9fafb;
+}
+
+.ch-optionbar__item.is-active {
+    background: #fff1f0;
+    color: #d12f24;
+    font-weight: 500;
+}
+
+.ch-optionbar__item.is-active::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 7px;
+    bottom: 7px;
+    width: 3px;
+    border-radius: 16px;
+    background: #d12f24;
+}
+
+.ch-vp-line {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ch-vp-name {
+    font-size: .73rem;
+}
+
+.ch-vp-price {
+    font-size: .68rem;
+    color: #6b7280;
+}
+
+.ch-optionbar__item.is-disabled {
+    opacity: .5;
+    background: #fafafa;
+    cursor: not-allowed;
+}

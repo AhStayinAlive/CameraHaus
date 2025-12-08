@@ -256,7 +256,7 @@ $color-border-body-darken: darken($color-body, 10%);
 $color-heading: #000000;
 
 // Header and footer
-$color-header: #d12f24;
+$color-header: #ffffff;
 $color-header-border: adaptive-color($color-header, 5%);
 $color-header-links: #ffffff;
 $color-header-links-rgba: rgba($color-header-links, 0.6);
@@ -357,40 +357,40 @@ $collection-card-height: $product-card-height + $product-image-margin-bottom;
   font-family: Inter;
   font-weight: 400;
   font-style: normal;
-  src: url("//camerahaus.com/cdn/fonts/inter/inter_n4.b2a3f24c19b4de56e8871f609e73ca7f6d2e2bb9.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=1fb6c4b07ea9fa7397757f6e051ab4518dfb3284c95c65cf2efab07ae687c489") format("woff2"),
-       url("//camerahaus.com/cdn/fonts/inter/inter_n4.af8052d517e0c9ffac7b814872cecc27ae1fa132.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=38fe7379802085d7ab5308bf6d044424b924d32db251b96106130daf7b0dc9ba") format("woff");
+  src: url("//camerahaus.com/cdn/fonts/inter/inter_n4.b2a3f24c19b4de56e8871f609e73ca7f6d2e2bb9.woff2") format("woff2"),
+       url("//camerahaus.com/cdn/fonts/inter/inter_n4.af8052d517e0c9ffac7b814872cecc27ae1fa132.woff") format("woff");
 }
 
 @font-face {
   font-family: Inter;
   font-weight: 400;
   font-style: normal;
-  src: url("//camerahaus.com/cdn/fonts/inter/inter_n4.b2a3f24c19b4de56e8871f609e73ca7f6d2e2bb9.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=1fb6c4b07ea9fa7397757f6e051ab4518dfb3284c95c65cf2efab07ae687c489") format("woff2"),
-       url("//camerahaus.com/cdn/fonts/inter/inter_n4.af8052d517e0c9ffac7b814872cecc27ae1fa132.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=38fe7379802085d7ab5308bf6d044424b924d32db251b96106130daf7b0dc9ba") format("woff");
+  src: url("//camerahaus.com/cdn/fonts/inter/inter_n4.b2a3f24c19b4de56e8871f609e73ca7f6d2e2bb9.woff2") format("woff2"),
+       url("//camerahaus.com/cdn/fonts/inter/inter_n4.af8052d517e0c9ffac7b814872cecc27ae1fa132.woff") format("woff");
 }
 
 @font-face {
   font-family: Inter;
   font-weight: 700;
   font-style: normal;
-  src: url("//camerahaus.com/cdn/fonts/inter/inter_n7.02711e6b374660cfc7915d1afc1c204e633421e4.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=98a66e28023f144b9f441a044b84192d14cfa3d83e69a60ba01c9be674134a21") format("woff2"),
-       url("//camerahaus.com/cdn/fonts/inter/inter_n7.6dab87426f6b8813070abd79972ceaf2f8d3b012.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=5c6e4d37a34580b969565e7d92c0c32baa19e3a7b1b7116360453494ccc018cd") format("woff");
+  src: url("//camerahaus.com/cdn/fonts/inter/inter_n7.02711e6b374660cfc7915d1afc1c204e633421e4.woff2") format("woff2"),
+       url("//camerahaus.com/cdn/fonts/inter/inter_n7.6dab87426f6b8813070abd79972ceaf2f8d3b012.woff") format("woff");
 }
 
 @font-face {
   font-family: Inter;
   font-weight: 400;
   font-style: italic;
-  src: url("//camerahaus.com/cdn/fonts/inter/inter_i4.feae1981dda792ab80d117249d9c7e0f1017e5b3.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=2bc8b476d4a0a1052dbeca7be9d04fe0c265118d2f339971b3b222ec01de12d9") format("woff2"),
-       url("//camerahaus.com/cdn/fonts/inter/inter_i4.62773b7113d5e5f02c71486623cf828884c85c6e.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=c461fecdb7ccfb88df60a1109b77da2c6ffb27512b8e5408b0ef5f4f3fd77ad3") format("woff");
+  src: url("//camerahaus.com/cdn/fonts/inter/inter_i4.feae1981dda792ab80d117249d9c7e0f1017e5b3.woff2") format("woff2"),
+       url("//camerahaus.com/cdn/fonts/inter/inter_i4.62773b7113d5e5f02c71486623cf828884c85c6e.woff") format("woff");
 }
 
 @font-face {
   font-family: Inter;
   font-weight: 700;
   font-style: italic;
-  src: url("//camerahaus.com/cdn/fonts/inter/inter_i7.b377bcd4cc0f160622a22d638ae7e2cd9b86ea4c.woff2?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=c732b7c52a35d35ebf837b67b8cf473e2289b28e69db94ef40427d8262a4a123") format("woff2"),
-       url("//camerahaus.com/cdn/fonts/inter/inter_i7.7c69a6a34e3bb44fcf6f975857e13b9a9b25beb4.woff?h1=Y2FtZXJhaGF1cy1vbmxpbmUuYWNjb3VudC5teXNob3BpZnkuY29t&h2=Y2FtZXJhaGF1cy5jb20&hmac=5fd0fd934ec196ea94bf59e086372cbab900a934cf42c37f8f5b9e13b3b7cf8c") format("woff");
+  src: url("//camerahaus.com/cdn/fonts/inter/inter_i7.b377bcd4cc0f160622a22d638ae7e2cd9b86ea4c.woff2") format("woff2"),
+       url("//camerahaus.com/cdn/fonts/inter/inter_i7.7c69a6a34e3bb44fcf6f975857e13b9a9b25beb4.woff") format("woff");
 }
 
 

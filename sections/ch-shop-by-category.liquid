@@ -2,7 +2,7 @@
 CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
 {% endcomment %}
 
-<section id="catc-{{ section.id }}" class="catc" role="region" aria-labelledby="catc-heading-{{ section.id }}">
+<section id="catc-{{ section.id }}" class="catc catc--pre" role="region" aria-labelledby="catc-heading-{{ section.id }}">
   <div class="page-width">
     <div class="catc__top">
       <h2 id="catc-heading-{{ section.id }}" class="catc__heading">
@@ -20,9 +20,9 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
               <span class="catc-chip__icon" aria-hidden="true">
                 {% if t.image != blank %}
                   {{ t.image
-                    | image_url: width: 600
+                    | image_url: width: 300
                     | image_tag:
-                        widths: '180,300,420,600',
+                        widths: '180,240,300',
                         sizes: '(max-width: 739px) 80px, (max-width: 1099px) 100px, 120px',
                         loading: 'lazy',
                         decoding: 'async',
@@ -51,10 +51,14 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
     #catc-{{ section.id }}{
       --brand: {{ section.settings.brand | default: '#e03a2f' }};
       --ink: #111827;
-      --gap: 32px;                       /* gap between chips */
+      --gap: 32px;
       --tile-w: clamp(88px, 10vw, 128px);
       --icon: clamp(64px, 8vw, 110px);
       --label-size: 14px;
+      --pad-t: {{ section.settings.pad_t | default: 24 }}px;
+      --pad-b: {{ section.settings.pad_b | default: 24 }}px;
+      padding-top: var(--pad-t);
+      padding-bottom: var(--pad-b);
     }
 
     /* container */
@@ -69,9 +73,8 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
       line-height:1.15;
       font-size:clamp(24px, 3vw + 8px, 32px);
       color: var(--heading-color, inherit);
-      font-family: inherit; /* follow theme like Shop by Use */
+      font-family: inherit;
     }
-
 
     /* viewport + strip */
     .catc__viewport{ position:relative; }
@@ -84,7 +87,11 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
     .catc__strip::-webkit-scrollbar{ display:none; }
 
     /* items */
-    .catc__item{ flex:0 0 auto; width:var(--tile-w); text-align:center; scroll-snap-align:center; }
+    .catc__item{
+      flex:0 0 auto; width:var(--tile-w); text-align:center; scroll-snap-align:center;
+      backface-visibility: hidden;
+      transform: translateZ(0);
+    }
 
     /* chip */
     .catc-chip{
@@ -94,8 +101,9 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
     .catc-chip__icon{
       display:grid; place-items:center; width:var(--icon); height:var(--icon);
       border-radius:12px;
-      filter:saturate(.75) grayscale(.1);
-      transition:transform .18s ease, filter .18s ease;
+      /* Removed filter animations for mobile performance */
+      transition: transform .18s ease, opacity .18s ease;
+      opacity:.95;
     }
     .catc-chip__icon img{ width:100%; height:100%; object-fit:contain; display:block; }
     .catc-chip__label{
@@ -103,7 +111,7 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
     }
     .catc-chip:focus-visible .catc-chip__icon,
-    .catc-chip:hover .catc-chip__icon{ transform:translateY(-2px); filter:saturate(1) grayscale(0); }
+    .catc-chip:hover .catc-chip__icon{ transform:translateY(-2px); opacity:1; }
     .catc-chip__ph{ background:#eef0f3; width:100%; height:100%; display:block; border-radius:12px; }
 
     /* edge peek on mobile */
@@ -120,24 +128,16 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
       }
     }
 
-    /* === ARROWS (copied styling; scoped to this section) === */
+    /* === ARROWS (scoped) === */
     #catc-{{ section.id }} .catc__viewport{ position:relative; }
     #catc-{{ section.id }} .catc__viewport > .chpc__arrows{
-      position:absolute; top:0; right:0; bottom:0; left:0; z-index:6; /* removed pointer-events:none */
+      position:absolute; top:0; right:0; bottom:0; left:0; z-index:6;
+      pointer-events: none;
     }
 
-    /* keep arrows clickable and on top */
     #catc-{{ section.id }} .catc__viewport .chpc__arrow{
       pointer-events:auto;
       position:absolute; top:50%; transform:translateY(-50%);
-    }
-
-    /* optional: keep them inside the viewport for easier hit tests */
-    #catc-{{ section.id }} .catc__viewport .chpc__arrow--prev{ left:8px; }
-    #catc-{{ section.id }} .catc__viewport .chpc__arrow--next{ right:8px; }
-
-    #catc-{{ section.id }} .catc__viewport .chpc__arrow{
-      position:absolute; top:50%; transform:translateY(-50%); pointer-events:auto;
       width:38px; height:38px; display:grid; place-items:center;
       background:transparent; color:var(--brand);
       border:1.5px solid var(--brand); border-radius:9999px;
@@ -154,20 +154,55 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
       #catc-{{ section.id }} .catc__viewport > .chpc__arrows,
       #catc-{{ section.id }} .catc__viewport .chpc__arrow{ display:none !important; }
     }
-    #catc-{{ section.id }}{
-  --brand: {{ section.settings.brand | default: '#e03a2f' }};
-  --ink: #111827;
-  --gap: 32px;
-  --tile-w: clamp(88px, 10vw, 128px);
-  --icon: clamp(64px, 8vw, 110px);
-  --label-size: 14px;
 
-  /* 👇 new: theme-controlled padding */
-  --pad-t: {{ section.settings.pad_t | default: 24 }}px;
-  --pad-b: {{ section.settings.pad_b | default: 24 }}px;
-  padding-top: var(--pad-t);
-  padding-bottom: var(--pad-b);
-}
+    /* === animation states === */
+
+    /* 1) pre-load: keep items invisible so they don't "flash" before observer fires */
+    #catc-{{ section.id }}.catc--pre .catc__item{
+      opacity:0;
+      transform:translateY(22px);
+    }
+
+    /* 2) animating: simplified, GPU-friendly, shorter */
+    #catc-{{ section.id }}.catc--animating .catc__item{
+      opacity:0;
+      transform:translateY(18px);
+      animation: catc-float-in .42s cubic-bezier(.22,.61,.36,1) forwards;
+      will-change: transform, opacity;
+    }
+
+    /* Reduce/disable stagger on mobile to avoid jank */
+    @media (max-width:739.98px){
+      #catc-{{ section.id }}.catc--animating .catc__item{ animation-delay:0s !important; }
+    }
+
+    /* Mild stagger on larger screens */
+    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(2){ animation-delay:.04s; }
+    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(3){ animation-delay:.08s; }
+    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(4){ animation-delay:.12s; }
+    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(5){ animation-delay:.16s; }
+    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(6){ animation-delay:.20s; }
+    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(7){ animation-delay:.24s; }
+    #catc-{{ section.id }}.catc--animating .catc__item:nth-child(8){ animation-delay:.28s; }
+
+    /* 3) done: normal layout (no more re-animating) */
+    #catc-{{ section.id }}.catc--done .catc__item{
+      opacity:1;
+      transform:none;
+      animation:none;
+    }
+
+    /* Prefers-reduced-motion support */
+    @media (prefers-reduced-motion: reduce){
+      #catc-{{ section.id }}.catc--animating .catc__item{ animation:none; opacity:1; transform:none; }
+      #catc-{{ section.id }}.catc--pre .catc__item{ opacity:1; transform:none; }
+    }
+
+    @keyframes catc-float-in{
+      0%{ opacity:0; transform:translateY(18px); }
+      100%{ opacity:1; transform:translateY(0); }
+    }
+
 
   </style>
 
@@ -180,12 +215,42 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
     var btnNext  = root.querySelector('.chpc__arrow--next');
     var mqDesktop= window.matchMedia('(min-width:1100px)');
     var currentPage = 0;
+    var hasAnimated = false; // single-run guard
+
+    function playIntro(){
+      if(hasAnimated) return;
+      hasAnimated = true;
+
+      // Defer class changes to next frame to avoid mid-layout jank
+      requestAnimationFrame(function(){
+        root.classList.remove('catc--pre');
+        root.classList.add('catc--animating');
+
+        // When the LAST item's animation ends, mark as done
+        var last = track && track.querySelector('.catc__item:last-child');
+        var onDone = function(){
+          root.classList.remove('catc--animating');
+          root.classList.add('catc--done');
+        };
+        if(last){
+          last.addEventListener('animationend', onDone, { once:true });
+        }
+
+        // Fallback in case events don't fire
+        setTimeout(function(){
+          if(!root.classList.contains('catc--done')){
+            root.classList.remove('catc--animating');
+            root.classList.add('catc--done');
+          }
+        }, 800);
+      });
+    }
 
     function pageWidth(){ return track ? track.clientWidth : 1; }
     function pagesCount(){ return !track ? 1 : Math.max(1, Math.ceil((track.scrollWidth||1) / (track.clientWidth||1))); }
 
     function updateArrows(){
-      if(!btnPrev || !btnNext) return;
+      if(!btnPrev || !btnNext || !track) return;
 
       if(!mqDesktop.matches){
         btnPrev.style.display='none';
@@ -197,7 +262,6 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
       var cw = track.clientWidth || 1;
       var sw = track.scrollWidth || 1;
 
-      // Tolerate tiny sub-pixel offsets
       var atStart = sl <= 1;
       var atEnd   = (sl + cw) >= (sw - 1);
 
@@ -210,11 +274,14 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
     }
 
     function scrollToPage(idx, smooth){
+      if(!track) return;
       var total = pagesCount();
-      if(idx < 0) idx = 0; if(idx > total - 1) idx = total - 1;
+      idx = Math.max(0, Math.min(idx, total - 1));
       var left = idx * (pageWidth() || 1);
       track.scrollTo({ left:left, behavior: smooth ? 'smooth' : 'auto' });
-      currentPage = idx; updateArrows();
+      currentPage = idx;
+      updateArrows();
+      // do NOT reanimate if already done
     }
 
     function onScroll(){ updateArrows(); }
@@ -223,9 +290,29 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
       track.addEventListener('scroll', onScroll, { passive:true });
       if(btnPrev) btnPrev.addEventListener('click', function(){ scrollToPage(currentPage - 1, true); });
       if(btnNext) btnNext.addEventListener('click', function(){ scrollToPage(currentPage + 1, true); });
-      window.addEventListener('resize', function(){ updateArrows(); });
+      window.addEventListener('resize', updateArrows);
       (mqDesktop.addEventListener ? mqDesktop.addEventListener('change', updateArrows) : mqDesktop.addListener(updateArrows));
       updateArrows();
+    }
+
+    /* Animate once, a bit earlier to avoid jank while user scrolls */
+    if('IntersectionObserver' in window){
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if(entry.isIntersecting){
+            playIntro();
+            io.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.2,
+        rootMargin: '0px 0px -20% 0px' // pre-trigger before fully in view
+      });
+      io.observe(root);
+    } else {
+      // no IO support -> just show (no pop)
+      root.classList.remove('catc--pre');
+      root.classList.add('catc--done');
     }
   })();
   </script>
@@ -239,7 +326,6 @@ CMH · Category Strip (DJI-style, icon + label) — with desktop arrows
     { "type": "color", "id": "brand", "label": "Accent color", "default": "#e03a2f" },
     { "type": "range", "id": "pad_t", "label": "Padding top", "min": 0, "max": 160, "step": 4, "unit": "px", "default": 24 },
     { "type": "range", "id": "pad_b", "label": "Padding bottom", "min": 0, "max": 160, "step": 4, "unit": "px", "default": 24 }
-
   ],
   "blocks": [
     {

@@ -1,0 +1,1263 @@
+<section
+  id="ch-deck-{{ section.id }}"
+  class="ch-deck ch-deck--pre"
+  role="region"
+  aria-labelledby="ch-deck-eyebrow-{{ section.id }}"
+  data-ch-deck
+  style="--brand: {{ section.settings.brand | default: '#D12F24' }};"
+>
+  <div class="page-width ch-deck__wrap">
+    <!-- Header + event picker -->
+    <header class="ch-deck__head" data-head>
+      <div class="ch-deck__head-main">
+        <p id="ch-deck-eyebrow-{{ section.id }}" class="ch-deck__eyebrow">
+          {{ section.settings.eyebrow | default: 'CAMERahaus Events' }}
+        </p>
+        <h3 class="ch-deck__event-title" data-head-title></h3>
+        <p class="ch-deck__event-meta" data-head-meta></p>
+      </div>
+
+      <nav class="ch-deck__tabs" data-ch-deck-tabs aria-label="Select event">
+        <button class="ch-deck__tabs-arrow ch-deck__tabs-arrow--prev" type="button" aria-label="Scroll events left">
+          ‹
+        </button>
+        <ul class="ch-deck__tablist" role="tablist" data-ch-deck-tablist></ul>
+        <button class="ch-deck__tabs-arrow ch-deck__tabs-arrow--next" type="button" aria-label="Scroll events right">
+          ›
+        </button>
+      </nav>
+    </header>
+
+    <!-- Main event viewport -->
+    <div class="ch-deck__viewport" aria-roledescription="carousel" aria-label="Camerahaus events">
+      <div class="ch-deck__track" data-ch-deck-track tabindex="0">
+        {% for block in section.blocks %}
+          {% if block.type == 'event' %}
+            {% assign d = block.settings.event_date %}
+            {% assign ev_date_human = '' %}
+            {% if d != blank %}
+              {% assign ev_date_human = d | date: section.settings.date_format %}
+            {% endif %}
+
+            {%- comment -%} CAP AT 6 CARDS {%- endcomment -%}
+            {% assign c1 = block.settings.card_title_1  | default: block.settings.title %}
+            {% assign c2 = block.settings.card_title_2  | default: block.settings.title %}
+            {% assign c3 = block.settings.card_title_3  | default: block.settings.title %}
+            {% assign c4 = block.settings.card_title_4  | default: block.settings.title %}
+            {% assign c5 = block.settings.card_title_5  | default: block.settings.title %}
+            {% assign c6 = block.settings.card_title_6  | default: block.settings.title %}
+
+            {% assign e1 = block.settings.card_eyebrow_1 %}
+            {% assign e2 = block.settings.card_eyebrow_2 %}
+            {% assign e3 = block.settings.card_eyebrow_3 %}
+            {% assign e4 = block.settings.card_eyebrow_4 %}
+            {% assign e5 = block.settings.card_eyebrow_5 %}
+            {% assign e6 = block.settings.card_eyebrow_6 %}
+
+            <article
+              class="ch-deck__slide{% if forloop.first %} is-active{% endif %}"
+              data-ch-deck-slide
+              data-title="{{ block.settings.title | escape }}"
+              data-meta="{% if ev_date_human != '' %}{{ ev_date_human }}{% endif %}{% if block.settings.location != blank %}{% if ev_date_human != '' %} • {% endif %}{{ block.settings.location }}{% endif %}"
+              {{ block.shopify_attributes }}
+            >
+              <ul class="ch-deck__grid" role="list">
+                {% if block.settings.image1 %}
+                  <li class="ch-deck__cell" role="listitem">
+                    <div class="ch-deck-card">
+                      <span class="ch-deck-card__media" aria-hidden="true">
+                        {{ block.settings.image1
+                          | image_url: width: 2000
+                          | image_tag:
+                            widths: '800,1200,1600,2000',
+                            sizes: '(max-width: 739px) 80vw, (max-width: 1099px) 44vw, 23vw',
+                            loading: 'lazy',
+                            decoding: 'async',
+                            alt: c1 }}
+                      </span>
+                      <span class="ch-deck-card__overlay">
+                        {% if e1 %}
+                          <span class="ch-deck-card__eyebrow">{{ e1 }}</span>
+                        {% endif %}
+                        <span class="ch-deck-card__title">{{ c1 }}</span>
+                        {% if block.settings.card_sub_1 %}
+                          <span class="ch-deck-card__sub">{{ block.settings.card_sub_1 }}</span>
+                        {% endif %}
+                      </span>
+                    </div>
+                  </li>
+                {% endif %}
+
+                {% if block.settings.image2 %}
+                  <li class="ch-deck__cell" role="listitem">
+                    <div class="ch-deck-card">
+                      <span class="ch-deck-card__media" aria-hidden="true">
+                        {{ block.settings.image2
+                          | image_url: width: 2000
+                          | image_tag:
+                            widths: '800,1200,1600,2000',
+                            sizes: '(max-width: 739px) 80vw, (max-width: 1099px) 44vw, 23vw',
+                            loading: 'lazy',
+                            decoding: 'async',
+                            alt: c2 }}
+                      </span>
+                      <span class="ch-deck-card__overlay">
+                        {% if e2 %}
+                          <span class="ch-deck-card__eyebrow">{{ e2 }}</span>
+                        {% endif %}
+                        <span class="ch-deck-card__title">{{ c2 }}</span>
+                        {% if block.settings.card_sub_2 %}
+                          <span class="ch-deck-card__sub">{{ block.settings.card_sub_2 }}</span>
+                        {% endif %}
+                      </span>
+                    </div>
+                  </li>
+                {% endif %}
+
+                {% if block.settings.image3 %}
+                  <li class="ch-deck__cell" role="listitem">
+                    <div class="ch-deck-card">
+                      <span class="ch-deck-card__media" aria-hidden="true">
+                        {{ block.settings.image3
+                          | image_url: width: 2000
+                          | image_tag:
+                            widths: '800,1200,1600,2000',
+                            sizes: '(max-width: 739px) 80vw, (max-width: 1099px) 44vw, 23vw',
+                            loading: 'lazy',
+                            decoding: 'async',
+                            alt: c3 }}
+                      </span>
+                      <span class="ch-deck-card__overlay">
+                        {% if e3 %}
+                          <span class="ch-deck-card__eyebrow">{{ e3 }}</span>
+                        {% endif %}
+                        <span class="ch-deck-card__title">{{ c3 }}</span>
+                        {% if block.settings.card_sub_3 %}
+                          <span class="ch-deck-card__sub">{{ block.settings.card_sub_3 }}</span>
+                        {% endif %}
+                      </span>
+                    </div>
+                  </li>
+                {% endif %}
+
+                {% if block.settings.image4 %}
+                  <li class="ch-deck__cell" role="listitem">
+                    <div class="ch-deck-card">
+                      <span class="ch-deck-card__media" aria-hidden="true">
+                        {{ block.settings.image4
+                          | image_url: width: 2000
+                          | image_tag:
+                            widths: '800,1200,1600,2000',
+                            sizes: '(max-width: 739px) 80vw, (max-width: 1099px) 44vw, 23vw',
+                            loading: 'lazy',
+                            decoding: 'async',
+                            alt: c4 }}
+                      </span>
+                      <span class="ch-deck-card__overlay">
+                        {% if e4 %}
+                          <span class="ch-deck-card__eyebrow">{{ e4 }}</span>
+                        {% endif %}
+                        <span class="ch-deck-card__title">{{ c4 }}</span>
+                        {% if block.settings.card_sub_4 %}
+                          <span class="ch-deck-card__sub">{{ block.settings.card_sub_4 }}</span>
+                        {% endif %}
+                      </span>
+                    </div>
+                  </li>
+                {% endif %}
+
+                {% if block.settings.image5 %}
+                  <li class="ch-deck__cell" role="listitem">
+                    <div class="ch-deck-card">
+                      <span class="ch-deck-card__media" aria-hidden="true">
+                        {{ block.settings.image5
+                          | image_url: width: 2000
+                          | image_tag:
+                            widths: '800,1200,1600,2000',
+                            sizes: '(max-width: 739px) 80vw, (max-width: 1099px) 44vw, 23vw',
+                            loading: 'lazy',
+                            decoding: 'async',
+                            alt: c5 }}
+                      </span>
+                      <span class="ch-deck-card__overlay">
+                        {% if e5 %}
+                          <span class="ch-deck-card__eyebrow">{{ e5 }}</span>
+                        {% endif %}
+                        <span class="ch-deck-card__title">{{ c5 }}</span>
+                        {% if block.settings.card_sub_5 %}
+                          <span class="ch-deck-card__sub">{{ block.settings.card_sub_5 }}</span>
+                        {% endif %}
+                      </span>
+                    </div>
+                  </li>
+                {% endif %}
+
+                {% if block.settings.image6 %}
+                  <li class="ch-deck__cell" role="listitem">
+                    <div class="ch-deck-card">
+                      <span class="ch-deck-card__media" aria-hidden="true">
+                        {{ block.settings.image6
+                          | image_url: width: 2000
+                          | image_tag:
+                            widths: '800,1200,1600,2000',
+                            sizes: '(max-width: 739px) 80vw, (max-width: 1099px) 44vw, 23vw',
+                            loading: 'lazy',
+                            decoding: 'async',
+                            alt: c6 }}
+                      </span>
+                      <span class="ch-deck-card__overlay">
+                        {% if e6 %}
+                          <span class="ch-deck-card__eyebrow">{{ e6 }}</span>
+                        {% endif %}
+                        <span class="ch-deck-card__title">{{ c6 }}</span>
+                        {% if block.settings.card_sub_6 %}
+                          <span class="ch-deck-card__sub">{{ block.settings.card_sub_6 }}</span>
+                        {% endif %}
+                      </span>
+                    </div>
+                  </li>
+                {% endif %}
+              </ul>
+            </article>
+          {% endif %}
+        {% endfor %}
+      </div>
+
+      <!-- overlay arrows scroll CARDS within current event (desktop only; hidden on mobile) -->
+      <div class="ch-deck__arrows" aria-hidden="false">
+        <button class="ch-deck__arrow ch-deck__arrow--prev" type="button" aria-label="Previous cards">
+          ‹
+        </button>
+        <button class="ch-deck__arrow ch-deck__arrow--next" type="button" aria-label="Next cards">
+          ›
+        </button>
+      </div>
+    </div>
+
+    {% if section.settings.cta_label and section.settings.cta_url %}
+      <div class="ch-deck__cta">
+        <a class="ch-deck__btn" href="{{ section.settings.cta_url }}">{{ section.settings.cta_label }}</a>
+      </div>
+    {% endif %}
+  </div>
+
+  <style>
+    /* ROOT & LAYOUT
+       ----------------------------------------------- */
+    #ch-deck-{{ section.id }} {
+      padding-top: 28px;
+      padding-bottom: 24px;
+      margin-top: 0;
+      margin-bottom: 0;
+      overflow-x: hidden;
+    }
+
+    #ch-deck-{{ section.id }} .page-width {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    @media (max-width: 739.98px) {
+      #ch-deck-{{ section.id }} .page-width {
+        padding: 0 16px;
+      }
+
+      #ch-deck-{{ section.id }} {
+        padding-top: 0;
+        padding-bottom: 16px;
+        overflow-x: visible;
+      }
+
+      #shopify-section-{{ section.id }} {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+      }
+    }
+
+    /* HEADER
+       ----------------------------------------------- */
+    #ch-deck-{{ section.id }} .ch-deck__head {
+      margin: 6px 0 14px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 8px 16px;
+      flex-wrap: wrap;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__head-main {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__eyebrow {
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.22em;
+      font-size: 12px;
+      font-weight: 700;
+      color: #6b7280;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__event-title {
+      margin: 0;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.12;
+      font-size: clamp(26px, 2.6vw + 10px, 40px);
+      color: var(--heading-color, inherit);
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__event-meta {
+      margin: 0;
+      color: #6b7280;
+      font-size: 15px;
+    }
+
+    /* Nicer mobile header sizing */
+    @media (max-width: 739.98px) {
+      #ch-deck-{{ section.id }} .ch-deck__eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.2em;
+      }
+      #ch-deck-{{ section.id }} .ch-deck__event-title {
+        font-size: clamp(22px, 5.6vw, 30px);
+        line-height: 1.15;
+      }
+      #ch-deck-{{ section.id }} .ch-deck__event-meta {
+        font-size: 14px;
+      }
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__event-title,
+    #ch-deck-{{ section.id }} .ch-deck__event-meta {
+      will-change: opacity, transform;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck-text-anim {
+      animation: ch-deck-text-fade-{{ section.id }} 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+    }
+
+    @keyframes ch-deck-text-fade-{{ section.id }} {
+      0% { opacity: 0; transform: translateY(6px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* TABS
+       ----------------------------------------------- */
+    #ch-deck-{{ section.id }} .ch-deck__tabs {
+      display: flex;
+      align-items: flex-end;
+      margin-left: auto;
+      max-width: 100%;
+      gap: 8px;
+      position: relative;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__tablist {
+      display: flex;
+      gap: clamp(14px, 4vw, 28px);
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__tablist::-webkit-scrollbar {
+      display: none;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__tab {
+      background: transparent;
+      border: 0;
+      padding: 6px 0 8px;
+      cursor: pointer;
+      font-family: var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+      font-weight: 600;
+      font-size: 14px;
+      color: #6b7280;
+      white-space: nowrap;
+      transition: color 0.18s ease;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__tab.is-active {
+      color: var(--brand);
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__tabs-arrow {
+      display: none;
+    }
+
+    @media (max-width: 739.98px) {
+      #ch-deck-{{ section.id }} .ch-deck__head {
+        align-items: flex-start;
+      }
+
+      #ch-deck-{{ section.id }} .ch-deck__tabs {
+        width: 100%;
+        order: 3;
+        margin-left: 0;
+        align-items: center;
+      }
+
+      #ch-deck-{{ section.id }} .ch-deck__tablist {
+        flex: 1 1 auto;
+      }
+
+      #ch-deck-{{ section.id }} .ch-deck__tab {
+        font-size: 13.5px;
+        font-weight: 600;
+      }
+
+      #ch-deck-{{ section.id }} .ch-deck__tabs-arrow {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: auto;
+        height: auto;
+        padding: 0 4px;
+        border: 0;
+        background: transparent;
+        color: #9ca3af;
+        font-size: 18px;
+        flex: 0 0 auto;
+      }
+
+      #ch-deck-{{ section.id }} .ch-deck__tabs-arrow[hidden] {
+        display: none !important;
+      }
+    }
+
+    /* VIEWPORT / SLIDES
+       ----------------------------------------------- */
+    #ch-deck-{{ section.id }} .ch-deck__viewport {
+      position: relative;
+      overflow: visible;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__track {
+      display: flex;
+      flex-wrap: nowrap;
+      scrollbar-width: none;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__track::-webkit-scrollbar {
+      display: none;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__slide {
+      flex: 0 0 100%;
+      display: none; /* desktop/tab mode */
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__slide.is-active {
+      display: block;
+    }
+
+    /* CARD STRIP (desktop/tablet horizontal cards)
+       ----------------------------------------------- */
+    #ch-deck-{{ section.id }} .ch-deck__grid {
+      --gap: 12px;
+      display: flex;
+      gap: var(--gap);
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__grid::-webkit-scrollbar {
+      display: none;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__cell {
+      flex: 0 0 25%;
+      max-width: 25%;
+      scroll-snap-align: start;
+      opacity: 1;
+      transform: none;
+      backface-visibility: hidden;
+    }
+
+    /* MOBILE: Guides-style event swipe
+       ----------------------------------------------- */
+    @media (max-width: 739.98px) {
+      #ch-deck-{{ section.id }} .ch-deck__viewport{
+        width: calc(100vw - (env(safe-area-inset-left) + env(safe-area-inset-right)));
+        margin-left: calc(50% - 50vw + env(safe-area-inset-left));
+        margin-right: calc(50% - 50vw + env(safe-area-inset-right));
+      }
+
+      #ch-deck-{{ section.id }} .ch-deck__track{
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+        scroll-padding-inline: max(16px, env(safe-area-inset-left));
+        scrollbar-width: none;
+      }
+
+      #ch-deck-{{ section.id }} .ch-deck__slide{
+        display: block !important;
+        flex: 0 0 100%;
+        scroll-snap-align: start;
+      }
+
+      #ch-deck-{{ section.id }} .ch-deck__arrows,
+      #ch-deck-{{ section.id }} .ch-deck__arrow{
+        display: none !important;
+      }
+
+      /* Carousel layout (horizontal scroll) */
+      #ch-deck-{{ section.id }} .ch-deck__grid {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 12px;
+        
+        /* Force horizontal scroll */
+        overflow-x: auto !important;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        touch-action: pan-x;
+        
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: 40vw; /* Maintain visibility fix */
+      }
+
+      #ch-deck-{{ section.id }} .ch-deck__cell {
+        display: block;
+        flex: 0 0 60vw;
+        max-width: 60vw;
+        width: 60vw;
+        scroll-snap-align: start;
+      }
+    }
+
+    /* CARD
+       ----------------------------------------------- */
+    #ch-deck-{{ section.id }} .ch-deck-card {
+      position: relative;
+      display: block;
+      width: 100%;
+      aspect-ratio: 3/4;
+      min-height: 240px;
+      border-radius: 22px; /* Smoother radius */
+      overflow: hidden;
+      background: #fff;
+      color: #111;
+      text-decoration: none;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (max-width: 739.98px) {
+      #ch-deck-{{ section.id }} .ch-deck-card {
+        min-height: 150px; /* slightly tighter for nicer balance */
+      }
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck-card__media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transform: scale(1.001);
+      transition: transform 0.35s ease;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck-card:hover .ch-deck-card__media img {
+      transform: scale(1.015);
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck-card__overlay {
+      position: absolute;
+      inset: auto 0 0 0;
+      padding: 16px 16px 20px;
+      /* Smoother 'premium' gradient */
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.5) 45%, rgba(0, 0, 0, 0) 100%);
+      color: #fff;
+      transform: translateY(55%);
+      opacity: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      transition: transform 0.28s ease, opacity 0.28s ease;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck-card:hover .ch-deck-card__overlay,
+    #ch-deck-{{ section.id }} .ch-deck-card:focus-visible .ch-deck-card__overlay {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 739.98px) {
+      #ch-deck-{{ section.id }} .ch-deck-card__overlay {
+        transform: none;
+        opacity: 1;
+        padding: 11px 12px 12px;
+      }
+    }
+
+    /* Nicer text sizing */
+    #ch-deck-{{ section.id }} .ch-deck-card__eyebrow {
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 10.5px;
+      font-weight: 700;
+      opacity: 0.95;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck-card__title {
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      font-size: clamp(16px, 1.2vw + 12px, 21px);
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck-card__sub {
+      font-size: clamp(12px, 0.6vw + 10px, 14px);
+      margin-top: 1px;
+      opacity: 0.98;
+      line-height: 1.25;
+    }
+
+    @media (max-width: 739.98px) {
+      #ch-deck-{{ section.id }} .ch-deck-card__eyebrow {
+        font-size: 9px; 
+        letter-spacing: 0.16em;
+        margin-bottom: 2px;
+      }
+      #ch-deck-{{ section.id }} .ch-deck-card__title {
+        font-size: 15px; /* Bumped from 12px -> 15px */
+        line-height: 1.15;
+        font-weight: 800;
+      }
+      #ch-deck-{{ section.id }} .ch-deck-card__sub {
+        font-size: 11px; /* Bumped from 7.5px -> 11px */
+        margin-top: 2px;
+      }
+    }
+
+    /* OVERLAY ARROWS – desktop only visuals
+       ----------------------------------------------- */
+    #ch-deck-{{ section.id }} .ch-deck__arrows {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 6;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: auto;
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      background: transparent;
+      color: var(--brand);
+      border: 1.5px solid var(--brand);
+      border-radius: 9999px;
+      cursor: pointer;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.08s ease, opacity 0.15s ease;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__arrow--prev {
+      left: -24px;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__arrow--next {
+      right: -24px;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__arrow:hover {
+      background: var(--brand);
+      color: #fff;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__arrow:active {
+      transform: translateY(-50%) scale(0.96);
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__arrow[disabled] {
+      opacity: 0.35;
+      filter: grayscale(1);
+      pointer-events: none;
+    }
+
+    /* CTA
+       ----------------------------------------------- */
+    #ch-deck-{{ section.id }} .ch-deck__cta {
+      display: flex;
+      justify-content: center;
+      margin: 18px 0 0;
+    }
+
+    #ch-deck-{{ section.id }} .ch-deck__btn {
+      display: inline-grid;
+      place-items: center;
+      padding: 0.9rem 1.6rem;
+      border-radius: 9999px;
+      background: #111;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #ch-deck-{{ section.id }} .ch-deck-text-anim {
+        animation: none !important;
+      }
+    }
+
+    /* ANIMATION: Staggered float-in on scroll
+       ----------------------------------------------- */
+    #ch-deck-{{ section.id }}.ch-deck--pre .ch-deck__cell {
+      opacity: 0;
+      transform: translate3d(0, 22px, 0);
+    } 
+
+    #ch-deck-{{ section.id }} .ch-deck__cell--intro {
+      animation: ch-deck-float-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+      will-change: opacity, transform;
+    }
+
+    @keyframes ch-deck-float-in {
+      0% { opacity: 0; transform: translate3d(0, 22px, 0); }
+      55% { opacity: 1; transform: translate3d(0, 2px, 0); }
+      100% { opacity: 1; transform: translate3d(0, 0, 0); }
+    }
+
+    #ch-deck-{{ section.id }}.ch-deck--done .ch-deck__cell {
+      opacity: 1;
+      transform: none;
+      animation: none;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #ch-deck-{{ section.id }} .ch-deck-text-anim {
+        animation: none !important;
+      }
+      #ch-deck-{{ section.id }}.ch-deck--pre .ch-deck__cell {
+        opacity: 1;
+        transform: none;
+      }
+      #ch-deck-{{ section.id }} .ch-deck__cell--intro {
+        animation: none !important;
+      }
+    }
+  </style>
+
+  <script>
+    (function () {
+      function initChDeckRoot(root) {
+        if (!root || root.__chDeckInitialized) return;
+        root.__chDeckInitialized = true;
+
+        var slides = Array.prototype.slice.call(
+          root.querySelectorAll("[data-ch-deck-slide]")
+        );
+
+        var track = root.querySelector("[data-ch-deck-track]");
+
+        var prev = root.querySelector(".ch-deck__arrow--prev");
+        var next = root.querySelector(".ch-deck__arrow--next");
+
+        var hTitle = root.querySelector("[data-head-title]");
+        var hMeta = root.querySelector("[data-head-meta]");
+
+        var tabsWrap = root.querySelector("[data-ch-deck-tabs]");
+        var tabsList = root.querySelector("[data-ch-deck-tablist]");
+        var tabsPrev = root.querySelector(".ch-deck__tabs-arrow--prev");
+        var tabsNext = root.querySelector(".ch-deck__tabs-arrow--next");
+
+        var reduceMotion =
+          window.matchMedia &&
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+        var mqMobile = window.matchMedia("(max-width: 739.98px)");
+        var ticking = false;
+        var hasIntro = false;
+
+        var currentIndex = 0;
+        var activeGrid = null;
+
+        function isMobileNow() {
+          return mqMobile && mqMobile.matches;
+        }
+
+        function buildTabs() {
+          if (!tabsList || !tabsWrap) return;
+
+          tabsList.innerHTML = "";
+
+          if (!slides.length || slides.length <= 1) {
+            tabsWrap.style.display = "none";
+            return;
+          }
+
+          tabsWrap.style.display = "";
+
+          slides.forEach(function (slide, i) {
+            var li = document.createElement("li");
+            li.setAttribute("role", "presentation");
+
+            var btn = document.createElement("button");
+            btn.type = "button";
+            btn.className = "ch-deck__tab" + (i === currentIndex ? " is-active" : "");
+            btn.setAttribute("role", "tab");
+            btn.setAttribute("aria-selected", i === currentIndex ? "true" : "false");
+            btn.dataset.index = String(i);
+            btn.textContent = slide.dataset.title || ("Event " + (i + 1));
+
+            li.appendChild(btn);
+            tabsList.appendChild(li);
+          });
+        }
+
+        function setActiveTab(i) {
+          if (!tabsList) return;
+          var buttons = tabsList.querySelectorAll(".ch-deck__tab");
+          Array.prototype.forEach.call(buttons, function (btn, idx) {
+            var active = idx === i;
+            btn.classList.toggle("is-active", active);
+            btn.setAttribute("aria-selected", active ? "true" : "false");
+          });
+        }
+
+        function smoothTextSwap(el, newText) {
+          if (!el) return;
+          if (el.textContent === newText) return;
+          el.textContent = newText;
+          el.classList.remove("ch-deck-text-anim");
+          void el.offsetWidth;
+          el.classList.add("ch-deck-text-anim");
+        }
+
+        function updateHeader(i) {
+          var slide = slides[i] || slides[0];
+          if (!slide) return;
+          smoothTextSwap(hTitle, slide.dataset.title || "");
+          smoothTextSwap(hMeta, slide.dataset.meta || "");
+          setActiveTab(i);
+        }
+
+        function detachGridScroll() {
+          if (activeGrid) {
+            activeGrid.removeEventListener("scroll", onGridScroll);
+          }
+          activeGrid = null;
+        }
+
+        function attachGridScroll(grid) {
+          if (activeGrid === grid) return;
+          detachGridScroll();
+          if (grid) {
+            activeGrid = grid;
+            activeGrid.addEventListener("scroll", onGridScroll, { passive: true });
+          }
+        }
+
+        function onGridScroll() {
+          updateCardArrows();
+        }
+
+        function updateCardArrows() {
+          if (!prev || !next) return;
+
+          if (isMobileNow()) {
+            prev.disabled = true;
+            next.disabled = true;
+            return;
+          }
+
+          var slide = slides[currentIndex];
+          if (!slide) {
+            prev.disabled = true;
+            next.disabled = true;
+            return;
+          }
+
+          var grid = slide.querySelector(".ch-deck__grid");
+          if (!grid) {
+            prev.disabled = true;
+            next.disabled = true;
+            return;
+          }
+
+          var maxScroll = grid.scrollWidth - grid.clientWidth - 1;
+          if (maxScroll <= 0) {
+            prev.disabled = true;
+            next.disabled = true;
+            return;
+          }
+
+          var sl = grid.scrollLeft || 0;
+          prev.disabled = sl <= 0;
+          next.disabled = sl >= maxScroll;
+        }
+
+        function animateSlide(i) {
+          if (reduceMotion) return;
+          if (isMobileNow()) return;
+          var slide = slides[i];
+          if (!slide) return;
+          var cells = Array.prototype.slice.call(
+            slide.querySelectorAll(".ch-deck__cell")
+          );
+          cells.forEach(function (cell) {
+            cell.classList.remove("is-in");
+            void cell.offsetWidth;
+            cell.classList.add("is-in");
+          });
+        }
+
+        function setActiveSlide(i) {
+          if (!slides.length) return;
+
+          if (i < 0) i = 0;
+          if (i > slides.length - 1) i = slides.length - 1;
+          currentIndex = i;
+
+          slides.forEach(function (slide, idx) {
+            slide.classList.toggle("is-active", idx === i);
+          });
+
+          var slide = slides[i];
+          var grid = slide ? slide.querySelector(".ch-deck__grid") : null;
+
+          if (grid) {
+            grid.scrollLeft = 0;
+          }
+
+          attachGridScroll(grid);
+          updateHeader(i);
+          animateSlide(i);
+          updateCardArrows();
+        }
+
+        function scrollCards(dir) {
+          if (isMobileNow()) return;
+          var slide = slides[currentIndex];
+          if (!slide) return;
+          var grid = slide.querySelector(".ch-deck__grid");
+          if (!grid) return;
+          var step = grid.clientWidth || 1;
+          grid.scrollBy({ left: dir * step, behavior: "smooth" });
+        }
+
+        function scrollTabs(dir) {
+          if (!tabsList) return;
+          var step = (tabsList.clientWidth || 1) * 0.6;
+          tabsList.scrollBy({ left: dir * step, behavior: "smooth" });
+        }
+
+        function updateTabArrows() {
+          if (!tabsPrev || !tabsNext || !tabsList) return;
+
+          var isMobile = isMobileNow();
+          var canScroll = tabsList.scrollWidth > tabsList.clientWidth + 4;
+          var show = isMobile && canScroll && slides.length > 1;
+
+          tabsPrev.hidden = !show;
+          tabsNext.hidden = !show;
+        }
+
+        function scrollToEvent(i) {
+          if (!track) return;
+          var w = track.clientWidth || 1;
+          var max = slides.length - 1;
+          if (i < 0) i = 0;
+          if (i > max) i = max;
+          track.scrollTo({ left: i * w, behavior: "smooth" });
+        }
+
+        function onTrackScroll() {
+          if (!isMobileNow() || !track || !slides.length) return;
+          if (ticking) return;
+
+          ticking = true;
+          requestAnimationFrame(function () {
+            ticking = false;
+
+            var w = track.clientWidth || 1;
+            var i = Math.round((track.scrollLeft || 0) / w);
+            i = Math.max(0, Math.min(i, slides.length - 1));
+
+            if (i !== currentIndex) {
+              currentIndex = i;
+              updateHeader(i);
+            }
+          });
+        }
+
+        // INIT
+        if (slides.length) {
+          slides.forEach(function (slide, idx) {
+            if (slide.classList.contains("is-active")) {
+              currentIndex = idx;
+            }
+          });
+
+          buildTabs();
+
+          if (track) {
+            track.addEventListener("scroll", onTrackScroll, { passive: true });
+          }
+
+          if (isMobileNow()) {
+            updateHeader(currentIndex);
+            updateCardArrows();
+          } else {
+            setActiveSlide(currentIndex);
+          }
+
+          updateTabArrows();
+        } else if (tabsWrap) {
+          tabsWrap.style.display = "none";
+        }
+
+        /* ONE-TIME INTRO ANIMATION */
+        function runIntroOnce() {
+          if (hasIntro) return;
+          hasIntro = true;
+
+          // Gather ALL cells from current slide (or all slides if we wanted, but typically just active one is visible)
+          // Actually, we should animate currently visible cells.
+          // Since all slides are in DOM but hidden via display:none (except active), 
+          // let's just target the active slide's cells.
+          var slide = slides[currentIndex];
+          if (!slide && slides.length > 0) slide = slides[0];
+          
+          if (!slide) {
+            root.classList.remove("ch-deck--pre");
+            root.classList.add("ch-deck--done");
+            return;
+          }
+
+          var cells = Array.prototype.slice.call(slide.querySelectorAll(".ch-deck__cell"));
+
+          if (reduceMotion) {
+            root.classList.remove("ch-deck--pre");
+            root.classList.add("ch-deck--done");
+            cells.forEach(function(c) {
+              c.style.opacity = '1';
+              c.style.transform = 'none';
+            });
+            return;
+          }
+
+          // Reset intro state
+          cells.forEach(function(c) {
+            c.classList.remove("ch-deck__cell--intro");
+            c.style.animationDelay = "";
+          });
+
+          requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+              cells.forEach(function(c, i) {
+                // simple stagger
+                c.style.animationDelay = (i * 80) + "ms";
+                c.classList.add("ch-deck__cell--intro");
+              });
+
+              var last = cells[cells.length - 1];
+              var onDone = function() {
+                root.classList.remove("ch-deck--pre");
+                root.classList.add("ch-deck--done");
+                cells.forEach(function(c) {
+                  c.classList.remove("ch-deck__cell--intro");
+                  c.style.animationDelay = "";
+                });
+                if (last) last.removeEventListener("animationend", onDone);
+              };
+
+              if (last) {
+                last.addEventListener("animationend", onDone, { once: true });
+                // fallback
+                setTimeout(onDone, 1200); 
+              } else {
+                onDone();
+              }
+            });
+          });
+        }
+
+        // Observer for intro
+        if ("IntersectionObserver" in window) {
+          var io = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+              if (entry.isIntersecting) {
+                runIntroOnce();
+                io.unobserve(entry.target);
+              }
+            });
+          }, { threshold: 0.25, rootMargin: "0px 0px -10% 0px" });
+          io.observe(root);
+        } else {
+          root.classList.remove("ch-deck--pre");
+          root.classList.add("ch-deck--done");
+        }
+
+        // TABS CLICK
+        if (tabsList) {
+          tabsList.addEventListener("click", function (e) {
+            var btn = e.target.closest(".ch-deck__tab");
+            if (!btn) return;
+            var idx = parseInt(btn.dataset.index || "0", 10);
+            if (isNaN(idx)) return;
+
+            if (isMobileNow() && track) {
+              scrollToEvent(idx);
+            } else {
+              setActiveSlide(idx);
+            }
+          });
+        }
+
+        // CARD ARROWS (desktop)
+        if (prev) {
+          prev.addEventListener("click", function () { scrollCards(-1); });
+        }
+        if (next) {
+          next.addEventListener("click", function () { scrollCards(1); });
+        }
+
+        // TABS ARROWS (mobile)
+        if (tabsPrev) {
+          tabsPrev.addEventListener("click", function () { scrollTabs(-1); });
+        }
+        if (tabsNext) {
+          tabsNext.addEventListener("click", function () { scrollTabs(1); });
+        }
+
+        window.addEventListener("resize", function () {
+          updateTabArrows();
+          updateCardArrows();
+
+          if (!slides.length) return;
+
+          if (isMobileNow()) {
+            updateHeader(currentIndex);
+          } else {
+            setActiveSlide(currentIndex);
+          }
+        });
+
+        if (tabsList) {
+          tabsList.addEventListener("scroll", function () {
+            updateTabArrows();
+          }, { passive: true });
+        }
+      }
+
+      function initChDeckInScope(scope) {
+        scope = scope || document;
+        var roots = scope.querySelectorAll("[data-ch-deck]");
+        Array.prototype.forEach.call(roots, initChDeckRoot);
+      }
+
+      window.__initChDeckInScope = window.__initChDeckInScope || initChDeckInScope;
+      window.__initChDeckInScope(document);
+
+      if (!window.__chDeckShopifyEventsBound) {
+        window.__chDeckShopifyEventsBound = true;
+
+        document.addEventListener("shopify:section:load", function (event) {
+          window.__initChDeckInScope(event.target);
+        });
+
+        document.addEventListener("shopify:section:select", function (event) {
+          window.__initChDeckInScope(event.target);
+        });
+      }
+    })();
+  </script>
+</section>
+
+{% schema %}
+{
+  "name": "Events Deck",
+  "settings": [
+    { "type": "text",  "id": "eyebrow", "label": "Eyebrow label", "default": "CAMERahaus Events" },
+    { "type": "text",  "id": "date_format", "label": "Date format", "default": "%b %-d, %Y" },
+    { "type": "color", "id": "brand", "label": "Accent / arrow color", "default": "#D12F24" },
+    { "type": "text", "id": "cta_label", "label": "Bottom CTA label" },
+    { "type": "url",  "id": "cta_url",   "label": "Bottom CTA URL" }
+  ],
+  "blocks": [
+    {
+      "type": "event",
+      "name": "Event",
+      "settings": [
+        { "type": "text", "id": "title", "label": "Event title", "default": "Sony Street Photowalk" },
+        { "type": "text", "id": "event_date", "label": "Event date (YYYY-MM-DD)", "default": "2025-03-01" },
+        { "type": "text", "id": "location", "label": "Location", "default": "BGC, Taguig" },
+
+        { "type": "image_picker", "id": "image1", "label": "Card 1 image" },
+        { "type": "text", "id": "card_eyebrow_1", "label": "Card 1 eyebrow" },
+        { "type": "text", "id": "card_title_1", "label": "Card 1 title" },
+        { "type": "text", "id": "card_sub_1", "label": "Card 1 subtext" },
+        { "type": "url",  "id": "card_link_1", "label": "Card 1 link (optional)" },
+
+        { "type": "image_picker", "id": "image2", "label": "Card 2 image" },
+        { "type": "text", "id": "card_eyebrow_2", "label": "Card 2 eyebrow" },
+        { "type": "text", "id": "card_title_2", "label": "Card 2 title" },
+        { "type": "text", "id": "card_sub_2", "label": "Card 2 subtext" },
+        { "type": "url",  "id": "card_link_2", "label": "Card 2 link (optional)" },
+
+        { "type": "image_picker", "id": "image3", "label": "Card 3 image" },
+        { "type": "text", "id": "card_eyebrow_3", "label": "Card 3 eyebrow" },
+        { "type": "text", "id": "card_title_3", "label": "Card 3 title" },
+        { "type": "text", "id": "card_sub_3", "label": "Card 3 subtext" },
+        { "type": "url",  "id": "card_link_3", "label": "Card 3 link (optional)" },
+
+        { "type": "image_picker", "id": "image4", "label": "Card 4 image" },
+        { "type": "text", "id": "card_eyebrow_4", "label": "Card 4 eyebrow" },
+        { "type": "text", "id": "card_title_4", "label": "Card 4 title" },
+        { "type": "text", "id": "card_sub_4", "label": "Card 4 subtext" },
+        { "type": "url",  "id": "card_link_4", "label": "Card 4 link (optional)" },
+
+        { "type": "image_picker", "id": "image5", "label": "Card 5 image (optional)" },
+        { "type": "text", "id": "card_eyebrow_5", "label": "Card 5 eyebrow" },
+        { "type": "text", "id": "card_title_5", "label": "Card 5 title" },
+        { "type": "text", "id": "card_sub_5", "label": "Card 5 subtext" },
+        { "type": "url",  "id": "card_link_5", "label": "Card 5 link (optional)" },
+
+        { "type": "image_picker", "id": "image6", "label": "Card 6 image (optional)" },
+        { "type": "text", "id": "card_eyebrow_6", "label": "Card 6 eyebrow" },
+        { "type": "text", "id": "card_title_6", "label": "Card 6 title" },
+        { "type": "text", "id": "card_sub_6", "label": "Card 6 subtext" },
+        { "type": "url",  "id": "card_link_6", "label": "Card 6 link (optional)" },
+
+        { "type": "image_picker", "id": "image7", "label": "Card 7 image (unused)" },
+        { "type": "text", "id": "card_eyebrow_7", "label": "Card 7 eyebrow (unused)" },
+        { "type": "text", "id": "card_title_7", "label": "Card 7 title (unused)" },
+        { "type": "text", "id": "card_sub_7", "label": "Card 7 subtext (unused)" },
+        { "type": "url",  "id": "card_link_7", "label": "Card 7 link (unused)" },
+
+        { "type": "image_picker", "id": "image8", "label": "Card 8 image (unused)" },
+        { "type": "text", "id": "card_eyebrow_8", "label": "Card 8 eyebrow (unused)" },
+        { "type": "text", "id": "card_title_8", "label": "Card 8 title (unused)" },
+        { "type": "text", "id": "card_sub_8", "label": "Card 8 subtext (unused)" },
+        { "type": "url",  "id": "card_link_8", "label": "Card 8 link (unused)" }
+      ]
+    }
+  ],
+  "presets": [
+    { "name": "Events Deck (Manual)", "category": "Camerahaus" }
+  ]
+}
+{% endschema %}

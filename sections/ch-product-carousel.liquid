@@ -1,54 +1,174 @@
-{% comment %}
-productcarousel — Havit-like tabs, persistent; red circular carousel arrows.
-Mobile tabs show chevrons only when overflowing.
-{% endcomment %}
+<style>
+  #chpc-{{ section.id }}{ --tab-fade: 18px; padding-top:var(--pad-top); padding-bottom:var(--pad-bottom); }
 
-{% liquid
-  assign pad_top    = section.settings.padding_top | default: 12
-  assign pad_bottom = section.settings.padding_bottom | default: 16
+  .chpc .page-width{ max-width:1440px; margin:0 auto; padding:0 28px; position:relative; }
+  .chpc .chpc__header--havit{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin:0 0 10px; flex-wrap:wrap; }
+  .chpc .chpc__sub{ margin:0; color:#6B7280; font-size:.95rem; }
 
-  assign per_d = section.settings.items_per_view_desktop | default: 5
-  assign per_t = section.settings.items_per_view_tablet  | default: 3
-  assign per_m = section.settings.items_per_view_mobile  | default: 4
+  /* tabs left, and hidden when only 1 collection (handled in markup) */
+  .chpc .chpc__tabs{
+    display:grid; grid-template-columns:auto 1fr auto; align-items:center;
+    column-gap:6px; position:relative; max-width:100%; margin-left:0;
+  }
+  .chpc .chpc__tablist{ display:flex; gap:clamp(24px, 5vw, 44px); overflow:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:0 2px; list-style:none; margin:0; scroll-snap-type:x proximity; scroll-behavior:smooth; overscroll-behavior-inline:contain; }
+  .chpc .chpc__tablist::-webkit-scrollbar{ display:none; }
+  .chpc .chpc__tab{ background:transparent; border:0; padding:6px 0 8px; cursor:pointer; font-family:var(--font-sans); font-weight:500; color:#6B7280; white-space:nowrap; transition:color .18s ease; }
+  .chpc .chpc__tab.is-active{ color:var(--brand); }
+  .chpc .chpc__tabs-nudge{ border:0; background:none; padding:0 6px; font:700 18px/1 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; color:#6B7280; cursor:pointer; opacity:0; transform:translateY(2px); transition:opacity .22s ease, transform .22s ease; pointer-events:none; min-width:28px; }
+  .chpc .chpc__tabs[data-overflow="true"] .chpc__tabs-nudge{ opacity:.95; transform:translateY(0); pointer-events:auto; }
+  .chpc .chpc__tabs-nudge.is-disabled{ opacity:.25; pointer-events:none; }
 
-  assign card_ratio = section.settings.card_ratio | default: 'square'
-  assign fit        = section.settings.image_fit  | default: 'contain'
+  @media (min-width:740px){
+    .chpc .chpc__tabs-nudge{ display:none !important; }
+  }
 
-  assign mobile_bleed_px   = section.settings.mobile_bleed_px | default: 0
-  assign mobile_full_bleed = section.settings.mobile_full_bleed
-  assign mobile_gutter     = section.settings.mobile_side_gutter | default: 16
-  assign show_outline      = section.settings.show_card_outline
+  @media (max-width:739.98px){
+    .chpc .page-width{ padding-left:16px; padding-right:16px; }
+    .chpc .chpc__tablist{
+      padding-left: var(--tab-fade); padding-right: var(--tab-fade); scroll-padding-inline: var(--tab-fade);
+      -webkit-mask-image: linear-gradient(to right, transparent 0, black var(--tab-fade), black calc(100% - var(--tab-fade)), transparent 100%);
+              mask-image: linear-gradient(to right, transparent 0, black var(--tab-fade), black calc(100% - var(--tab-fade)), transparent 100%);
+    }
+  }
 
-  assign autoplay   = section.settings.enable_autoplay
-  assign autoplayMs = section.settings.autoplay_ms | default: 5000
-  assign loop_pages = section.settings.enable_loop
+  .chpc .chpc__viewport{ position:relative; overflow:visible; padding-bottom:28px; }
+  .chpc .chpc__track{ position:relative; display:flex; gap:14px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:6px 6px 8px 6px; align-items:stretch; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  .chpc .chpc__track::-webkit-scrollbar{ display:none; }
+  .chpc .chpc__slide{ min-width:0; flex:0 0 calc((100% - (14px * (var(--chpc-items) - 1))) / var(--chpc-items)); scroll-snap-align:start; display:flex; }
 
-  assign show_arrows = section.settings.show_arrows
-  assign show_dots   = section.settings.show_dots
+  /* animation states */
+  .chpc.chpc--pre .chpc__slide{
+    opacity:0;
+    transform:translateY(22px);
+  }
+  .chpc.chpc--animating .chpc__slide{
+    opacity:0;
+    transform:translateY(22px);
+    animation: chpc-float-in .6s cubic-bezier(.22,.61,.36,1) forwards;
+    will-change: transform, opacity;
+  }
+  .chpc.chpc--animating .chpc__slide:nth-child(2){ animation-delay:.05s; }
+  .chpc.chpc--animating .chpc__slide:nth-child(3){ animation-delay:.10s; }
+  .chpc.chpc--animating .chpc__slide:nth-child(4){ animation-delay:.15s; }
+  .chpc.chpc--animating .chpc__slide:nth-child(5){ animation-delay:.20s; }
+  .chpc.chpc--animating .chpc__slide:nth-child(6){ animation-delay:.25s; }
 
-  assign heading    = section.settings.heading    | default: 'Featured Products'
-  assign sub        = section.settings.subheading | default: blank
-  assign brand_red  = '#E0302A'
-%}
+  @keyframes chpc-float-in{
+    0%{ opacity:0; transform:translateY(22px); }
+    55%{ opacity:1; transform:translateY(2px); }
+    100%{ opacity:1; transform:translateY(0); }
+  }
 
+  .chpc.chpc--done .chpc__slide{
+    opacity:1;
+    transform:none;
+    animation:none;
+  }
+
+  @media (min-width:1100px){
+    #chpc-{{ section.id }}{ --chpc-items: {{ section.settings.items_per_view_desktop | default: 5 }}; }
+  }
+  @media (min-width:740px) and (max-width:1099.98px){
+    #chpc-{{ section.id }}{ --chpc-items: {{ section.settings.items_per_view_tablet | default: 3 }}; }
+  }
+  @media (max-width:739.98px){
+    #chpc-{{ section.id }}{ --chpc-items: {{ section.settings.items_per_view_mobile | default: 4 }}; }
+    .chpc .chpc__track{
+      display:grid; grid-auto-flow:column;
+      grid-auto-columns: calc(100vw - (max(var(--mobile-gutter), env(safe-area-inset-left)) + max(var(--mobile-gutter), env(safe-area-inset-right)) ));
+      column-gap:12px; padding:6px max(var(--mobile-gutter), env(safe-area-inset-right)) 8px max(var(--mobile-gutter), env(safe-area-inset-left));
+    }
+    .chpc .chpc__page{
+      width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; scroll-snap-align:start; align-items:stretch;
+    }
+  }
+
+  .chpc .chpc__arrows{ position:absolute; inset:0; pointer-events:none; }
+  .chpc .chpc__arrow{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    pointer-events:auto;
+
+    width:38px;
+    height:38px;
+    display:grid;
+    place-items:center;
+
+    background:transparent;
+    color:var(--brand);
+    border:1.5px solid var(--brand);
+    border-radius:9999px;
+
+    transition: background .15s ease, color .15s ease, transform .08s ease;
+    cursor:pointer;
+  }
+
+  .chpc .chpc__arrow:hover{
+    background:var(--brand);
+    color:#fff;
+  }
+  .chpc .chpc__arrow:active{
+    transform:translateY(-50%) scale(.96);
+  }
+  .chpc .chpc__arrow[disabled]{
+    opacity:.35;
+    filter:grayscale(1);
+    pointer-events:none;
+  }
+  .chpc .chpc__arrow--prev{ left:-24px; }
+  .chpc .chpc__arrow--next{ right:-24px; }
+
+  @media (max-width:739.98px){
+    .chpc .chpc__arrows[data-hide-mobile="true"]{ display:none !important; }
+  }
+
+  .chpc.chpc--outlined .chpc--proxy .ch-card,
+  .chpc.chpc--outlined .chpc--proxy .chcard{
+    background:#fff; border-radius:12px; box-shadow:0 6px 20px rgba(17,17,17,.06); outline:1px solid rgba(17,17,17,.06);
+  }
+
+  .chpc h2.pcar__heading{
+    all: unset; display: block;
+    font-family: var(--font-heading-family, var(--font-sans)) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    line-height: 1.15 !important;
+    font-size: clamp(24px, 3vw + 8px, 32px) !important;
+    color: var(--heading-color, inherit) !important;
+    margin: 0 0 8px !important;
+    font-optical-sizing: auto !important;
+    font-synthesis-weight: none !important;
+    font-variation-settings: "wght" 700 !important;
+    text-transform: none !important;
+  }
+
+</style>
 <section id="chpc-{{ section.id }}"
-  class="chpc chpc--compact{% if mobile_full_bleed %} chpc--bleed-mobile{% endif %}{% if show_outline %} chpc--outlined{% endif %}"
-  style="--pad-top:{{ pad_top }}px;--pad-bottom:{{ pad_bottom }}px;--mobile-bleed:{{ mobile_bleed_px }}px;--mobile-gutter:{{ mobile_gutter }}px;--brand:{{ brand_red }};"
-  data-per-desktop="{{ per_d }}" data-per-tablet="{{ per_t }}" data-per-mobile="{{ per_m }}"
-  data-card-ratio="{{ card_ratio }}" data-fit="{{ fit }}"
-  data-loop="{{ loop_pages }}" data-autoplay="{{ autoplay }}" data-autoplay-ms="{{ autoplayMs }}"
-  data-show-arrows="{{ show_arrows }}" data-show-dots="{{ show_dots }}">
+  class="chpc chpc--compact chpc--pre{% if section.settings.mobile_full_bleed %} chpc--bleed-mobile{% endif %}{% if section.settings.show_card_outline %} chpc--outlined{% endif %}"
+  style="--pad-top:{{ section.settings.padding_top | default: 12 }}px;--pad-bottom:{{ section.settings.padding_bottom | default: 16 }}px;--mobile-bleed:{{ section.settings.mobile_bleed_px | default: 0 }}px;--mobile-gutter:{{ section.settings.mobile_side_gutter | default: 16 }}px;--brand:#E0302A;"
+  data-per-desktop="{{ section.settings.items_per_view_desktop | default: 5 }}"
+  data-per-tablet="{{ section.settings.items_per_view_tablet  | default: 3 }}"
+  data-per-mobile="{{ section.settings.items_per_view_mobile  | default: 4 }}"
+  data-card-ratio="{{ section.settings.card_ratio | default: 'square' }}"
+  data-fit="{{ section.settings.image_fit  | default: 'contain' }}"
+  data-loop="{{ section.settings.enable_loop }}"
+  data-autoplay="{{ section.settings.enable_autoplay }}"
+  data-autoplay-ms="{{ section.settings.autoplay_ms | default: 5000 }}"
+  data-show-arrows="{{ section.settings.show_arrows }}"
+  data-show-dots="{{ section.settings.show_dots }}">
 
   <div class="page-width">
     <!-- Heading + tabs -->
     <header class="chpc__header chpc__header--havit">
       <div class="chpc__titles">
-        <h2 class="pcar__heading">{{ section.settings.heading | default: 'Best Sellers' }}</h2>
-        {%- if sub != blank -%}<p class="chpc__sub">{{ sub | escape }}</p>{%- endif -%}
+        <h2 class="pcar__heading">{{ section.settings.heading | default: 'Featured Products' }}</h2>
+        {% assign sub = section.settings.subheading %}
+        {% if sub != blank %}<p class="chpc__sub">{{ sub | escape }}</p>{% endif %}
       </div>
 
-      {%- if section.blocks.size > 0 -%}
-      <nav class="chpc__tabs" data-tabs aria-label="{{ heading | escape }}">
+      {%- if section.blocks.size > 1 -%}
+      <nav class="chpc__tabs" data-tabs aria-label="{{ section.settings.heading | escape }}">
         <button class="chpc__tabs-nudge chpc__tabs-nudge--prev" type="button" data-tab-prev aria-label="Scroll tabs left">‹</button>
 
         <ul class="chpc__tablist" role="tablist" data-tablist>
@@ -77,7 +197,6 @@ Mobile tabs show chevrons only when overflowing.
     <!-- Viewport -->
     <div class="chpc__viewport" data-viewport>
       <div class="chpc__track" id="chpc-track-{{ section.id }}" tabindex="0" aria-label="Product slides" data-track>
-        {%- comment -%} initial slides from first tab (no all_products, use limit) {%- endcomment -%}
         {%- if section.blocks.size > 0 -%}
           {%- assign ibs = section.blocks.first.settings -%}
           {%- assign icol_handle = ibs.collection.handle | default: ibs.collection -%}
@@ -113,15 +232,15 @@ Mobile tabs show chevrons only when overflowing.
 
       {% render 'chpc-controls',
         id: section.id,
-        show_dots: show_dots,
-        show_arrows: show_arrows,
+        show_dots: section.settings.show_dots,
+        show_arrows: section.settings.show_arrows,
         mobile_hide_arrows: true %}
     </div>
 
     <div class="chpc__toast" role="status" aria-live="polite" aria-atomic="true" data-toast></div>
   </div>
 
-  {%- comment -%} templates per tab (no all_products, use limit) {%- endcomment -%}
+  {%- comment -%} templates per tab {%- endcomment -%}
   {%- for block in section.blocks -%}
     {%- assign bs = block.settings -%}
     {%- assign handle2 = bs.collection.handle | default: bs.collection -%}
@@ -156,78 +275,7 @@ Mobile tabs show chevrons only when overflowing.
     </template>
   {%- endfor -%}
 
-<style>
-  #chpc-{{ section.id }}{ --tab-fade: 18px; padding-top:var(--pad-top); padding-bottom:var(--pad-bottom); }
-  #chpc-{{ section.id }} .page-width{ max-width:1440px; margin:0 auto; padding:0 28px; position:relative; }
-  #chpc-{{ section.id }} .chpc__heading{ font-family:var(--font-sans); font-weight:600; letter-spacing:-0.01em; line-height:1.15; margin:0 0 2px; font-size:clamp(22px,3.2vw + 4px,28px); color:#111; }
-  #chpc-{{ section.id }} .chpc__sub{ margin:0; color:#6B7280; font-size:.95rem; }
-  #chpc-{{ section.id }} .chpc__header--havit{ display:flex; align-items:flex-end; justify-content:space-between; gap:10px; margin:0 0 10px; flex-wrap:wrap; }
-  #chpc-{{ section.id }} .chpc__tabs{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; column-gap:6px; position:relative; margin-left:auto; max-width:100%; }
-  #chpc-{{ section.id }} .chpc__tablist{ display:flex; gap:clamp(24px, 5vw, 44px); overflow:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:0 2px; list-style:none; margin:0; scroll-snap-type:x proximity; scroll-behavior:smooth; overscroll-behavior-inline:contain; }
-  #chpc-{{ section.id }} .chpc__tablist::-webkit-scrollbar{ display:none; }
-  #chpc-{{ section.id }} .chpc__tablist > li{ list-style:none; scroll-snap-align:start; }
-  #chpc-{{ section.id }} .chpc__tab{ background:transparent; border:0; padding:6px 0 8px; cursor:pointer; font-family:var(--font-sans); font-weight:500; color:#6B7280; white-space:nowrap; transition:color .18s ease; }
-  #chpc-{{ section.id }} .chpc__tab.is-active{ color:var(--brand); }
-  #chpc-{{ section.id }} .chpc__tabs-nudge{ border:0; background:none; padding:0 6px; font:700 18px/1 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; color:#6B7280; cursor:pointer; opacity:0; transform:translateY(2px); transition:opacity .22s ease, transform .22s ease, color .18s ease; pointer-events:none; user-select:none; min-width:28px; }
-  #chpc-{{ section.id }} .chpc__tabs[data-overflow="true"] .chpc__tabs-nudge{ opacity:.95; transform:translateY(0); pointer-events:auto; }
-  #chpc-{{ section.id }} .chpc__tabs-nudge.is-disabled{ opacity:.25; pointer-events:none; }
-  @media (min-width:740px){ #chpc-{{ section.id }} .chpc__tabs-nudge{ display:none !important; } }
-  @media (max-width:739.98px){
-    #chpc-{{ section.id }} .chpc__tablist{
-      padding-left: var(--tab-fade); padding-right: var(--tab-fade); scroll-padding-inline: var(--tab-fade);
-      -webkit-mask-image: linear-gradient(to right, transparent 0, black var(--tab-fade), black calc(100% - var(--tab-fade)), transparent 100%);
-              mask-image: linear-gradient(to right, transparent 0, black var(--tab-fade), black calc(100% - var(--tab-fade)), transparent 100%);
-    }
-  }
-  #chpc-{{ section.id }} .chpc__viewport{ position:relative; overflow:visible; padding-bottom:28px; }
-  #chpc-{{ section.id }} .chpc__track{ position:relative; display:flex; gap:14px; overflow-x:auto; -webkit-overflow-scrolling:touch; padding:6px 6px 8px 6px; align-items:stretch; scroll-snap-type:x mandatory; scrollbar-width:none; }
-  #chpc-{{ section.id }} .chpc__track::-webkit-scrollbar{ display:none; }
-  #chpc-{{ section.id }} .chpc__slide{ min-width:0; flex:0 0 calc((100% - (14px * (var(--chpc-items) - 1))) / var(--chpc-items)); scroll-snap-align:start; display:flex; }
-  @media (min-width:1100px){ #chpc-{{ section.id }}{ --chpc-items: {{ per_d }}; } }
-  @media (min-width:740px) and (max-width:1099.98px){ #chpc-{{ section.id }}{ --chpc-items: {{ per_t }}; } }
-  @media (max-width:739.98px){
-    #chpc-{{ section.id }} .page-width{ padding-left:16px; padding-right:16px; }
-    #chpc-{{ section.id }}{ --chpc-items: {{ per_m }}; }
-    #chpc-{{ section.id }} .chpc__track{ display:grid; grid-auto-flow:column;
-      grid-auto-columns: calc(100vw - (max(var(--mobile-gutter), env(safe-area-inset-left)) + max(var(--mobile-gutter), env(safe-area-inset-right)) ));
-      column-gap:12px; padding:6px max(var(--mobile-gutter), env(safe-area-inset-right)) 8px max(var(--mobile-gutter), env(safe-area-inset-left));
-    }
-    #chpc-{{ section.id }} .chpc__page{ width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; scroll-snap-align:start; align-items:stretch; }
-  }
-  #chpc-{{ section.id }} .chpc__arrows{ position:absolute; inset:0; pointer-events:none; }
-  #chpc-{{ section.id }} .chpc__arrow{ position:absolute; top:50%; transform:translateY(-50%); pointer-events:auto; width:38px; height:38px; min-width:38px; min-height:38px; display:grid; place-items:center; background:transparent; color:var(--brand); border:1.5px solid var(--brand); border-radius:9999px; box-shadow:none; transition: background .15s ease, color .15s ease, transform .08s ease; cursor:pointer; }
-  #chpc-{{ section.id }} .chpc__arrow:hover{ background:var(--brand); color:#fff; }
-  #chpc-{{ section.id }} .chpc__arrow:active{ transform:translateY(-50%) scale(.96); }
-  #chpc-{{ section.id }} .chpc__arrow[disabled]{ opacity:.35; filter:grayscale(1); pointer-events:none; }
-  #chpc-{{ section.id }} .chpc__arrow--prev{ left: -24px; }
-  #chpc-{{ section.id }} .chpc__arrow--next{ right: -24px; }
-  @media (max-width:739.98px){ #chpc-{{ section.id }} .chpc__arrows[data-hide-mobile="true"]{ display:none !important; } }
-  #chpc-{{ section.id }}.chpc--outlined .chpc--proxy .ch-card,
-  #chpc-{{ section.id }}.chpc--outlined .chpc--proxy .chcard{ background:#fff; border-radius:12px; box-shadow:0 6px 20px rgba(17,17,17,.06); outline:1px solid rgba(17,17,17,.06); }
 
-  /* === FINAL, SINGLE SOURCE OF TRUTH ===
-     Product carousel heading must match "Shop by Category" */
-  #chpc-{{ section.id }} h2.pcar__heading{
-    /* neutralize any theme h2 defaults that might leak in */
-    all: unset;
-    display: block;
-
-    /* desired heading recipe */
-    font-family: var(--font-heading-family, var(--font-sans)) !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.01em !important;
-    line-height: 1.15 !important;
-    font-size: clamp(24px, 3vw + 8px, 32px) !important;
-    color: var(--heading-color, #111827) !important;
-    margin: 0 0 8px !important;
-
-    /* Inter variable font hygiene */
-    font-optical-sizing: auto !important;
-    font-synthesis-weight: none !important;
-    font-variation-settings: "wght" 700 !important;
-    text-transform: none !important;
-  }
-</style>
 
 <script>
 (function(){
@@ -240,7 +288,37 @@ Mobile tabs show chevrons only when overflowing.
   var btnPrev = root.querySelector("[data-tab-prev]");
   var btnNext = root.querySelector("[data-tab-next]");
 
+  var hasAnimatedOnce = false;
+
+  function runAnimation(opts){
+    opts = opts || {};
+    var keepDone = opts.keepDone !== false;
+
+    // always drop done before re-animating
+    root.classList.remove("chpc--done");
+
+    root.classList.remove("chpc--animating");
+    void root.offsetWidth; // reflow
+    root.classList.add("chpc--animating");
+
+    setTimeout(function(){
+      root.classList.remove("chpc--animating");
+      if(keepDone){
+        root.classList.remove("chpc--pre");
+        root.classList.add("chpc--done");
+      }
+    }, 900);
+  }
+
+  function playIntroOnce(){
+    if(hasAnimatedOnce) return;
+    hasAnimatedOnce = true;
+    root.classList.remove("chpc--pre");
+    runAnimation({ keepDone: true });
+  }
+
   function setActiveTab(btn){
+    if(!tablist) return;
     tablist.querySelectorAll(".chpc__tab").forEach(function(b){
       var active = (b === btn);
       b.classList.toggle("is-active", active);
@@ -251,8 +329,19 @@ Mobile tabs show chevrons only when overflowing.
   function loadTab(blockId){
     var tpl = document.getElementById("tpl-" + blockId);
     if(!tpl){ console.warn("[chpc] Missing template for", blockId); return; }
+
+    // inject slides
     track.innerHTML = tpl.innerHTML;
+
+    // rebuild paging / anchors
     rebuildPager();
+
+    // make sure we’re not in pre/done so animation can run
+    root.classList.remove("chpc--pre");
+    root.classList.remove("chpc--done");
+
+    // animate new collection
+    runAnimation({ keepDone: false });
   }
 
   function hasOverflow(el){ return el && el.scrollWidth > el.clientWidth + 1; }
@@ -278,7 +367,7 @@ Mobile tabs show chevrons only when overflowing.
   }
   function tabScrollStep(){ return Math.round(Math.max(120, tablist.clientWidth * 0.7)); }
 
-  if(tabs){
+  if(tabs && tablist){
     tabs.addEventListener("click", function(e){
       var t = e.target.closest(".chpc__tab"); if(!t) return;
       setActiveTab(t);
@@ -286,12 +375,10 @@ Mobile tabs show chevrons only when overflowing.
     });
     if(btnPrev) btnPrev.addEventListener("click", function(){ smoothScrollBy(tablist, -tabScrollStep()); });
     if(btnNext) btnNext.addEventListener("click", function(){ smoothScrollBy(tablist, tabScrollStep()); });
-    if(tablist){
-      tablist.addEventListener("scroll", updateTabOverflow, { passive:true });
-      window.addEventListener("resize", updateTabOverflow);
-      window.addEventListener("orientationchange", function(){ setTimeout(updateTabOverflow, 250); });
-      [0, 60, 240].forEach(function(ms){ setTimeout(updateTabOverflow, ms); });
-    }
+    tablist.addEventListener("scroll", updateTabOverflow, { passive:true });
+    window.addEventListener("resize", updateTabOverflow);
+    window.addEventListener("orientationchange", function(){ setTimeout(updateTabOverflow, 250); });
+    [0, 60, 240].forEach(function(ms){ setTimeout(updateTabOverflow, ms); });
   }
 
   var btnPrevPg = root.querySelector(".chpc__arrow--prev");
@@ -373,11 +460,31 @@ Mobile tabs show chevrons only when overflowing.
 
   if(btnPrevPg) btnPrevPg.addEventListener("click", function(){ scrollToPage(currentPage - 1, true); });
   if(btnNextPg) btnNextPg.addEventListener("click", function(){ scrollToPage(currentPage + 1, true); });
-  track.addEventListener("scroll", function(){ currentPage = nearestIndex(Math.round(track.scrollLeft)); updatePgArrows(); }, { passive:true });
+  track.addEventListener("scroll", function(){
+    currentPage = nearestIndex(Math.round(track.scrollLeft));
+    updatePgArrows();
+  }, { passive:true });
   window.addEventListener("resize", function(){ rebuildPager(); updateTabOverflow(); });
 
   rebuildPager();
   updateTabOverflow();
+
+  /* animate-in on scroll into view ONCE */
+  if("IntersectionObserver" in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          playIntroOnce();
+          io.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.35 });
+    io.observe(root);
+  } else {
+    root.classList.remove("chpc--pre");
+    root.classList.add("chpc--done");
+  }
+
 })();
 </script>
 </section>
@@ -433,8 +540,8 @@ Mobile tabs show chevrons only when overflowing.
           { "value": "default",   "label": "Collection default" },
           { "value": "price-asc", "label": "Price, low to high" },
           { "value": "price-desc","label": "Price, high to low" },
-          { "value": "title-asc", "label": "Title A–Z" },
-          { "value": "title-desc","label": "Title Z–A" },
+          { "value": "title-asc",  "label": "Title A–Z" },
+          { "value": "title-desc", "label": "Title Z–A" },
           { "value": "date-desc", "label": "Newest first" },
           { "value": "date-asc",  "label": "Oldest first" }
         ]}

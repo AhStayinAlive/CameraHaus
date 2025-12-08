@@ -1,5 +1,5 @@
 {% comment %}
-CH Header — HAVIT-style (red top bar + centered search button + dark-red nav band)
+CH Header — (red top bar + centered search button + dark-red nav band)
 - Desktop: predictive search panel + mega menus
 - Mobile: desktop-style search bar (white + red button) that opens existing right-side search panel
 - Mobile top row icons trimmed: remove Search & Wishlist, keep Cart
@@ -13,7 +13,9 @@ with working Suggestions and a dynamic “View "<query>” CTA.
 <section id="ch-header-{{ section.id }}" class="ch-header" role="banner">
   {%- assign main_handle = section.settings.menu_main -%}
   {%- assign parent_title = section.settings.categories_parent_title | default: 'Category' -%}
+  {%- assign stores_parent_title = section.settings.stores_parent_title | default: 'Stores' -%}
   {%- assign menu_obj = linklists[main_handle] -%}
+
 
   {%- assign categories_parent_index = -1 -%}
   {% if menu_obj and menu_obj.links %}
@@ -37,6 +39,36 @@ with working Suggestions and a dynamic “View "<query>” CTA.
 
   {%- assign icon_override_lines = section.settings.icon_overrides | default: '' | newline_to_br | split: '<br />' -%}
   {%- assign search_prompts = section.settings.search_prompts | default: "Search Canon products\nSearch Nikon products\nSearch Sony E-mount lenses\nSearch gimbals\nSearch 128GB SD cards" | newline_to_br | split: '<br />' -%}
+  {% unless brand_rows %}
+  {% assign brand_rows = "
+  AgfaPhoto|agfaphoto-min.png|vendor:AgfaPhoto,
+  AKASO|akaso-min.png|vendor:AKASO,
+  Aputure|aputure-min.png|vendor:Aputure,
+  Benro|benro-min.png|vendor:Benro,
+  BetaFPV|betafpv-min.png|vendor:BetaFPV,
+  Billingham|billingham-min.png|vendor:Billingham,
+  Canon|canon-min.png|vendor:Canon,
+  DJI|dji-min.png|vendor:DJI,
+  Eirmai|eirmai-min.png|vendor:Eirmai,
+  FIMI|fimi-min.png|vendor:FIMI,
+  Fujifilm|fujifilm-min.png|vendor:Fujifilm,
+  GoPro|gopro-min.png|vendor:GoPro,
+  Holga|holga-min.png|vendor:Holga,
+  Hoya|hoya-min.png|vendor:Hoya,
+  Insta360|insta360-min.png|vendor:Insta360,
+  JJC|jjc-min.png|vendor:JJC,
+  K&F Concept|k&f-min.png|vendor:K&F Concept OR vendor:K&F,
+  Kenko|kenko-min.png|vendor:Kenko,
+  LUMIX|lumix-min.png|vendor:LUMIX OR vendor:Panasonic,
+  Manfrotto|manfrotto-min.png|vendor:Manfrotto,
+  Meike|meike-min.png|vendor:Meike,
+  Nikon|nikon-min.png|vendor:Nikon,
+  Sigma|sigma-min.png|vendor:Sigma,
+  Sony|sony-min.png|vendor:Sony,
+  Tamron|tamron-min.png|vendor:Tamron,
+  ZEISS|zeiss-min.png|vendor:ZEISS
+  " %}
+  {% endunless %}
 
   <style>
 /* ===== Root tokens ===== */
@@ -103,16 +135,6 @@ with working Suggestions and a dynamic “View "<query>” CTA.
 #ch-header-{{ section.id }} .ico-heart path{ stroke-width:2.25; }
 #ch-header-{{ section.id }} .btn:hover .ico{ opacity:.9; }
 
-/* ===== COUNT BUBBLES ===== */
-#ch-header-{{ section.id }} [data-cart], #ch-header-{{ section.id }} [data-wishlist]{ position:relative; font-size:0; }
-#ch-header-{{ section.id }} .bubble{
-  background:#fff !important; color:var(--brand-600) !important; font-weight:800 !important;
-  font-size:11px !important; min-width:18px; height:18px; line-height:18px; padding:0 6px; border-radius:999px; border:0 !important;
-  box-shadow:0 0 0 1px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.18) !important;
-  position:absolute; top:-6px; right:-6px; transform-origin:center; transition:transform .18s ease;
-}
-#ch-header-{{ section.id }} .bubble.pop{ transform:scale(1.15); }
-
 /* ===== DESKTOP SEARCH ===== */
 #ch-header-{{ section.id }} .desk-search-wrap{ position:relative; width:100%; max-width:760px; justify-self:center; display:none; }
 @media (min-width:992px){ #ch-header-{{ section.id }} .desk-search-wrap{ display:block; } }
@@ -135,16 +157,21 @@ with working Suggestions and a dynamic “View "<query>” CTA.
 }
 #ch-header-{{ section.id }} .desk-search .sbtn:hover{ background:#d12f24; border-color:#d12f24; }
 
-/* Predictive panel */
-#ch-header-{{ section.id }} .ps-panel{
-  position:absolute; left:50%; top:calc(100% + 12px); transform:translateX(-50%);
-  background:#fff; border:1px solid var(--line); border-radius:16px; box-shadow:0 12px 34px rgba(17,17,17,.12);
-  width:clamp(820px, 62vw, 1040px); max-width:calc(100vw - 24px); display:none; z-index:1200; overflow:hidden;
-}
-#ch-header-{{ section.id }} .ps-panel[data-open="true"]{ display:block; }
-
 /* ===== LOWER NAV BAND ===== */
-#ch-header-{{ section.id }} .nav-band{ background:var(--brand-600); color:#fff; position:relative; }
+#ch-header-{{ section.id }} .nav-band{
+  position: sticky;
+  top: var(--navTop, 0px);
+  z-index: 2000;
+  background: var(--brand-600);
+  color: #fff;
+  box-shadow: 0 0 0 rgba(0,0,0,0); /* no shadow by default */
+  transition: box-shadow .24s ease;
+}
+/* optional: add a subtle shadow once you start scrolling */
+#ch-header-{{ section.id }}.has-scrolled .nav-band{
+  box-shadow: 0 2px 12px rgba(0,0,0,.10);
+}
+#ch-header-{{ section.id }} .nav-spacer{ display:none !important; height:0 !important; }
 #ch-header-{{ section.id }} .nav-band.is-fixed{
   position:fixed; top:0; left:0; right:0; z-index:2000; box-shadow:0 2px 12px rgba(0,0,0,.10);
   border-radius:0; transform:translateZ(0);
@@ -224,47 +251,6 @@ with working Suggestions and a dynamic “View "<query>” CTA.
 #MainContent, .shopify-section:not(#shopify-section-header), .chpc, .ch-brands { position: relative; z-index: 0; }
 .chpc__arrows, .ch-badge, .chb-logo-wrap, .ch-card, .chb-viewport, .chb-track { position: relative; z-index: 1; }
 #MainContent, .page-width, .content-for-layout { transform: none !important; filter: none !important; perspective: none !important; }
-
-/* ---- Predictive search visuals (scoped) ---- */
-#ch-header-{{ section.id }} .ps-inner{ display:grid; grid-template-columns:1.6fr 1fr; }
-#ch-header-{{ section.id }} .ps-col{ padding:12px; }
-#ch-header-{{ section.id }} .ps-col + .ps-col{ border-left:1px solid var(--line); }
-#ch-header-{{ section.id }} .ps-title{ margin:4px 0 10px; font:700 12px/1 var(--font-sans); color:#6b7280; letter-spacing:.02em; text-transform:uppercase; }
-#ch-header-{{ section.id }} .lst{ list-style:none; margin:0; padding:0 8px 12px; display:grid; gap:8px; }
-#ch-header-{{ section.id }} .ch-mini{ position:relative; display:grid; grid-template-columns:56px 1fr; gap:10px; padding:8px; border-radius:10px; border:1px solid #EEF2F6; }
-#ch-header-{{ section.id }} .ch-mini .overlay{ position:absolute; inset:0; border-radius:10px; }
-#ch-header-{{ section.id }} .ch-mini .thumb{ width:56px; height:56px; border-radius:10px; background:#fff; border:1px solid #F1F5F9; object-fit:contain; }
-#ch-header-{{ section.id }} .ch-mini .mtitle{ font-weight:600; font-size:13px; line-height:1.35; color:#111; }
-#ch-header-{{ section.id }} .ch-mini .price{ font-weight:800; font-size:12px; color:var(--brand); }
-#ch-header-{{ section.id }} .price-was{ color:#6B7280; text-decoration:line-through; margin-left:6px; font-weight:700; }
-
-/* Text list styles for Quick & Brands (plain text links) */
-#ch-header-{{ section.id }} [data-ps-chips],
-#ch-header-{{ section.id }} [data-ps-brands]{ display:block; background:transparent!important; padding:0!important; border:0!important; }
-#ch-header-{{ section.id }} .ps-txtlink{
-  display:inline!important; background:transparent!important; border:0!important; margin:0!important; padding:0!important;
-  color:#111!important; text-decoration:none!important; font-weight:600; font-size:13px; line-height:1.6;
-}
-#ch-header-{{ section.id }} .ps-bullet{ display:inline-block; padding:0 6px; opacity:.38; user-select:none; }
-#ch-header-{{ section.id }} .ps-txtlink:hover, #ch-header-{{ section.id }} .ps-txtlink:focus{ color:var(--brand-600)!important; }
-#ch-header-{{ section.id }} .ps-txtlink:hover + .ps-bullet{ color:var(--brand-600); opacity:.6; }
-
-/* Suggestions (right column) */
-#ch-header-{{ section.id }} .sugg .srow{
-  display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:10px; cursor:pointer;
-}
-#ch-header-{{ section.id }} .sugg .srow:hover{ background:#F8FAFC; }
-#ch-header-{{ section.id }} .sugg .ico{ width:16px; height:16px; color:#6b7280; }
-#ch-header-{{ section.id }} .sugg .srow div{ color:var(--brand-600); font-weight:600; }
-#ch-header-{{ section.id }} .sugg mark{ background:transparent; color:var(--brand-600); font-weight:800; }
-
-/* Footer CTA */
-#ch-header-{{ section.id }} .ps-foot{ display:flex; justify-content:center; padding:10px 12px 12px; border-top:1px solid var(--line); background:#fff; }
-#ch-header-{{ section.id }} .cta-all{
-  border:1px solid var(--brand); background:var(--brand); color:#fff;
-  border-radius:8px; height:40px; padding:0 14px; font-weight:600; display:inline-flex; align-items:center; gap:8px;
-}
-#ch-header-{{ section.id }} .cta-all:hover{ background:#d12f24; border-color:#d12f24; }
 
 /* ===== Mobile search pill ===== */
 @media (max-width:991px){
@@ -412,16 +398,20 @@ html, body{ transform:none !important; }
 /* z-index patch so predictive panel stays above fixed lower nav */
 #ch-header-{{ section.id }}.bar-floating .ps-panel{ z-index:3002; }
 
-/* Mega menu positioning (trigger is the positioning context) */
-#ch-header-{{ section.id }} .mmg-wrap[data-mega]{ position:relative; }
 #ch-header-{{ section.id }} .mmg{
-  position:absolute !important; left:0 !important; top:calc(100% + 8px) !important;
-  z-index:12000 !important; opacity:0; visibility:hidden; pointer-events:none; transform:translateY(6px);
+  opacity:0; visibility:hidden; pointer-events:none; transform:translateY(6px);
   transition:opacity .18s cubic-bezier(.22,.61,.36,1), transform .18s cubic-bezier(.22,.61,.36,1);
 }
 /* OPEN STATE — click only */
-#ch-header-{{ section.id }} .mmg-wrap[data-open="true"] > .mmg{
+#ch-header-{{ section.id }} .mmg.is-open{
   opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0);
+}
+/* remove these overrides entirely, OR: */
+#ch-header-{{ section.id }} .mmg{
+  position:fixed !important;
+  left:0 !important;
+  right:0 !important;
+  transform:none;
 }
 
 /* Optional safety: neutralize any transforms on fixed band */
@@ -441,6 +431,197 @@ html, body{ transform:none !important; }
   #ch-header-{{ section.id }} .row{ gap:16px; }
 }
 
+@media (max-width: 991px){
+  #ch-header-{{ section.id }} .bar{
+    position: sticky;
+    top: 0;
+    z-index: 3001;
+    transition: box-shadow .24s ease;
+  }
+}
+/* Mobile shy animation: slide the top row away smoothly, keep the search pill */
+@media (max-width: 991px){
+  #ch-header-{{ section.id }} .bar .row{
+    transition: transform .28s cubic-bezier(.22,.61,.36,1), opacity .20s linear;
+    will-change: transform;
+  }
+  #ch-header-{{ section.id }}.is-shy .bar{ box-shadow:0 1px 8px rgba(0,0,0,.14); }
+  #ch-header-{{ section.id }}.is-shy .bar .row{
+    transform: translateY(-120%); /* moves fully above the pill */
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+/* Desktop: hide the whole red bar with a smooth translate (already present, just ensure ease timing is smooth) */
+@media (min-width: 992px){
+  #ch-header-{{ section.id }} .bar{
+    transition: transform .28s cubic-bezier(.22,.61,.36,1), box-shadow .24s ease;
+  }
+  #ch-header-{{ section.id }}.is-shy .bar{
+    transform: translateY(-100%);
+    box-shadow: 0 1px 8px rgba(0,0,0,.14);
+  }
+}
+/* Lower nav: sticky under the red bar; no spacer needed */
+#ch-header-{{ section.id }} .nav-band{
+  position: sticky;
+  top: var(--navTop, 0px);
+  z-index: 2000;
+  background: var(--brand-600);
+  color:#fff;
+  transition: box-shadow .24s ease;
+}
+#ch-header-{{ section.id }}.has-scrolled .nav-band{
+  box-shadow: 0 2px 12px rgba(0,0,0,.10);
+}
+
+/* Kill the spacer everywhere */
+#ch-header-{{ section.id }} .nav-spacer{ display:none !important; height:0 !important; }
+
+/* Mobile: red bar is sticky; we animate only its inner row */
+@media (max-width: 991px){
+  #ch-header-{{ section.id }} .bar{
+    position: sticky;
+    top: 0;
+    z-index: 3001;
+    transition: box-shadow .24s ease;
+  }
+  #ch-header-{{ section.id }} .bar .row{
+    transition: transform var(--tw, .28s) cubic-bezier(.22,.61,.36,1), opacity var(--tw, .28s) linear;
+    will-change: transform;
+  }
+  #ch-header-{{ section.id }}.is-shy .bar{ box-shadow:0 1px 8px rgba(0,0,0,.14); }
+  #ch-header-{{ section.id }}.is-shy .bar .row{
+    transform: translateY(-120%);
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* Desktop: bar slides away smoothly, same easing as mobile */
+@media (min-width: 992px){
+  #ch-header-{{ section.id }} .bar{
+    transition: transform var(--tw, .28s) cubic-bezier(.22,.61,.36,1), box-shadow .24s ease;
+  }
+  #ch-header-{{ section.id }}.is-shy .bar{
+    transform: translateY(-100%);
+    box-shadow: 0 1px 8px rgba(0,0,0,.14);
+  }
+}
+/* Cart badge: position + style (like the second image) */
+#ch-header-{{ section.id }} [aria-label="Cart"] { position: relative; }
+
+/* Cart icon wrapper */
+#ch-header-{{ section.id }} .cart-ico-wrap{
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Base badge – small white circle, tight digits */
+#ch-header-{{ section.id }} .cart-ico-wrap [data-cart-count]{
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  border-radius: 50%;
+
+  background: #fff !important;
+  color: var(--brand-600) !important;
+
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: -0.05em;      /* <-- tighten the 1 and 9 */
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  pointer-events: none;
+  box-shadow: none;
+}
+
+/* hide when empty */
+#ch-header-{{ section.id }} .cart-ico-wrap [data-cart-count].is-empty{
+  display: none;
+}
+
+/* DESKTOP: slightly inside top-right of the cart */
+@media (min-width: 992px){
+  #ch-header-{{ section.id }} .cart-ico-wrap [data-cart-count]{
+    transform: translate(20%, -35%) !important;
+  }
+}
+
+/* MOBILE: bigger badge, sitting on the cart's top-right corner */
+@media (max-width: 991px){
+  #ch-header-{{ section.id }} .cart-ico-wrap [data-cart-count]{
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+
+    font-size: 10px;                /* slightly larger number */
+    transform: translate(15%, -20%) !important;
+  }
+}
+
+
+
+/* Anchor badge to the cart icon, top-right; white circle + red text */
+#ch-header-{{ section.id }} [aria-label="Cart"]{ position:relative; }
+#ch-header-{{ section.id }} .ico-cart{ position:relative; }
+
+
+/* Old + new price beside each other (like havit) */
+.ms-item > .ms-price {
+  display: flex !important;
+  flex-direction: row !important;   /* force side-by-side */
+  gap: 6px;
+  align-items: baseline !important; /* nice baseline alignment */
+  justify-content: flex-start !important;
+  text-align: left !important;
+  margin-top: 2px;
+}
+/* Left column brand/category labels same size as product name */
+.ms-side-label {
+  font-size: 14px !important;
+}
+
+/* Mobile brands/categories list labels too */
+.ms-link .label {
+  font-size: 14px !important;
+}
+/* === Smaller-than-logo mobile icons === */
+#ch-header-{{ section.id }}{
+  --m-logo: 38px;           /* your mobile logo height */
+  --icon-scale: 0.82;       /* icons = 82% of logo; tweak as needed */
+  --icon: calc(var(--m-logo) * var(--icon-scale));
+}
+
+@media (max-width: 991px){
+  /* keep your existing logo size */
+  #ch-header-{{ section.id }} .logo__img{
+    max-height: var(--m-logo) !important;
+  }
+
+  /* burger/click targets stay comfy; SVGs shrink */
+  #ch-header-{{ section.id }} .btn.only-m{
+    min-width: max(44px, var(--icon)) !important;
+    min-height: max(44px, var(--icon)) !important;
+  }
+  #ch-header-{{ section.id }} .btn.only-m .ico,
+  #ch-header-{{ section.id }} .right .ico{
+    width: var(--icon) !important;
+    height: var(--icon) !important;
+  }
+}
+
   </style>
   <div class="bar">
     <div class="wrap row">
@@ -457,7 +638,7 @@ html, body{ transform:none !important; }
           {% assign mobile_logo = section.settings.logo_mobile | default: section.settings.logo %}
           <picture>
             <source media="(max-width: 991px)" srcset="{{ mobile_logo | image_url: width: m_w }}">
-            <img src="{{ section.settings.logo | image_url: width: d_w }}" alt="{{ section.settings.logo.alt | default: shop.name }}" width="{{ d_w }}" height="auto" class="logo__img">
+            <img src="{{ section.settings.logo | image_url: width: d_w }}" alt="{{ section.settings.logo.alt | default: shop.name }}" width="{{ d_w }}" height="auto" class="logo__img" fetchpriority="high" loading="eager">
           </picture>
         {% else %}
           <span style="font-weight:500; font-size:20px; line-height:1; letter-spacing:.2px; color:#fff;">{{ shop.name }}</span>
@@ -477,55 +658,7 @@ html, body{ transform:none !important; }
                  autocomplete="off" data-ps-input aria-controls="ps-panel-{{ section.id }}" aria-expanded="false">
           <button class="sbtn" type="submit">search</button>
         </form>
-
-        <div id="ps-panel-{{ section.id }}" class="ps-panel" role="dialog" aria-modal="false" aria-label="Search suggestions" data-ps-panel>
-          <div class="ps-inner">
-            <div class="ps-col">
-              <p class="ps-title" data-ps-heading>Find inspiration</p>
-              <ul class="lst" role="listbox" aria-label="Product results" data-ps-prods>
-                {% for i in (1..6) %}
-                  <li class="ch-mini" aria-hidden="true">
-                    <div class="thumb" style="background:linear-gradient(90deg,#eee,#f7f7f7,#eee);border-radius:8px;"></div>
-                    <div>
-                      <div style="height:14px;border-radius:6px;background:linear-gradient(90deg,#eee,#f7f7f7,#eee);margin-bottom:6px;"></div>
-                      <div style="width:64px;height:12px;border-radius:6px;background:linear-gradient(90deg,#eee,#f7f7f7,#eee);"></div>
-                    </div>
-                  </li>
-                {% endfor %}
-              </ul>
-            </div>
-            <div class="ps-col">
-              <p class="ps-title">QUICK SEARCH</p>
-              <div class="chips-inline" data-ps-chips></div>
-
-              <p class="ps-title" style="margin-top:10px;">BRANDS</p>
-              <div class="chips" data-ps-brands></div>
-
-              <p class="ps-title" style="margin-top:10px;">SUGGESTIONS</p>
-              <div class="sugg" data-ps-sugs></div>
-            </div>
-          </div>
-          <div class="ps-foot">
-            <a class="cta-all" href="/search?q=" data-ps-viewall>View all results</a>
-          </div>
-          <span class="sr-only" aria-live="polite" data-ps-live></span>
-        </div>
-
-      <script id="ps-prompts-{{ section.id }}" type="application/json">
-        {{ section.settings.search_prompts
-          | default: "Search Canon products\nSearch Nikon products\nSearch Sony E-mount lenses\nSearch gimbals\nSearch 128GB SD cards"
-          | newline_to_br
-          | split: '<br />'
-          | map: 'strip'
-          | json }}
-      </script>
-
-        <script id="ps-quick-{{ section.id }}" type="application/json">
-          {{ section.settings.trending_list | default: "Instant\nMirrorless\nFilm\nAction\nLens\nDrones\n360\nGimbals" | split: "\n" | json }}
-        </script>
-        <script id="ps-brands-{{ section.id }}" type="application/json">
-          {{ section.settings.brands_list | default: "Canon\nDJI\nNikon\nRicoh\nSony\nFujifilm\nPanasonic\nSigma\nGoPro\nTamron\nTokina\nZeiss" | split: "\n" | json }}
-        </script>
+        {% render 'ch-panel-search-mobile', section: section %}
       </div>
 
       <!-- Right icons (mobile: Cart only; desktop: Search + Account + Wishlist + Cart) -->
@@ -538,22 +671,33 @@ html, body{ transform:none !important; }
           <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>
         </a>
 
-        <button class="btn only-d" aria-label="Wishlist" data-panel-open="wishlist" data-wishlist>
-          <svg class="ico ico-heart" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M21 8.25c0-2.485-2.03-4.5-4.536-4.5-1.642 0-3.09.879-3.964 2.19-.874-1.311-2.321-2.19-3.964-2.19C6.03 3.75 4 5.765 4 8.25c0 7.22 8 11 8 11s9-4 9-11Z"/>
-          </svg>
-          <span class="bubble" data-wishlist-count>0</span>
-        </button>
+        {% assign cartCount = cart.item_count | default: 0 %}
+<a href="{{ routes.cart_url }}"
+   class="btn"
+   aria-label="Cart"
+   {% unless template.name == 'cart' %}
+     data-cart
+     data-panel-open="cart"
+   {% endunless %}>
+  <span class="cart-ico-wrap">
+    <svg class="ico ico-cart" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 3h2l2 11.5a2 2 0 0 0 2 1.5h8.2a2 2 0 0 0 2-1.5L21 8H6.2"/>
+      <circle cx="9.5" cy="19.5" r="1.6"/>
+      <circle cx="18"   cy="19.5" r="1.6"/>
+    </svg>
 
-        <a href="{{ routes.cart_url }}" class="btn" aria-label="Cart" data-cart data-panel-open="cart">
-          <svg class="ico ico-cart" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3 3h2l2 11.5a2 2 0 0 0 2 1.5h8.2a2 2 0 0 0 2-1.5L21 8H6.2"/>
-            <circle cx="9.5" cy="19.5" r="1.6"/>
-            <circle cx="18"   cy="19.5" r="1.6"/>
-          </svg>
-          <span class="bubble" data-cart-count>0</span>
-          {% if section.settings.show_cart_badge %}<span class="sr-only" aria-live="polite" data-cart-live></span>{% endif %}
-        </a>
+    <span class="bubble{% if cartCount == 0 %} is-empty{% endif %}" data-cart-count>
+      {{ cartCount }}
+    </span>
+  </span>
+
+  {% if section.settings.show_cart_badge %}
+    <span class="sr-only" aria-live="polite" data-cart-live></span>
+  {% endif %}
+</a>
+
+
+
       </div>
     </div>
 
@@ -567,67 +711,89 @@ html, body{ transform:none !important; }
 
     <!-- ===== LOWER NAV with visible triggers for mega ===== -->
     <div class="nav-spacer" aria-hidden="true"></div>
-    <nav class="nav-band only-d" role="navigation" aria-label="Main">
-      <div class="wrap nav">
-        <div class="nav-left">
-<div data-mega="cats" class="mmg-wrap" aria-haspopup="true" aria-expanded="false">
-  <a href="{{ section.settings.categories_fallback_url | default: '/collections/all' }}">
-    All Categories <span class="chev" aria-hidden="true"></span>
-  </a>
-  {% render 'ch-mega',
-    mode: 'cats', menu_obj: menu_obj, categories_parent_index: categories_parent_index,
-    categories_fallback_url: section.settings.categories_fallback_url,
-    default_preview_collection: section.settings.default_preview_collection,
-    icon_override_lines: icon_override_lines, parent_title: parent_title,
-    brands_fallback_url: section.settings.brands_fallback_url, brands_list: section.settings.brands_list %}
-</div>
-
-<div data-mega="brands" class="mmg-wrap" aria-haspopup="true" aria-expanded="false">
-  <a href="{{ section.settings.brands_fallback_url | default: '/search?type=product' }}">
-    Brands <span class="chev" aria-hidden="true"></span>
-  </a>
-  {% render 'ch-mega',
-    mode: 'brands', menu_obj: menu_obj, categories_parent_index: categories_parent_index,
-    categories_fallback_url: section.settings.categories_fallback_url,
-    default_preview_collection: section.settings.default_preview_collection,
-    icon_override_lines: icon_override_lines, parent_title: parent_title,
-    brands_fallback_url: section.settings.brands_fallback_url, brands_list: section.settings.brands_list %}
-</div>
-
-
-          {% if menu_obj %}
-            {% for l in menu_obj.links %}
-              {% assign t = l.title | strip | downcase %}
-              {% assign p_norm = parent_title | strip | downcase %}
-              {% if t != 'brands' and t != p_norm %}
-                <div data-mini>
-                  <a href="{{ l.url }}" aria-haspopup="{% if l.links.size > 0 %}true{% else %}false{% endif %}" data-mini-link data-has-children="{% if l.links.size > 0 %}true{% else %}false{% endif %}">
-                    {{ l.title }}{% if l.links.size > 0 %}<span class="chev" aria-hidden="true"></span>{% endif %}
-                  </a>
-                  {% if l.links.size > 0 %}
-                    <div class="mega mini">
-                      <ul style="list-style:none; margin:0; padding:0;">
-                        {% for s in l.links %}<li><a href="{{ s.url }}">{{ s.title }}</a></li>{% endfor %}
-                      </ul>
-                    </div>
-                  {% endif %}
-                </div>
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-        </div>
-
-        <div>
-          {% if section.settings.support_email %}
-            <a href="mailto:{{ section.settings.support_email }}" class="contact">
-              <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" ry="2"/><path d="M21 7l-9 6L3 7"/></svg>
-              {{ section.settings.support_email }}
-            </a>
-          {% endif %}
-        </div>
-      </div>
-    </nav>
   </div>
+<nav class="nav-band only-d" role="navigation" aria-label="Main">
+  <div class="wrap nav">
+    <div class="nav-left">
+
+      {%- comment -%} Categories mega (single wrap) {%- endcomment -%}
+      <div data-mega="cats" class="mmg-wrap" aria-haspopup="true" aria-expanded="false">
+        <a href="{{ section.settings.categories_fallback_url | default: '/collections/all' }}">
+          All Categories <span class="chev" aria-hidden="true"></span>
+        </a>
+        {%- render 'ch-mega',
+          mode: 'cats',
+          menu_obj: menu_obj,
+          parent_title: section.settings.categories_parent_title,
+          categories_fallback_url: section.settings.categories_fallback_url
+        -%}
+      </div>
+
+      {%- comment -%} Brands mega (single wrap) {%- endcomment -%}
+      <div data-mega="brands" class="mmg-wrap" aria-haspopup="true" aria-expanded="false">
+        <a href="{{ section.settings.brands_fallback_url | default: '/search?type=product' }}">
+          Brands <span class="chev" aria-hidden="true"></span>
+        </a>
+        {%- render 'ch-mega',
+          mode: 'brands',
+          menu_obj: menu_obj,
+          brands_parent_title: 'Brands'
+        -%}
+      </div>
+
+      {%- comment -%} Stores mega (Where to find us — one column) {%- endcomment -%}
+      <div data-mega="stores" class="mmg-wrap" aria-haspopup="true" aria-expanded="false">
+        <a href="{{ section.settings.stores_fallback_url | default: '/pages/store-locator' }}">
+          Where to find us <span class="chev" aria-hidden="true"></span>
+        </a>
+        {%- render 'ch-mega',
+          mode: 'stores',
+          menu_obj: menu_obj,
+          stores_parent_title: section.settings.stores_parent_title | default: 'Stores',
+          stores_fallback_url: section.settings.stores_fallback_url
+        -%}
+      </div>
+
+      {%- comment -%} Other top-level links (exclude Categories/Brands/Stores to avoid duplicates) {%- endcomment -%}
+      {% if menu_obj %}
+        {% assign p_norm = parent_title | strip | downcase %}
+        {% assign s_norm = stores_parent_title | strip | downcase %}
+        {% for l in menu_obj.links %}
+          {% assign t = l.title | strip | downcase %}
+          {% if t != 'brands' and t != p_norm and t != s_norm %}
+            {% unless t contains 'store' or t contains 'where to find' %}
+              <div data-mini>
+                <a href="{{ l.url }}"
+                   aria-haspopup="{% if l.links.size > 0 %}true{% else %}false{% endif %}"
+                   data-mini-link
+                   data-has-children="{% if l.links.size > 0 %}true{% else %}false{% endif %}">
+                  {{ l.title }}{% if l.links.size > 0 %}<span class="chev" aria-hidden="true"></span>{% endif %}
+                </a>
+                {% if l.links.size > 0 %}
+                  <div class="mega mini">
+                    <ul style="list-style:none; margin:0; padding:0;">
+                      {% for s in l.links %}<li><a href="{{ s.url }}">{{ s.title }}</a></li>{% endfor %}
+                    </ul>
+                  </div>
+                {% endif %}
+              </div>
+            {% endunless %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+    </div>
+
+    <div>
+      {% if section.settings.support_email %}
+        <a href="mailto:{{ section.settings.support_email }}" class="contact">
+          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" ry="2"/><path d="M21 7l-9 6L3 7"/></svg>
+          {{ section.settings.support_email }}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
 
 <script>
 (() => {
@@ -884,194 +1050,212 @@ function measure(){
   })();
 </script>
 
-<!-- NEW: predictive panel controller (open/close + dynamic CTA) -->
-<script>
-(() => {
-  const root  = document.getElementById('ch-header-{{ section.id }}'); if (!root) return;
-  const wrap  = root.querySelector('[data-ps-wrap]');
-  const input = wrap?.querySelector('[data-ps-input]');
-  const panel = wrap?.querySelector('[data-ps-panel]');
-  const viewAll = wrap?.querySelector('[data-ps-viewall]');
-  const live  = wrap?.querySelector('[data-ps-live]');
-  const mq    = window.matchMedia('(min-width: 992px)');
-  const minChars = {{ section.settings.search_min_chars | default: 2 }};
-
-  const openPanel = () => {
-    if (!panel) return;
-    panel.dataset.open = 'true';
-    input?.setAttribute('aria-expanded','true');
-  };
-  const closePanel = () => {
-    if (!panel) return;
-    panel.dataset.open = 'false';
-    input?.setAttribute('aria-expanded','false');
-  };
-  const updateCTA = (q) => {
-    if (!viewAll) return;
-    const qTrim = (q || '').trim();
-    viewAll.href = `/search?q=${encodeURIComponent(qTrim)}`;
-    viewAll.textContent = qTrim ? `View “${qTrim}”` : 'View all results';
-    if (live) live.textContent = qTrim ? `Showing suggestions for ${qTrim}` : '';
-  };
-
-  // Open on focus on desktop; keep closed until min chars typed if you prefer
-  input?.addEventListener('focus', () => {
-    if (mq.matches) openPanel();
-  });
-
-  // Show/hide as user types; also update the “View <q>” link
-  input?.addEventListener('input', (e) => {
-    const q = e.target.value || '';
-    if (q.trim().length >= minChars) openPanel(); else closePanel();
-    updateCTA(q);
-  });
-
-  // Close on Esc
-  input?.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') { closePanel(); input.blur(); }
-  });
-
-  // Close on click outside
-  document.addEventListener('click', (e) => {
-    if (!wrap?.contains(e.target)) closePanel();
-  }, { passive: true });
-
-  // If we swap to mobile layout, ensure it’s closed
-  mq.addEventListener('change', () => { if (!mq.matches) closePanel(); });
-
-  // Initial CTA state
-  updateCTA('');
-})();
-</script>
-
 <script>
 (() => {
   const root = document.getElementById('ch-header-{{ section.id }}'); if (!root) return;
-  const nav = root.querySelector('.nav-band'); if (!nav) return;
+  const qs = (s, sc = root) => sc.querySelector(s);
 
-  const originalParent = nav.parentNode, originalNext = nav.nextSibling;
-  const mq = window.matchMedia('(min-width: 992px)');
+  const bar = qs('.bar');
+  const nav = root.querySelector('.nav-band');
+  const mq  = window.matchMedia('(min-width: 992px)');
 
-  function moveOut(){ if(nav.parentNode!==root) root.appendChild(nav); }
-  function moveBack(){ if(nav.parentNode!==originalParent) originalParent.insertBefore(nav, originalNext); }
+  let lastY = window.pageYOffset || 0;
+  let shy = false;
+  let shyAnchor = 0;
+  const HIDE_AFTER = 80; // px down before hiding
+  const SHOW_AFTER = 32; // px up before showing
+  let ticking = false;
 
-  function sync(){
-    if (mq.matches && nav.classList.contains('is-fixed')) moveOut();
-    else moveBack();
+  const isDesktop = () => mq.matches;
+
+  function updateNavTop(){
+    // If bar is visible on desktop, nav should sit just under it; otherwise at 0.
+    let topPx = 0;
+    if (isDesktop()){
+      const barVisible = !root.classList.contains('is-shy');
+      if (barVisible && bar){
+        const r = bar.getBoundingClientRect();
+        // Using height is more stable than bottom when the bar is sticky
+        topPx = Math.max(0, Math.round(r.height));
+      }
+    }
+    root.style.setProperty('--navTop', `${topPx}px`);
   }
 
-  const mo = new MutationObserver(sync);
-  mo.observe(nav, { attributes:true, attributeFilter:['class'] });
+  function onScroll(){
+    const y  = window.pageYOffset || 0;
+    const dy = y - lastY;
 
-  mq.addEventListener('change', sync);
-  sync();
+    // Hysteresis + duration tuning (longer hide, shorter show)
+    if (dy > 0) { // scrolling down
+      if (!shy && (y - shyAnchor) > HIDE_AFTER) {
+        shy = true;
+        shyAnchor = y;
+        root.style.setProperty('--tw', '.36s'); // slightly longer for hide
+        root.classList.add('is-shy');
+      }
+    } else if (dy < 0) { // scrolling up
+      if (shy && (shyAnchor - y) > SHOW_AFTER) {
+        shy = false;
+        shyAnchor = y;
+        root.style.setProperty('--tw', '.24s'); // quicker for show
+        root.classList.remove('is-shy');
+      }
+    }
+
+    if (y > 2) root.classList.add('has-scrolled'); else root.classList.remove('has-scrolled');
+
+    updateNavTop();
+    lastY = y;
+    ticking = false;
+  }
+
+  function onResize(){
+    updateNavTop();
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking){
+      ticking = true;
+      requestAnimationFrame(onScroll);
+    }
+  }, { passive:true });
+
+  window.addEventListener('resize', () => {
+    requestAnimationFrame(onResize);
+  }, { passive:true });
+
+  // Initial pass
+  root.style.setProperty('--tw', '.28s');
+  updateNavTop();
 })();
 </script>
+
+
 <script>
-(function(){
+(() => {
   const root = document.getElementById('ch-header-{{ section.id }}');
-  if(!root) return;
+  if (!root) return;
 
-  // Targets: mega triggers (All Categories, Brands) and mini items with children
-  const triggerSelectors = [
-    '.mmg-wrap > a',            // mega menu triggers
-    '[data-mini] > a[data-mini-link]' // mini dropdown triggers
-  ].join(',');
+  const mq = matchMedia('(min-width: 992px)');
+  const isDesktop = () => mq.matches;
 
-  const triggers = root.querySelectorAll(triggerSelectors);
+  const HOVER_OPEN  = 140;   // ms – open delay (tune here)
+  const HOVER_CLOSE = 260;   // ms – close delay (tune here)
 
+  const wraps = [...root.querySelectorAll('.mmg-wrap[data-mega]')];
+
+  let current = null;
+  let timers  = new Map();   // {wrap: {open, close}}
+
+  function getTimers(w){
+    if (!timers.has(w)) timers.set(w, {open:0, close:0});
+    return timers.get(w);
+  }
+  function clearOpen(w){ const t=getTimers(w); clearTimeout(t.open); t.open=0; }
+  function clearClose(w){ const t=getTimers(w); clearTimeout(t.close); t.close=0; }
   function closeAll(except){
-    root.querySelectorAll('.mmg-wrap[data-open="true"], [data-mini][data-open="true"]').forEach(el=>{
-      if(el !== except){
-        el.removeAttribute('data-open');
-        const link = el.querySelector('a');
-        if(link) link.setAttribute('aria-expanded','false');
-      }
-    });
+    wraps.forEach(w => { if (w !== except) { w.dataset.open = 'false'; } });
+    if (except) current = except; else current = null;
+  }
+  function openWrap(w){
+    if (!isDesktop()) return;     // let mobile behave normally
+    if (current === w && w.dataset.open === 'true') return;
+    closeAll(w);
+    w.dataset.open = 'true';
+    current = w;
+  }
+  function scheduleOpen(w){
+    const t = getTimers(w);
+    clearOpen(w); clearClose(w);
+    t.open = setTimeout(() => openWrap(w), HOVER_OPEN);
+  }
+  function scheduleClose(w){
+    const t = getTimers(w);
+    clearOpen(w); clearClose(w);
+    t.close = setTimeout(() => {
+      // don’t close if pointer is over this wrap or its panel
+      const over = document.querySelector(':hover');
+      if (over && (over === w || w.contains(over))) return;
+      w.dataset.open = 'false';
+      if (current === w) current = null;
+    }, HOVER_CLOSE);
   }
 
-  function toggle(parent){
-    const isOpen = parent.getAttribute('data-open') === 'true';
-    if(isOpen){
-      parent.setAttribute('data-open','false');
-    }else{
-      closeAll(parent);
-      parent.setAttribute('data-open','true');
-    }
-    const link = parent.querySelector('a');
-    if(link) link.setAttribute('aria-expanded', String(!isOpen));
-  }
+  // Wire hover intent on trigger + panel (works anywhere on the page)
+  wraps.forEach(wrap => {
+    const link  = wrap.querySelector(':scope > a');
+    const panel = wrap.querySelector(':scope > .mmg');
 
-  // Click + keyboard activation
-  triggers.forEach(a=>{
-    const parent = a.closest('.mmg-wrap, [data-mini]');
-    if(!parent) return;
+    // Open on hover/focus
+    wrap.addEventListener('mouseenter', () => isDesktop() && scheduleOpen(wrap));
+    wrap.addEventListener('focusin',    () => isDesktop() && openWrap(wrap));
 
-    a.addEventListener('click', (e)=>{
-      // If this item has a submenu, use click to toggle instead of navigate
-      const hasMenu = parent.querySelector('.mmg, .mega');
-      if(hasMenu){
+    // Keep open while inside panel
+    panel?.addEventListener('mouseenter', () => isDesktop() && scheduleOpen(wrap));
+
+    // Close after a short grace when pointer leaves both trigger and panel
+    wrap.addEventListener('mouseleave', () => isDesktop() && scheduleClose(wrap));
+    panel?.addEventListener('mouseleave', () => isDesktop() && scheduleClose(wrap));
+
+    // Click should NAVIGATE now (no toggle) on desktop
+    link?.addEventListener('click', (e) => {
+      if (!isDesktop()) return;  // mobile: allow default
+      // if the href is '#', don’t navigate; keep open for a11y
+      if (!link.getAttribute('href') || link.getAttribute('href') === '#') {
         e.preventDefault();
-        toggle(parent);
+        openWrap(wrap);
       }
+      // else: let it navigate
     });
 
-    a.addEventListener('keydown', (e)=>{
-      if(e.key === 'Enter' || e.key === ' '){
-        e.preventDefault();
-        a.click();
-      }
+    // Esc to close
+    wrap.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { wrap.dataset.open = 'false'; if (current === wrap) current = null; link?.focus(); }
     });
   });
 
-  // Close when clicking outside
-  document.addEventListener('click', (e)=>{
-    if(!root.contains(e.target)) closeAll(null);
-  }, { passive: true });
-
-  // Close on Esc
-  document.addEventListener('keydown', (e)=>{
-    if(e.key === 'Escape') closeAll(null);
+  // Click outside to close (desktop only)
+  document.addEventListener('click', (e) => {
+    if (!isDesktop()) return;
+    if (!e.target.closest('#ch-header-{{ section.id }} .nav-band')) closeAll();
   });
 
+  // If layout switches (responsive), close everything
+  mq.addEventListener('change', () => closeAll());
 })();
 </script>
 
   {%- capture search_body -%}{% render 'ch-panel-search-mobile', section: section %}{%- endcapture -%}
   {% render 'ch-side-panel', id: 'search', title: 'SEARCH OUR SITE', aria_label: 'Search our site', body: search_body %}
-  {%- capture cart_body -%}{% render 'ch-cart--drawer' %}{%- endcapture -%}
-  {% render 'ch-side-panel', id: 'cart', title: 'YOUR CART', aria_label: 'Your cart', body: cart_body %}
-  {%- capture wl_body -%}{% render 'ch-panel-wishlist' %}{%- endcapture -%}
-  {% render 'ch-side-panel', id: 'wishlist', title: 'YOUR WISHLIST', aria_label: 'Your wishlist', body: wl_body %}
+
   {% render 'ch-menu-drawer-mobile' %}
-  {% render 'ch-panels-controller' %}
+
 </section>
 
 {% schema %}
 {
-  "name": "CH Header (HAVIT-style)",
+  "name": "CH Header",
   "settings": [
     { "type": "image_picker", "id": "logo", "label": "Logo (desktop)" },
     { "type": "image_picker", "id": "logo_mobile", "label": "Logo (mobile)" },
     { "type": "range", "id": "logo_width_desktop", "label": "Logo width desktop (px)", "min": 120, "max": 600, "step": 5, "default": 200 },
     { "type": "range", "id": "logo_width_mobile", "label": "Logo width mobile (px)", "min": 88, "max": 200, "step": 4, "default": 140 },
+
     { "type": "link_list", "id": "menu_main", "label": "Main menu" },
     { "type": "text", "id": "categories_parent_title", "label": "Categories parent title", "default": "Category" },
     { "type": "url", "id": "categories_fallback_url", "label": "All Categories link" },
-    { "type": "collection", "id": "default_preview_collection", "label": "Default preview collection (no hover)" },
-    { "type": "textarea", "id": "icon_overrides", "label": "Icon overrides (Label|icon_key per line)" },
-    { "type": "textarea", "id": "brands_list", "label": "Brands (one per line)", "default": "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" },
-    { "type": "url", "id": "brands_fallback_url", "label": "Brands link" },
-    { "type": "text", "id": "support_email", "label": "Support email (lower band)", "default": "support@havit.ph" },
-    { "type": "range", "id": "search_min_chars", "label": "Predictive min chars", "min": 1, "max": 3, "step": 1, "default": 2 },
-    { "type": "range", "id": "search_limit_products", "label": "Predictive product count", "min": 3, "max": 10, "step": 1, "default": 6 },
-    { "type": "checkbox", "id": "show_recent", "label": "Show recent searches", "default": true },
-    { "type": "checkbox", "id": "show_trending", "label": "Show trending chips", "default": true },
-    { "type": "range", "id": "recent_max", "label": "Recent limit", "min": 3, "max": 10, "step": 1, "default": 6 },
-    { "type": "textarea", "id": "trending_list", "label": "Trending list", "default": "Instant\nMirrorless\nFilm\nAction\nLens\nDrones\n360\nGimbals" },
-    { "type": "checkbox", "id": "show_cart_badge", "label": "Show cart badge", "default": true },
-    { "type": "textarea", "id": "search_prompts", "label": "Search prompts", "default": "Search Canon products\nSearch Nikon products\nSearch Sony E-mount lenses\nSearch gimbals\nSearch 128GB SD cards" }
+    { "type": "url", "id": "brands_fallback_url", "label": "Brands link (fallback)" },
+
+    { "type": "collection", "id": "default_preview_collection", "label": "Search preview collection" },
+    { "type": "range", "id": "search_limit_products", "label": "Search: product limit", "min": 3, "max": 12, "step": 1, "default": 6 },
+
+    { "type": "text", "id": "support_email", "label": "Support email (lower band)", "default": "support@email.ph" },
+
+    { "type": "textarea", "id": "search_prompts", "label": "Rotating search prompts (one per line)", "default": "Search Canon products\nSearch Nikon products\nSearch Sony E-mount lenses\nSearch gimbals\nSearch 128GB SD cards" }
   ],
-  "presets": [ { "name": "CH Header (HAVIT-style: robust + triggers)" } ]
+  "presets": [
+    { "name": "CH Header" }
+  ]
 }
 {% endschema %}
