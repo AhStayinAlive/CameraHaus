@@ -1,7 +1,7 @@
 {%- paginate search.results by 20 -%}
 <section
   id="ch-search-template"
-  class="ch-collection"
+  class="ch-collection {% if search.performed and search.results_count == 0 %}is-filter-collapsed{% endif %}"
   data-section-id="search"
 >
   <style>
@@ -196,6 +196,7 @@
     }
     #ch-search-template .ch-side{
       flex:0 0 280px; max-width:280px; transition:max-width .28s ease, flex-basis .28s ease, opacity .2s ease;
+      /* If collapsed, hide completely to avoid taking space */
     }
     #ch-search-template .ch-main{ flex:1 1 auto; min-width:0; }
 
@@ -207,9 +208,9 @@
     }
     @media(min-width:990px){
       #ch-search-template.is-filter-collapsed .ch-side{
-        max-width:0; flex-basis:0; opacity:0; pointer-events:none; display:none;
+        max-width:0; flex-basis:0; opacity:0; pointer-events:none; margin:0;
       }
-      #ch-search-template.is-filter-collapsed .ch-body{ gap:20px; }
+      #ch-search-template.is-filter-collapsed .ch-body{ gap:0; } /* Remove gap when no side */
       #ch-search-template.is-filter-collapsed #CollectionProductGrid{
         grid-template-columns:repeat(4,minmax(0,1fr));
       }
@@ -246,7 +247,8 @@
     /* =======================
        SIMPLE ANIM
     ======================== */
-    .ch-float-in{ animation:ch-fade-up .5s cubic-bezier(.21,.61,.35,1) both; }
+    .ch-float-in{ animation:chFloatIn .5s cubic-bezier(.21,.61,.35,1) both; }
+    @keyframes chFloatIn{ from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:none;} }
 
     /* =======================
        PAGINATION (numbers only)
@@ -368,6 +370,31 @@
       #ch-search-template .ch-chipline .chip > button::before,
       #ch-search-template .ch-chipline .chip > button::after{ transition:none; }
     }
+
+    /* =======================
+       EMPTY STATE
+    ======================== */
+    .ch-empty-state{
+      grid-column: 1 / -1;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      text-align:center; padding:80px 20px; gap:14px;
+      color: var(--muted);
+    }
+    .ch-empty-state svg{
+      width:54px; height:54px; color:#9CA3AF; margin-bottom:6px;
+    }
+    .ch-empty-state h3{
+      margin:0; font-size:18px; font-weight:600; color:var(--ink);
+    }
+    .ch-empty-state .btn{
+      margin-top:12px;
+      display:inline-flex; align-items:center; justify-content:center;
+      height:44px; padding:0 32px; border-radius:10px;
+      background:#e03a2f; color:#fff; text-decoration:none;
+      border: 1px solid #e03a2f;
+      transition:background 0.2s;
+    }
+    .ch-empty-state .btn:hover{ background:#d12f24; color:#fff; border-color:#d12f24; }
   </style>
 
   <div class="page-width">
@@ -377,7 +404,7 @@
       | replace: 'vendor:"', '' | replace: "vendor:'", '' | replace: 'vendor:', ''
       | replace: 'product_type:"', '' | replace: "product_type:'", '' | replace: 'product_type:', ''
       | replace: 'category:"', '' | replace: "category:'", '' | replace: 'category:', ''
-      | strip | replace: '  ', ' ' | replace: '"', '' -%}
+      | strip | replace: '  ', ' ' | remove: '"' -%}
 
     <header class="ch-header">
       <h1 class="ch-title">
@@ -402,7 +429,6 @@
             </span>
             Filters
           </button>
-
         </div>
 
         <div class="ch-toolbar-right">
@@ -454,7 +480,7 @@
         </div>
       </div>
 
-      <div id="ChFilterChips-search" class="ch-chipline active-facets" aria-live="polite"></div>
+      <div id="ChFilterChips-search" class="ch-chipline" aria-live="polite"></div>
     </header>
 
     <div class="ch-body">
@@ -470,14 +496,21 @@
               {%- if item.object_type == 'product' -%}
                 {%- assign has_products = true -%}
                 <div class="ch-cell">
-                  {% render 'ch-product-card', product: item %}
+                  {% render 'product-card', product: item %}
                 </div>
               {%- endif -%}
             {%- endfor -%}
 
             {%- unless has_products -%}
-              <div class="ch-cell" style="grid-column:1/-1;text-align:center">
-                <p>No products found.</p>
+              <div class="ch-empty-state">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M16 16s-1.5-2-4-2-4 2-4 2"/>
+                  <line x1="9" x2="9.01" y1="9" y2="9"/>
+                  <line x1="15" x2="15.01" y1="9" y2="9"/>
+                </svg>
+                <h3>Unfortunately, "{{ display_terms }}" did not yield any results.</h3>
+                <a class="btn" href="/">Continue shopping</a>
               </div>
             {%- endunless -%}
           </div>
@@ -513,25 +546,54 @@
   <script src="{{ 'ch-collection-grid.js' | asset_url }}" defer></script>
   <script>
     document.addEventListener('DOMContentLoaded', function() {
+      console.error('[Search] DOMContentLoaded fired. search.filters size: {{ search.filters.size }}');
       const root = document.getElementById('ch-search-template');
-      if (!root) return;
+      
+      if (!root) {
+        console.error('[Search] Root element #ch-search-template not found');
+        return;
+      }
 
-      window.ChCollectionGrid.init(root, {
-        sid: 'search',  
-        gridSelector: '#CollectionProductGrid',
-        paginationSelector: 'nav.pagination',
-        chipsBarSelector: '#ChFilterChips-search',
-        sorter: {
-          containerSelector: '[data-ch-sorter]',
-          labelSelector: '.ch-sorter-label',
-          itemSelector: '.ch-sorter-item',
-          selectSelector: '#ChSortSelect-search',
-          getSortFromUrl: () => new URL(window.location.href).searchParams.get('sort_by') || '{{ current_sort }}'
-        },
-        fetch: {
-          resolveSectionRoot: (frag) => frag.querySelector('#ch-search-template') || frag
-        }
-      });
+      // Debug: Check if button exists
+      const btn = root.querySelector('[data-ch-toolbar-filter]');
+      console.log('[Search] Filter button found:', !!btn);
+
+      if (btn) {
+        // Fallback listener in case Module fails
+        btn.addEventListener('click', function() {
+          console.log('[Search] Filter button clicked (fallback listener)');
+          // Manually dispatch if needed, though module should handle it
+          window.dispatchEvent(new CustomEvent('ch:toggle-filters', { detail: { id: 'search' } }));
+        });
+      }
+
+      if (typeof window.ChCollectionGrid === 'undefined') {
+        console.error('[Search] window.ChCollectionGrid is undefined! Script may not have loaded.');
+        return;
+      }
+
+      console.log('[Search] Initializing ChCollectionGrid...');
+      try {
+        window.ChCollectionGrid.init(root, {
+          sid: 'search',
+          gridSelector: '#CollectionProductGrid',
+          paginationSelector: 'nav.pagination',
+
+          sorter: {
+            containerSelector: '[data-ch-sorter]',
+            labelSelector: '.ch-sorter-label',
+            itemSelector: '.ch-sorter-item',
+            selectSelector: '#ChSortSelect-search',
+            getSortFromUrl: () => new URL(window.location.href).searchParams.get('sort_by') || '{{ current_sort }}'
+          },
+          fetch: {
+            resolveSectionRoot: (frag) => frag.querySelector('#ch-search-template') || frag
+          }
+        });
+        console.log('[Search] ChCollectionGrid initialized successfully');
+      } catch (e) {
+        console.error('[Search] Error initializing ChCollectionGrid:', e);
+      }
     });
   </script>
 </section>

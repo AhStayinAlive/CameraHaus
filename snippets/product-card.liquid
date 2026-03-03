@@ -13,6 +13,10 @@
     assign is_range = true
   endif
 
+  assign rating_count = product.metafields.reviews.rating_count.value | default: product.metafields.okendo.review_count | default: 0
+  assign rating_val_obj = product.metafields.reviews.rating.value
+  assign rating_val = rating_val_obj.rating | default: rating_val_obj | default: product.metafields.okendo.average_rating | default: 0
+
   assign compare_val = 0
   assign pct_save    = 0
   assign save_amt    = 0
@@ -147,8 +151,8 @@
       {% if media %}
         <!-- Primary -->
         <img class="ch-card__img"
-             src="{{ media | image_url: width: 900 }}"
-             srcset="{{ media | image_url: width: 540 }} 540w, {{ media | image_url: width: 720 }} 720w, {{ media | image_url: width: 900 }} 900w, {{ media | image_url: width: 1200 }} 1200w"
+             src="{{ media | image_url: width: 600 }}"
+             srcset="{{ media | image_url: width: 160 }} 160w, {{ media | image_url: width: 240 }} 240w, {{ media | image_url: width: 300 }} 300w, {{ media | image_url: width: 400 }} 400w, {{ media | image_url: width: 600 }} 600w"
              sizes="(min-width:1100px) 22vw, (min-width:768px) 30vw, 46vw"
              alt="{{ product.title | escape }}"
              loading="lazy" decoding="async"
@@ -160,8 +164,8 @@
         {% if second_media %}
           <!-- Secondary: shows on hover (desktop only) -->
           <img class="ch-card__img ch-card__img--alt"
-               src="{{ second_media | image_url: width: 900 }}"
-               srcset="{{ second_media | image_url: width: 540 }} 540w, {{ second_media | image_url: width: 720 }} 720w, {{ second_media | image_url: width: 900 }} 900w, {{ second_media | image_url: width: 1200 }} 1200w"
+               src="{{ second_media | image_url: width: 600 }}"
+               srcset="{{ second_media | image_url: width: 160 }} 160w, {{ second_media | image_url: width: 240 }} 240w, {{ second_media | image_url: width: 300 }} 300w, {{ second_media | image_url: width: 400 }} 400w, {{ second_media | image_url: width: 600 }} 600w"
                sizes="(min-width:1100px) 22vw, (min-width:768px) 30vw, 46vw"
                alt="{{ product.title | escape }} — alternate view"
                loading="lazy" decoding="async" aria-hidden="true">
@@ -212,7 +216,18 @@
 
   <!-- BODY -->
   <div class="ch-card__body">
-    <div class="ch-card__vendor" aria-label="Brand">{{ product.vendor }}</div>
+    <div class="ch-card__vendor-row">
+      <div class="ch-card__vendor" aria-label="Brand">{{ product.vendor }}</div>
+      {% if rating_count > 0 %}
+        <div class="ch-card-rating-custom">
+          <svg width="14" height="13" viewBox="0 0 14 13" fill="none">
+            <path d="M7 0L8.5716 4.83688H13.6574L9.5429 7.82624L11.1145 12.6631L7 9.67376L2.8855 12.6631L4.4571 7.82624L0.342604 4.83688H5.4284L7 0Z" fill="#D12F24"/>
+          </svg>
+          <span class="ch-rating-avg">{{ rating_val | round: 1 }}</span>
+          <span class="ch-rating-count">({{ rating_count }})</span>
+        </div>
+      {% endif %}
+    </div>
 
     <h3 class="ch-card__title" title="{{ title_clean | escape }}">
       <a class="ch-card__titlelink"
@@ -234,11 +249,6 @@
 {% endif %}
 
       </div>
-    </div>
-
-    <!-- Rating -->
-    <div class="ch-rating" data-rating>
-      <div class="ch-rating__oke" data-oke-star-rating data-oke-reviews-product-id="{{ product.id }}"></div>
     </div>
 
   <div class="ch-cta">
@@ -267,17 +277,25 @@
 {% endif %}
 
     {% else %}
-<a class="sbtn ch-atcbtn ch-atcbtn--oos"
-   href="{{ product_url }}">
-  <span class="ch-atcbtn__txt">Out of stock</span>
-</a>    {% endif %}
+<button
+  type="button"
+  class="sbtn ch-atcbtn ch-atcbtn--reserve"
+  data-rsv-open
+  data-rsv-title="{{ product.title | escape }}"
+  data-rsv-url="{{ product_url }}"
+  data-rsv-handle="{{ product.handle }}"
+  data-rsv-variant="{{ v.title | default: '' | escape }}"
+  aria-label="Reserve {{ product.title | escape }}">
+  <span class="ch-atcbtn__txt">Reserve</span>
+</button>
+    {% endif %}
   </div>
 
 
 
   </div>
 </article>
-{{ 'ch-card.css' | asset_url | stylesheet_tag }}
+
 
 
 <!-- ✅ CARD INIT -->
@@ -444,9 +462,23 @@ document.addEventListener('click', async function(e){
   /* Hide fallback stars once Okendo paints */
   document.addEventListener('DOMContentLoaded', function(){
     document.querySelectorAll('.ch-rating').forEach(function(r){
-      const oke=r.querySelector('.ch-rating__oke'); const fb=r.querySelector('.ch-rating__fallback'); if(!oke || !fb) return;
-      const check=()=>{ if(oke.innerHTML && oke.innerHTML.trim().length>0){ fb.style.display='none'; } };
-      new MutationObserver(check).observe(oke,{childList:true,subtree:true}); setTimeout(check,600);
+      const oke=r.querySelector('.ch-rating__oke'); 
+      if(!oke) return;
+      
+      const check=()=>{ 
+        // If innerHTML is empty, hide the WHOLE rating container
+        if(!oke.innerHTML || oke.innerHTML.trim().length === 0){
+             r.style.display = 'none';
+        } else {
+             r.style.display = '';
+             // If we have content, hide the fallback star if it existed (though we removed it)
+             const fb=r.querySelector('.ch-rating__fallback');
+             if(fb) fb.style.display='none';
+        }
+      };
+      
+      new MutationObserver(check).observe(oke,{childList:true,subtree:true}); 
+      setTimeout(check,600);
     });
     chFetchCartAndApplyMax();
   });
@@ -486,6 +518,14 @@ document.addEventListener('click', async function(e){
       const dots = dotsWrap.querySelectorAll('.ch-dot');
       dots.forEach((d,i)=> d.classList.toggle('is-active', i === idx));
     }
+
+    // NEW: Listen for global cart updates to sync standard cards
+    document.addEventListener('cart:refresh', (e) => {
+       if(e.detail) chApplyMaxStateFromCart(e.detail);
+    });
+    document.addEventListener('cart:refreshed', (e) => {
+       if(e.detail) chApplyMaxStateFromCart(e.detail);
+    });
 
 })();
 </script>

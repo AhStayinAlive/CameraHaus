@@ -305,10 +305,24 @@ window.ChCollectionGrid = (function () {
             // --- Filter Toggle ---
 
             function initFilterToggle() {
-                // The filter button is already handled by collection-filters.liquid
-                // which listens for click AND ch:toggle-filters.
-                // We do NOT need to attach a listener here, otherwise we get a double-toggle.
-                console.log('[ChCollectionGrid] initFilterToggle: Skipping listener attachment to avoid double-toggle.');
+                const btn = rootEl.querySelector('[data-ch-toolbar-filter]');
+                if (!btn) return;
+
+                // On Search page, something else (theme/markup) implies a listener exists,
+                // so adding one here causes double-toggle (uncollapsable).
+                // On Collection Mobile, we NEED this listener.
+                if (sid === 'search') return;
+
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // Dispatch event for collection-filters.liquid to handle.
+                    // We REMOVED the direct class toggle to avoid conflicts/double-toggle.
+                    window.dispatchEvent(new CustomEvent('ch:toggle-filters', {
+                        detail: {
+                            id: sid
+                        }
+                    }));
+                });
             }
 
             // --- Header Chips ---
@@ -360,7 +374,9 @@ window.ChCollectionGrid = (function () {
 
                 window.renderHeaderChips = renderHeaderChips;
                 document.addEventListener('ch:filters-change', (ev) => {
-                    renderHeaderChips((ev.detail && ev.detail.chips) || []);
+                    if (ev.detail && ev.detail.chips) {
+                        renderHeaderChips(ev.detail.chips);
+                    }
                 });
             }
 

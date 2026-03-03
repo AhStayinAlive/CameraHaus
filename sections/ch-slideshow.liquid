@@ -105,12 +105,10 @@
       #Slideshow-{{ section.id }}{ position:relative; overflow:hidden; width:100%; }
 
       /* Fade-in once first slide is ready */
-      #Slideshow-{{ section.id }}.is-loading{
-        opacity:0;
-      }
+      /* #Slideshow-{{ section.id }}.is-loading{ opacity:0; } REMOVED FOR LCP */
       #Slideshow-{{ section.id }}.is-ready{
-        opacity:1;
-        transition: opacity .45s ease-out;
+        /* opacity:1; removed transition on opacity since we are visible by default */
+        /* transition: opacity .45s ease-out; */
       }
 
       #Slideshow-{{ section.id }} .hero__track{ display:flex; width:100%; height:100%; transition:transform .5s ease; will-change: transform; }
@@ -161,17 +159,40 @@
         color: var(--subtitle-ink, var(--cap-ink)); text-align: var(--subtitle-align, inherit);
       }
 
-      /* Float-in on first show */
+      /* Float-in ONLY after image loads */
 
-      #Slideshow-{{ section.id }} .hero__slide.is-active .hero__title{ animation: ch-fade-up .6s cubic-bezier(.2,.8,.2,1) .05s both; }
-      #Slideshow-{{ section.id }} .hero__slide.is-active .hero__subtitle{ animation: ch-fade-up .6s cubic-bezier(.2,.8,.2,1) .15s both; }
-      #Slideshow-{{ section.id }} .hero__slide.is-active .hero__btn{ animation: ch-fade-up .6s cubic-bezier(.2,.8,.2,1) .25s both; }
-      #Slideshow-{{ section.id }} .hero__slide.is-active .hero__block-logo{ animation: ch-fade-up .6s cubic-bezier(.2,.8,.2,1) .35s both; }
+      /* Hide text initially */
+      #Slideshow-{{ section.id }} .hero__title,
+      #Slideshow-{{ section.id }} .hero__subtitle,
+      #Slideshow-{{ section.id }} .hero__btn,
+      #Slideshow-{{ section.id }} .hero__block-logo{
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      /* Show with animation when slide is active AND ready */
+      #Slideshow-{{ section.id }} .hero__slide.is-active.is-text-ready .hero__title{ animation: ch-fade-up .6s cubic-bezier(.2,.8,.2,1) .05s both; }
+      #Slideshow-{{ section.id }} .hero__slide.is-active.is-text-ready .hero__subtitle{ animation: ch-fade-up .6s cubic-bezier(.2,.8,.2,1) .15s both; }
+      #Slideshow-{{ section.id }} .hero__slide.is-active.is-text-ready .hero__btn{ animation: ch-fade-up .6s cubic-bezier(.2,.8,.2,1) .25s both; }
+      #Slideshow-{{ section.id }} .hero__slide.is-active.is-text-ready .hero__block-logo{ animation: ch-fade-up .6s cubic-bezier(.2,.8,.2,1) .35s both; }
+      
       @media (prefers-reduced-motion: reduce){
         #Slideshow-{{ section.id }} .hero__title,
         #Slideshow-{{ section.id }} .hero__subtitle,
         #Slideshow-{{ section.id }} .hero__btn,
         #Slideshow-{{ section.id }} .hero__block-logo{ animation:none !important; opacity:1; transform:none; }
+      }
+
+      /* Fade-up animation keyframes */
+      @keyframes ch-fade-up {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       /* Placement presets — use mobile vars first */
@@ -581,7 +602,11 @@
       {%- endif -%}
     {%- endcapture -%}
 
-    <div id="Slideshow-{{ section.id }}"
+    <div class="ch-slideshow-wrap" style="position:relative;">
+      <div class="ch-hero-skeleton is-loading">
+        <div class="ch-hero-skeleton__block"></div>
+      </div>
+      <div id="Slideshow-{{ section.id }}"
          class="hero hero--{{ section.settings.hero_home_height }} is-loading"
          style="{{ hero_style | strip }}"
          data-autoplay="{{ section.settings.hero_home_auto }}"
@@ -624,13 +649,18 @@
 
               <picture>
                 {%- if block.settings.image_m != blank -%}
-                  <source media="(max-width: 768px)" srcset="{{ block.settings.image_m | image_url: width: 1200 }}">
+                  {%- comment -%}Mobile-optimized: 400px/600px for standard mobile, 900px for retina large phones{%- endcomment -%}
+                  <source media="(max-width: 768px)" 
+                          srcset="{{ block.settings.image_m | image_url: width: 400 }} 400w,
+                                  {{ block.settings.image_m | image_url: width: 600 }} 600w,
+                                  {{ block.settings.image_m | image_url: width: 900 }} 900w"
+                          sizes="100vw">
                 {%- endif -%}
                 {{ block.settings.image
-                   | image_url: width: 2048
+                   | image_url: width: 1728
                    | image_tag:
-                      widths: '540,720,900,1080,1296,1512,1728,1944,2048',
-                      sizes: '100vw',
+                      widths: '600,900,1200,1512,1728',
+                      sizes: '(min-width: 1680px) 1680px, 100vw',
                       class: 'hero__image',
                       alt: block.settings.alt | default: '',
                       loading: loading_attr,
@@ -791,6 +821,16 @@
 
           slides.forEach(function(s, si){
             s.classList.toggle('is-active', si === index);
+            
+            // Add text-ready class to active slide for animation
+            if(si === index){
+              // Small delay for smoother transition when switching slides
+              setTimeout(function(){
+                s.classList.add('is-text-ready');
+              }, 50);
+            } else {
+              s.classList.remove('is-text-ready');
+            }
           });
         }
 
@@ -812,12 +852,22 @@
         // Called once the first image is ready
         function markReady(){
           if (root.classList.contains('is-ready')) return;
-
+          
           root.classList.remove('is-loading');
+          const skel = root.parentElement.querySelector('.ch-hero-skeleton');
+          if(skel) skel.classList.remove('is-loading');
+
           root.classList.add('is-ready');
 
           if (slides.length){
-            go(0);   // activate first slide so text animation runs
+            go(0);   // activate first slide
+            
+            // Delay text animation slightly after image is visible
+            requestAnimationFrame(function(){
+              setTimeout(function(){
+                if(slides[0]) slides[0].classList.add('is-text-ready');
+              }, 100); // Small delay for better visual flow
+            });
           }
 
           start();
@@ -891,6 +941,7 @@
       })();
     </script>
   </div>
+</div>
 {% endif %}
 
 {% if section.blocks.size == 0 %}

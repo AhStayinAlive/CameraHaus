@@ -685,7 +685,6 @@
                   <button type="button" data-dec aria-label="Decrease quantity">−</button>
                   <input
                     type="number"
-                    name="updates[{{ forloop.index }}]"
                     value="{{ item.quantity }}"
                     min="0"
                     inputmode="numeric"
@@ -1152,6 +1151,14 @@ if (alertClose){
       if (btn.form && btn.name === 'checkout') {
         e.preventDefault();
         e.stopImmediatePropagation();
+
+        // Fix: Append hidden checkout input because programmatic submit() ignores the button
+        var hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = 'checkout';
+        hidden.value = 'Checkout';
+        btn.form.appendChild(hidden);
+
         btn.form.submit(); // programmatic submit (no submit event fired)
       }
     }, true);

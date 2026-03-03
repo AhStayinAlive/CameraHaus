@@ -188,41 +188,31 @@
   }
   .mmg .mmg-cta{
     display:inline-flex; align-items:center; justify-content:center;
-    height:38px; padding:0 16px;
-    border-radius:10px; border:1px solid var(--brand);
+    height:36px; padding:0 14px;
+    border-radius:8px; border:0;
     background:var(--brand); color:#fff;
     font:700 13px/1 "Inter",system-ui;
-    box-shadow:0 1px 0 rgba(0,0,0,.02);
-    transition: filter .12s ease, transform .04s ease;
+    box-shadow:0 6px 16px rgba(0,0,0,.1);
+    transition: background .2s ease, box-shadow .2s ease;
     text-decoration:none;
     white-space:nowrap;
+    gap: 8px; /* Space between text and icon */
   }
-  .mmg .mmg-cta:hover{ filter:brightness(.95); }
+  .mmg .mmg-cta:hover{
+    background: color-mix(in srgb, var(--brand) 88%, white 12%);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  }
+  .mmg .mmg-cta svg {
+    transition: transform 0.22s ease;
+  }
+  .mmg .mmg-cta:hover svg {
+    transform: translateX(3px);
+  }
   .mmg .mmg-cta:active{ transform:translateY(1px); }
 
   /* Brands mode: top-right header CTA */
-  .mmg[data-mode="brands"] .mmg-head .mmg-cta{
-    height:34px;
-    padding:0 14px;
-    font-size:12px;
-  }
-  .mmg-cta-label{
-    display:inline-block;
-  }
-  .mmg-cta-arrow{
-    display:inline-block;
-    margin-left:6px;
-    font-size:13px;
-    line-height:1;
-    position:relative;
-    top:-0.5px;                 /* lift the arrow slightly to center it */
-    transition:transform .18s ease;
-  }
-  /* Arrow animation on hover: subtle slide to the right */
-  .mmg-cta:hover .mmg-cta-arrow,
-  .mmg-cta:focus-visible .mmg-cta-arrow{
-    transform:translateX(4px);
-  }
+
 
   /* MAKE "VIEW ALL BRANDS" STICKY IN BRANDS MODE ONLY (legacy) */
   .mmg[data-mode="brands"] .mmg-railcta{
@@ -391,6 +381,54 @@
     pointer-events:none;
   }
 
+  /* ===== BRANDS CTA FOOTER ===== */
+  .brands-cta-footer {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 2px solid rgba(15, 23, 42, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .brands-count {
+    margin: 0;
+    color: #6B7280;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .brands-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: #D12F24;
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(209, 47, 36, 0.2);
+  }
+
+  .brands-cta-btn:hover {
+    background: #A02419;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(209, 47, 36, 0.3);
+  }
+
+  .brands-cta-btn svg {
+    transition: transform 0.2s ease;
+  }
+
+  .brands-cta-btn:hover svg {
+    transform: translateX(2px);
+  }
+
 </style>
 
 {%- comment -%} Resolve Categories & Stores from the main menu (top level only) {%- endcomment -%}
@@ -413,51 +451,60 @@
 {%- endif -%}
 
 {%- assign stores_links = nil -%}
+{%- assign stores_parent_link = nil -%}
 {%- if menu_obj and menu_obj.links -%}
   {%- assign s_norm = stores_parent_title | default: 'Stores' | strip | downcase -%}
   {%- for l in menu_obj.links -%}
     {%- assign t_norm = l.title | strip | downcase -%}
     {%- if t_norm == s_norm or t_norm contains 'store' or t_norm contains 'where' -%}
-      {%- assign stores_links = l.links -%}{%- break -%}
+      {%- assign stores_links = l.links -%}
+      {%- assign stores_parent_link = l -%}
+      {%- break -%}
     {%- endif -%}
   {%- endfor -%}
 {%- endif -%}
 
+{%- assign brands_links = nil -%}
+{%- if menu_obj and menu_obj.links -%}
+  {%- assign b_norm = brands_parent_title | default: 'Brands' | strip | downcase -%}
+  {%- for l in menu_obj.links -%}
+    {%- assign t_norm = l.title | strip | downcase -%}
+    {%- if t_norm == b_norm -%}
+      {%- assign brands_links = l.links -%}{%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+{%- assign stores_title = stores_parent_link.title | default: 'Where to find us' -%}
 <div class="mmg {% if _mode == 'stores' %}mmg--stores{% endif %}"
      data-mode="{{ _mode }}" role="dialog" aria-modal="false"
-     aria-label="{% if _mode == 'cats' %}All Categories{% elsif _mode == 'brands' %}Brands{% else %}Where to find us{% endif %}">
+     aria-label="{% if _mode == 'cats' %}All Categories{% elsif _mode == 'brands' %}Brands{% else %}{{ stores_title }}{% endif %}">
   <div class="mmg-shell">
     <div class="mmg-inner">
 
       {% if _mode == 'stores' %}
         <!-- ================= STORES: ONE-COLUMN + CTA ================= -->
         <div class="mmg-head">
-          <span class="mmg-sectiontag">Where to find us</span>
+          <span class="mmg-sectiontag">{{ stores_title }}</span>
         </div>
 
         <div class="mmg-1col">
           <ul data-stagger="stores">
             {% if stores_links and stores_links.size > 0 %}
               {% for s in stores_links %}
-                <li><a href="{{ s.url | default: '/pages/store-locator' }}">{{ s.title | strip }}</a></li>
-              {% endfor %}
-            {% else %}
-              {%- assign fallback_stores =
-                "Camerahaus Online|/pages/camerahaus-online
-                 Camerahaus Stores|/pages/store-locator
-                 Lazada|https://www.lazada.com.ph/shop/camerahaus/
-                 Shopee|https://shopee.ph/camerahaus"
-                | newline_to_br | split: '<br />' -%}
-              {% for row in fallback_stores %}
-                {%- assign parts = row | split:'|' -%}
-                <li><a href="{{ parts[1] }}">{{ parts[0] }}</a></li>
+                <li><a href="{{ s.url }}">{{ s.title | strip }}</a></li>
               {% endfor %}
             {% endif %}
           </ul>
 
+          {% if stores_links and stores_links.size > 0 and stores_parent_link and stores_parent_link.url %}
           <div class="mmg-railcta">
-            <a class="mmg-cta" href="{{ stores_fallback_url | default: '/pages/store-locator' }}">View all stores</a>
+            <a class="mmg-cta" href="{{ stores_parent_link.url }}">
+              View all
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-icon lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
           </div>
+          {% endif %}
         </div>
 
       {% elsif _mode == 'cats' %}
@@ -484,109 +531,28 @@
         <div class="mmg-railcta">
           <a class="mmg-cta" href="{{ categories_fallback_url | default: '/collections/all' }}">
             View all categories
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-icon lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </a>
         </div>
 
-      {% else %}
-        <!-- ================= BRANDS: LOGO TILES ================= -->
-
+      {% elsif _mode == 'brands' %}
+        <!-- ================= FEATURED BRANDS ================= -->
         <div class="mmg-head">
-          <span class="mmg-sectiontag">Shop by brand</span>
-          <a class="mmg-cta" href="{{ brands_fallback_url | default: '/pages/brands' }}">
-            <span class="mmg-cta-label">View all brands</span>
-            <span class="mmg-cta-arrow">&gt;</span>
-          </a>
+          <span class="mmg-sectiontag">Shop our featured brands</span>
         </div>
-
-        {% assign brand_rows = "
-AgfaPhoto|agfaphoto-min.png|vendor:AgfaPhoto,
-AKASO|akaso-min.png|vendor:AKASO,
-Aputure|aputure-min.png|vendor:Aputure,
-Benro|benro-min.png|vendor:Benro,
-BetaFPV|betafpv-min.png|vendor:BetaFPV,
-Billingham|billingham-min.png|vendor:Billingham,
-Canon|canon-min.png|vendor:Canon,
-DJI|dji-min.png|vendor:DJI,
-Eirmai|eirmai-min.png|vendor:Eirmai,
-FIMI|fimi-min.png|vendor:FIMI,
-Fujifilm|fujifilm-min.png|vendor:Fujifilm,
-GoPro|gopro-min.png|vendor:GoPro,
-GR|gr-min.png|vendor:Ricoh,
-Holga|holga-min.png|vendor:Holga,
-Hollyland|hollyland-min.png|vendor:Hollyland,
-HoverAir|hoverair-min.png|vendor:HoverAir,
-Hoya|hoya-min.png|vendor:Hoya,
-Insta360|insta360-min.png|vendor:Insta360,
-JJC|jjc-min.png|vendor:JJC,
-K&F Concept|k&f-min.png|vendor:K&F Concept OR vendor:K&F,
-Kenko / Tokina|kenko tokina-min.png|vendor:Kenko OR vendor:Tokina,
-Kipon|kipon-min.png|vendor:Kipon,
-Kodak|kodak-min.png|vendor:Kodak,
-Lensgo|lensgo-min.png|vendor:Lensgo,
-Lowepro|lowepro-min.png|vendor:Lowepro,
-LUMIX|lumix-min.png|vendor:LUMIX OR vendor:Panasonic,
-Lynca|lynca-min.png|vendor:Lynca,
-Manfrotto|manfrotto-min.png|vendor:Manfrotto,
-Meike|meike-min.png|vendor:Meike,
-Nikon|nikon-min.png|vendor:Nikon,
-PanoX|panox-min.png|vendor:PanoX,
-Pentax|pentax-min.png|vendor:Pentax,
-Phottix|phottix-min.png|vendor:Phottix,
-Red Rabbit|red rabbit-min.png|vendor:Red Rabbit,
-Ricoh|ricoh-min.png|vendor:Ricoh,
-Rime Lite|rime lite-min.png|vendor:Rime Lite,
-Rode|rode-min.png|vendor:Rode,
-Ryze|ryze-min.png|vendor:Ryze,
-SanDisk|sandisk-min.png|vendor:SanDisk,
-Saramonic|saramonic-min.png|vendor:Saramonic,
-Shokz|shokz-min.png|vendor:Shokz,
-Sigma|sigma-min.png|vendor:Sigma,
-SIRUI|sirui-min.png|vendor:SIRUI,
-SJCAM|sjcam-min.png|vendor:SJCAM,
-Slik|slik-min.png|vendor:Slik,
-Sony|sony-min.png|vendor:Sony,
-Suneast|suneast-min.png|vendor:Suneast,
-Tamrac|tamrac-min.png|vendor:Tamrac,
-Tamron|tamron-min.png|vendor:Tamron,
-THETA|theta-min.png|vendor:Ricoh,
-ThinkTank|thinktank-min.png|vendor:ThinkTank,
-Tokina|tokina-min.png|vendor:Tokina,
-Ulanzi|ulanzi-min.png|vendor:Ulanzi,
-Yelangu|yelangu-min.png|vendor:Yelangu,
-ZEISS|zeiss-min.png|vendor:ZEISS OR vendor:Carl Zeiss,
-Zhiyun|zhiyun-min.png|vendor:Zhiyun
-" | strip | split: "," %}
-
-        {% assign sorted_rows = brand_rows | sort %}
 
         <div class="mmg-brandgrid" data-stagger="brands">
-          {% for row in sorted_rows %}
-            {% assign parts = row | strip | split: "|" %}
-            {% assign nm   = parts[0] | strip %}
-            {% assign file = parts[1] | strip %}
-            {% assign q    = parts[2] | strip %}
+          {%- render 'brands-from-header', header_blocks: header_section_blocks -%}
+        </div>
 
-            {% assign vendor_terms = q | split: ' OR ' %}
-            {% capture vendor_query %}
-              {%- for term in vendor_terms -%}
-                {%- assign v = term | strip | remove: 'vendor:' | strip -%}
-                {%- if forloop.first == false -%} OR {%- endif -%}vendor:"{{ v }}"
-              {%- endfor -%}
-            {% endcapture %}
-            {% assign encoded_q = vendor_query | strip | url_param_escape %}
-            {% assign href = '/search?type=product&q=' | append: encoded_q | append: '&sort_by=best-selling' %}
-
-            <a class="mmg-brandtile"
-               href="{{ href }}"
-               data-name="{{ nm | downcase }}">
-              {% assign src = file | file_url %}
-              {% if src contains 'files' %}
-                <img loading="lazy" src="{{ src }}" width="160" height="54" alt="{{ nm | escape }}">
-              {% else %}
-                <span class="mmg-brandfallback">{{ nm }}</span>
-              {% endif %}
-            </a>
-          {% endfor %}
+        <div class="brands-cta-footer">
+          <p class="brands-count">200+ brands available</p>
+          <a class="brands-cta-btn" href="{{ brands_fallback_url | default: '/pages/brands' }}">
+            View all brands
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+            </svg>
+          </a>
         </div>
 
       {% endif %}

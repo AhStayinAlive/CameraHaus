@@ -1,0 +1,65 @@
+{% comment %}
+  ch-reserve-modal.liquid
+  Lightweight reserve / restock-request modal.
+  Opens via JS when user clicks "Reserve" on an out-of-stock product card.
+  Submits to Shopify's native /contact endpoint (form_type = contact).
+{% endcomment %}
+
+<div id="ch-reserve-modal" class="ch-rsv" role="dialog" aria-modal="true" aria-labelledby="ch-rsv-title" aria-hidden="true">
+  <div class="ch-rsv__backdrop" data-rsv-close></div>
+  <div class="ch-rsv__panel">
+    <header class="ch-rsv__header">
+      <h2 id="ch-rsv-title" class="ch-rsv__heading">Reserve This Product</h2>
+      <button type="button" class="ch-rsv__close" data-rsv-close aria-label="Close reserve form">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </header>
+
+    <p class="ch-rsv__product-name" data-rsv-product-name></p>
+
+    {% form 'contact', class: 'ch-rsv__form', data-rsv-form: '' %}
+      {%- comment -%}Subject line for the Shopify inbox / email notification{%- endcomment -%}
+      <input type="hidden" name="contact[subject]" value="Product Reserve Request" data-rsv-subject>
+      {%- comment -%}Product info injected by JS{%- endcomment -%}
+      <input type="hidden" name="contact[product_title]" value="" data-rsv-field-title>
+      <input type="hidden" name="contact[product_url]" value="" data-rsv-field-url>
+      <input type="hidden" name="contact[product_variant]" value="" data-rsv-field-variant>
+
+      <div class="ch-rsv__field">
+        <label for="ch-rsv-name" class="ch-rsv__label">Name <span aria-hidden="true">*</span></label>
+        <input id="ch-rsv-name" type="text" name="contact[name]" required autocomplete="name" class="ch-rsv__input" placeholder="Your name"
+          {% if customer %}value="{{ customer.name | escape }}"{% endif %}>
+      </div>
+
+      <div class="ch-rsv__field">
+        <label for="ch-rsv-email" class="ch-rsv__label">Email <span aria-hidden="true">*</span></label>
+        <input id="ch-rsv-email" type="email" name="contact[email]" required autocomplete="email" class="ch-rsv__input" placeholder="you@email.com"
+          {% if customer %}value="{{ customer.email | escape }}"{% endif %}>
+      </div>
+
+      <div class="ch-rsv__field">
+        <label for="ch-rsv-phone" class="ch-rsv__label">Phone <small>(optional)</small></label>
+        <input id="ch-rsv-phone" type="tel" name="contact[phone]" autocomplete="tel" class="ch-rsv__input" placeholder="+63 9XX XXX XXXX"
+          {% if customer.default_address.phone %}value="{{ customer.default_address.phone | escape }}"{% endif %}>
+      </div>
+
+      <div class="ch-rsv__field">
+        <label for="ch-rsv-body" class="ch-rsv__label">Message <small>(optional)</small></label>
+        <textarea id="ch-rsv-body" name="contact[body]" rows="3" class="ch-rsv__input ch-rsv__textarea" placeholder="Any notes (preferred variant, urgency, etc.)" data-rsv-body></textarea>
+      </div>
+
+      <button type="submit" class="sbtn ch-rsv__submit">
+        <span class="ch-rsv__submit-txt">Submit Reserve Request</span>
+      </button>
+
+      <p class="ch-rsv__success" data-rsv-success aria-live="polite" hidden>
+        Thank you! We've received your reserve request and will be in touch soon.
+      </p>
+      <p class="ch-rsv__error" data-rsv-error aria-live="polite" hidden>
+        Something went wrong. Please try again or email us directly.
+      </p>
+    {% endform %}
+  </div>
+</div>

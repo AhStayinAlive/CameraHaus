@@ -19,7 +19,7 @@
 [
   {%- if _preview and _preview.products_count > 0 -%}
     {%- for p in _preview.products limit: _limit -%}
-    { "title": {{ p.title | json }}, "url": {{ p.url | json }}, "price": {{ p.price | divided_by: 100.0 | json }}, "compare_at_price": {{ p.compare_at_price | divided_by: 100.0 | json }}, "image": {{ p.featured_image | image_url: width: 480 | json }}, "vendor": {{ p.vendor | json }}, "product_type": {{ p.type | json }} }{%- unless forloop.last -%},{%- endunless -%}
+    { "title": {{ p.title | json }}, "url": {{ p.url | json }}, "price": {{ p.price | divided_by: 100.0 | json }}, "compare_at_price": {{ p.compare_at_price | divided_by: 100.0 | json }}, "image": {{ p.featured_image | image_url: width: 240 | json }}, "vendor": {{ p.vendor | json }}, "product_type": {{ p.type | json }} }{%- unless forloop.last -%},{%- endunless -%}
     {%- endfor -%}
   {%- endif -%}
 ]
@@ -29,7 +29,7 @@
 [
   {%- if _preview and _preview.products_count > 0 -%}
     {%- for p in _preview.products limit: _meta_limit -%}
-    { "title": {{ p.title | json }}, "url": {{ p.url | json }}, "price": {{ p.price | divided_by: 100.0 | json }}, "compare_at_price": {{ p.compare_at_price | divided_by: 100.0 | json }}, "image": {{ p.featured_image | image_url: width: 480 | json }}, "vendor": {{ p.vendor | json }}, "product_type": {{ p.type | json }} }{%- unless forloop.last -%},{%- endunless -%}
+    { "title": {{ p.title | json }}, "url": {{ p.url | json }}, "price": {{ p.price | divided_by: 100.0 | json }}, "compare_at_price": {{ p.compare_at_price | divided_by: 100.0 | json }}, "image": {{ p.featured_image | image_url: width: 240 | json }}, "vendor": {{ p.vendor | json }}, "product_type": {{ p.type | json }} }{%- unless forloop.last -%},{%- endunless -%}
     {%- endfor -%}
   {%- endif -%}
 ]
@@ -1132,7 +1132,7 @@ function apertureVariants(q) {
       const vendor=p.vendor||''; const cat=p.product_type||p.type||'';
       li.innerHTML=`
         <a href="${p.url||'#'}" aria-label="${esc(p.title||'')}"></a>
-        <img class="ms-thumb" src="${sized(img,160)}" alt="" loading="lazy" decoding="async">
+        <img class="ms-thumb" src="${sized(img,100)}" alt="" loading="lazy" decoding="async">
         <div class="ms-info">
           <div class="ms-title" title="${esc(p.title||'')}">${highlight(p.title||'')}</div>
           <div class="ms-sub">${esc(vendor)}${vendor && cat ? ' • ' : ''}${esc(cat)}</div>
@@ -1456,9 +1456,9 @@ function fetchSuggest(q){
     const h = headerEl();
     // Fallback to viewport top if header is missing
     const topBase = (() => {
-      if (!h) return window.scrollY + 8;
+      if (!h) return 8;
       const r = h.getBoundingClientRect();
-      return window.scrollY + Math.round(r.top) + 8; // anchor near header TOP
+      return Math.round(r.top) + 8; // anchor near header TOP
     })();
     return Math.max(8, topBase + DESKTOP_OFFSET);
   }

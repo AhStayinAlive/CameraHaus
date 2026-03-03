@@ -144,7 +144,21 @@
           {% endif %}
 
           <div class="ch-qv-rating-row">
-            <span class="ch-qv-rating-text">No reviews yet — be the first</span>
+            {% assign rating_count = product.metafields.reviews.rating_count.value | default: product.metafields.okendo.review_count | default: 0 %}
+            {% assign rating_val_obj = product.metafields.reviews.rating.value %}
+            {% assign rating_val = rating_val_obj.rating | default: rating_val_obj | default: product.metafields.okendo.average_rating | default: 0 %}
+            
+            {% if rating_count > 0 %}
+              <div class="ch-rating-custom" style="display:flex;align-items:center;gap:8px;font-size:14px;color:#111;font-weight:500;">
+                {% render 'ch-stars-5', rating_val: rating_val %}
+                <span class="ch-rating-text" style="line-height:1;">
+                  <span class="ch-rating-avg">{{ rating_val | round: 1 }}</span>
+                  <span class="ch-rating-count" style="color:#6b7280;font-weight:400;">({{ rating_count }})</span>
+                </span>
+              </div>
+            {% else %}
+              <span class="ch-qv-rating-text">No reviews yet</span>
+            {% endif %}
           </div>
 
           <!-- Variants -->
@@ -165,6 +179,8 @@
                         data-price="{{ v.price | money }}"
                         data-compare="{{ v.compare_at_price | money }}"
                         data-available="{{ v.available }}"
+                        data-inventory-policy="{{ v.inventory_policy }}"
+                        data-inventory-quantity="{{ v.inventory_quantity }}"
                         data-img-src="{{ v.featured_image.src | img_url: 'master' }}"
                         role="option"
                         {% if v.id == current_variant.id %}aria-selected="true"{% endif %}>
@@ -201,7 +217,10 @@
              </div>
 
              <div class="ch-qv-row ch-qv-row--bottom">
-                <button type="submit" class="ch-atc-btn ch-atc-btn--full {% unless current_variant.available %}is-disabled{% endunless %}" data-qv-atc {% unless current_variant.available %}disabled{% endunless %}>
+                <button type="submit" class="ch-atc-btn ch-atc-btn--full {% unless current_variant.available %}is-disabled{% endunless %}" 
+                   data-qv-atc 
+                   data-max-qty="{% if current_variant.inventory_management == 'shopify' and current_variant.inventory_policy == 'deny' %}{{ current_variant.inventory_quantity }}{% endif %}"
+                   {% unless current_variant.available %}disabled{% endunless %}>
                   <span class="ch-atc-label">{% if current_variant.available %}Add to cart{% else %}Sold out{% endif %}</span>
                   <span class="ch-atc-loader"></span>
                 </button>
@@ -209,15 +228,15 @@
           </form>
 
           <!-- TRUST -->
-          <div class="ch-trust-card" data-qv-trust data-open="false">
+          <div class="ch-trust-card" data-qv-trust data-open="true">
               <div class="ch-trust-head">
                 <p class="ch-trust-title">Why buy from us</p>
-                <button type="button" class="ch-trust-toggle" aria-expanded="false">
-                  <span class="ch-trust-toggle__text">Show</span>
-                  <span class="ch-trust-toggle__ico" aria-hidden="true">▼</span>
+                <button type="button" class="ch-trust-toggle" aria-expanded="true">
+                  <span class="ch-trust-toggle__text">Hide</span>
+                  <span class="ch-trust-toggle__ico" aria-hidden="true">▲</span>
                 </button>
               </div>
-              <div class="ch-trust-body" style="display:none;">
+              <div class="ch-trust-body" style="display:block;">
                 <div class="ch-trust">
                   <div class="ch-trust__item">
                     <div class="ch-trust__icon">
@@ -251,7 +270,7 @@
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-6-5.686-6-10a6 6 0 1 1 12 0c0 4.314-6 10-6 10Z"/><circle cx="12" cy="11" r="2.5"/></svg>
                     </div>
                     <div class="ch-trust__body">
-                      <a class="ch-trust__title ch-trust__link" href="/pages/store-locator">Find a Camerahaus near you →</a>
+                      <a class="ch-trust__title ch-trust__link" href="/pages/store-branches">Find a Camerahaus near you →</a>
                       <p class="ch-trust__sub">See branches &amp; service</p>
                     </div>
                   </div>
@@ -382,16 +401,25 @@
           if (input1) input1.value = vid;
           if (input2) input2.value = vid;
           
-          // ATC Button
+           // ATC Button
           const atcBtn = root.querySelector('[data-qv-atc]');
           if (atcBtn) {
+            // Transfer Max Qty
+            if (item.dataset.inventoryPolicy === 'deny') {
+               atcBtn.dataset.maxQty = item.dataset.inventoryQuantity;
+            } else {
+               atcBtn.dataset.maxQty = '';
+            }
+
             if (avail) {
                atcBtn.classList.remove('is-disabled');
                atcBtn.disabled = false;
                atcBtn.querySelector('.ch-atc-label').textContent = 'Add to cart';
             } else {
                atcBtn.classList.add('is-disabled');
+               atcBtn.classList.add('is-disabled-sold-out');
                atcBtn.disabled = true;
+               atcBtn.dataset.maxQty = ''; // Clear max qty if sold out to avoid confusion
                atcBtn.querySelector('.ch-atc-label').textContent = 'Sold out';
             }
           }
@@ -408,6 +436,9 @@
           portal.style.display = 'none';
           optionbar.classList.remove('is-open');
           btn.setAttribute('aria-expanded', 'false');
+
+          // Trigger Max Check
+          fetch('/cart.js').then(r=>r.json()).then(checkMaxInCartQV).catch(()=>{});
        });
     }
 
@@ -457,6 +488,51 @@
              alert('Could not add to cart.');
           });
        });
+       
+       /* Max in Cart Logic for QV */
+       function checkMaxInCartQV(cart){
+          if(!cart || !cart.items) return;
+          const form = root.querySelector('[data-ch-qv-form]');
+          if(!form) return;
+          
+          const currentId = parseInt(form.querySelector('[name="id"]').value || 0, 10);
+          if(!currentId) return;
+          
+          // Find in cart
+          const lineItem = cart.items.find(i => i.id === currentId);
+          const inCart = lineItem ? lineItem.quantity : 0;
+          
+          const btn = form.querySelector('[data-qv-atc]');
+          
+          // Check limit on button
+          const max = parseInt(btn.dataset.maxQty || '0', 10);
+          const limit = (max > 0) ? max : null;
+          
+          const lbl = btn.querySelector('.ch-atc-label');
+          
+          if(limit !== null && (inCart >= limit)){
+             btn.classList.add('is-maxed');
+             btn.disabled = true;
+             lbl.textContent = 'Max Limit Reached';
+          } else {
+             if(!btn.classList.contains('is-disabled-sold-out')){
+                btn.classList.remove('is-maxed');
+                btn.disabled = false; 
+                lbl.textContent = 'Add to cart';
+             }
+          }
+       }
+       
+       document.addEventListener('cart:refresh', (e) => {
+          if(e.detail) checkMaxInCartQV(e.detail);
+       });
+       
+       // Instant check if available, otherwise fetch
+       if(window.CH_CART) {
+          checkMaxInCartQV(window.CH_CART);
+       } else {
+          fetch('/cart.js', {cache: 'no-store'}).then(r=>r.json()).then(checkMaxInCartQV).catch(()=>{});
+       }
     }
 
     // Trust Toggle

@@ -79,6 +79,7 @@ ch-stickybar.liquid – FINAL
             class="ch-stickybar__atc ch-atc-btn"
             {% unless _variant.available %}disabled{% endunless %}>
       <span class="ch-atc-label">{{ 'products.product.add_to_cart' | t }}</span>
+      <span class="ch-atc-spinner" aria-hidden="true"></span>
     </button>
   </form>
 
@@ -115,7 +116,7 @@ ch-stickybar.liquid – FINAL
   --accent:#d12f24;
   --accent-hover:#b3281f;
 
-  position:fixed; left:0; right:0; bottom:0; z-index:2147483600;
+  position:fixed; left:0; right:0; bottom:0; z-index:1300;
   background:#fff; border-top:1px solid var(--border);
   box-shadow:0 -8px 24px rgba(0,0,0,.08);
   transform:translateY(100%); transition:transform .28s ease;
@@ -448,7 +449,12 @@ grid-template-areas: "thumb info variant qty atc wish";
     if (!anchor){ return; }
     var rect = anchor.getBoundingClientRect();
     var past = rect.bottom <= 0;
-    setVisible(past && !isFooterVisible());
+    var rect = anchor.getBoundingClientRect();
+    var past = rect.bottom <= 0;
+    
+    // Check if cart is open
+    var cartOpen = document.querySelector('.ch-panel[data-ch-panel="cart"][data-open]');
+    setVisible(past && !cartOpen);
   }
   if ('IntersectionObserver' in window && anchor){
     var io = new IntersectionObserver(evaluate, {threshold:[0,0.1,1]});
@@ -456,6 +462,13 @@ grid-template-areas: "thumb info variant qty atc wish";
   }
   window.addEventListener('scroll', evaluate, {passive:true});
   window.addEventListener('resize', evaluate, {passive:true});
+
+  // Watch for cart open/close
+  var cartPanel = document.querySelector('.ch-panel[data-ch-panel="cart"]');
+  if (cartPanel) {
+    new MutationObserver(evaluate).observe(cartPanel, {attributes: true, attributeFilter: ['data-open']});
+  }
+  
   evaluate();
 
   /* variant popup logic */

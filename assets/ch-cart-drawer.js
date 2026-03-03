@@ -1,14 +1,26 @@
+/* assets/ch-cart-drawer.js
+   FIXES:
+   - Centralized open/close lifecycle (overlay + scroll lock + close handlers)
+   - showAlert() calls full open sequence (no more direct data-open toggles)
+   - Delegated close handling survives DOM re-renders (no stale closeBtn/overlay refs)
+   - Removes cart:inventory-warning extra `panel.setAttribute('data-open','')`
+   - Prevents `cart:refresh` self-loop when paint() dispatches legacy event
+   - Removes duplicate setQtyForRow()
+*/
 
 (() => {
     const cartPanelSel = '.ch-panel[data-ch-panel="cart"]';
-    // Use window.chRoutes or fallback
     const cartUrl = (window.chRoutes && window.chRoutes.cartUrl) ? window.chRoutes.cartUrl : '/cart';
-    const IS_CART_PAGE = window.location.pathname.replace(/\/+$/, '') === cartUrl.replace(/\/+$/, '');
+    const normalize = (p) => String(p || '').replace(/\/+$/, '') || '/';
+    const IS_CART_PAGE = normalize(window.location.pathname) === normalize(cartUrl);
 
     const autoInventoryFixSeen = new Set();
     let inventoryCheckInFlight = null;
+    const inflightByKey = new Map();
 
+    // --- Ensure panel exists (teleport root into an overlay + panel shell) ---
     let cartPanel = document.querySelector(cartPanelSel);
+
     if (!cartPanel) {
         const root = document.querySelector('[data-cart-root]');
         if (root) {
@@ -42,18 +54,19 @@
 
     const itemsEl = panel.querySelector('[data-cart-items]');
     const subEl = panel.querySelector('[data-cart-subtotal]');
-    let agree = null;
 
+    // --- Agree checkbox finder ---
+    let agree = null;
     function getAgreeCheckbox() {
         if (agree && panel.contains(agree)) return agree;
 
         const boxes = panel.querySelectorAll(
             '.cart-ft input[type="checkbox"], .cart__footer input[type="checkbox"], .cart__policies input[type="checkbox"], .ajaxcart__agree input[type="checkbox"]'
         );
+
         for (const cb of boxes) {
             const label = cb.closest('label') || panel.querySelector(`label[for="${cb.id}"]`);
             const txt = (label?.innerText || label?.textContent || '').toLowerCase();
-            // Broader check for terms/agree/accept
             if (
                 txt.includes('terms of service') ||
                 txt.includes('terms and conditions') ||
@@ -72,55 +85,138 @@
         return agree;
     }
 
-    const closeBtn = panel.querySelector('[data-cart-close]');
+    // --- Alert UI refs ---
     const alertBar = panel.querySelector('[data-cart-alert]');
     const alertMsgEl = panel.querySelector('[data-cart-alert-msg]');
     const alertClose = panel.querySelector('[data-cart-alert-close]');
-    const overlayEl = panel.querySelector('.ch-panel__ov');
 
-    let warnUntilTs = 0;
-    const inflightByKey = new Map();
-    let keepOpenInterval = 0;
-
-    function needTerms() {
-        const cb = getAgreeCheckbox();
-        return !!cb && !cb.checked;
-    }
-
-    const startKeepOpen = () => {
-        clearInterval(keepOpenInterval);
-        keepOpenInterval = setInterval(() => {
-            if (Date.now() < warnUntilTs && needTerms()) {
-                panel.setAttribute('data-open', '');
-            } else {
-                clearInterval(keepOpenInterval);
-            }
-        }, 150);
-    };
-
-    new MutationObserver(() => {
-        if (Date.now() < warnUntilTs && needTerms() && !panel.hasAttribute('data-open')) {
-            panel.setAttribute('data-open', '');
-        }
-    }).observe(panel, { attributes: true, attributeFilter: ['data-open', 'class', 'style'] });
-
+    // --- Money formatting helpers ---
     const locale = (window.chRoutes && window.chRoutes.locale) ? window.chRoutes.locale : 'en-PH';
     const currency = (window.chRoutes && window.chRoutes.currency) ? window.chRoutes.currency : 'PHP';
+    const nf = new Intl.NumberFormat(locale, { style: 'currency', currency });
+    const money = (c) => nf.format((Number(c) || 0) / 100);
+    const esc = (s) => (s || '').replace(/[&<>"']/g, (m) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[m]));
 
-    const nf = new Intl.NumberFormat(locale, {
-        style: 'currency',
-        currency: currency
-    });
-    const money = c => nf.format((Number(c) || 0) / 100);
-    const esc = s => (s || '').replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    // --- Scroll lock manager (single source of truth: data-open) ---
+    function syncScrollLock() {
+        if (panel.hasAttribute('data-open')) {
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+            document.body.classList.add('ch-panel-open');
+        } else {
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+            document.body.classList.remove('no-scroll', 'overflow-hidden', 'ch-panel-open');
+        }
+    }
 
-    function showAlert(msg, durMs = 3500, opts) {
+    new MutationObserver((muts) => {
+        for (const m of muts) {
+            if (m.attributeName === 'data-open') syncScrollLock();
+        }
+    }).observe(panel, { attributes: true });
+
+    // --- Drawer lifecycle (FIX) ---
+    let _openPromise = null;
+    let _closeTimer = null;
+    let _handlersBound = false;
+
+    function ensureOverlayEl() {
+        let ov = panel.querySelector('.ch-panel__ov');
+        if (!ov) {
+            ov = document.createElement('div');
+            ov.className = 'ch-panel__ov';
+            ov.setAttribute('aria-hidden', 'true');
+            panel.prepend(ov);
+        }
+        return ov;
+    }
+
+    function bindCloseHandlersOnce() {
+        if (_handlersBound) return;
+        _handlersBound = true;
+
+        // Delegated click: overlay click OR any close button
+        panel.addEventListener('click', (e) => {
+            if (e.target.closest('.ch-panel__ov') || e.target.closest('[data-cart-close]')) {
+                e.preventDefault();
+                closeDrawer({ source: 'delegate' });
+            }
+        });
+
+        // Escape closes
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && panel.hasAttribute('data-open')) {
+                closeDrawer({ source: 'escape' });
+            }
+        });
+    }
+
+    function openDrawer({ refreshCart = true, source = 'unknown', silent = false } = {}) {
+        if (IS_CART_PAGE) return Promise.resolve(false);
+
+        // Always ensure overlay + handlers even if already open
+        ensureOverlayEl();
+        bindCloseHandlersOnce();
+
+        if (panel.hasAttribute('data-open')) {
+            syncScrollLock();
+            if (refreshCart && !silent) refresh();
+            return Promise.resolve(true);
+        }
+
+        if (_openPromise) return _openPromise;
+
+        _openPromise = new Promise((resolve) => {
+            if (_closeTimer) {
+                clearTimeout(_closeTimer);
+                _closeTimer = null;
+            }
+
+            panel.classList.remove('is-closing');
+            panel.setAttribute('data-open', '');
+            panel.classList.add('is-open'); // harmless if unused by CSS
+            panel.setAttribute('aria-hidden', 'false');
+
+            syncScrollLock();
+
+            // IMPORTANT: for alert flows, you usually want refreshCart:false to avoid loops
+            if (refreshCart && !silent) refresh();
+
+            requestAnimationFrame(() => {
+                _openPromise = null;
+                resolve(true);
+            });
+        });
+
+        return _openPromise;
+    }
+
+    function closeDrawer({ source = 'unknown' } = {}) {
+        if (!panel.hasAttribute('data-open')) return;
+
+        panel.classList.add('is-closing');
+        panel.removeAttribute('data-open');
+        panel.classList.remove('is-open');
+        panel.setAttribute('aria-hidden', 'true');
+        syncScrollLock();
+
+        _closeTimer = setTimeout(() => {
+            panel.classList.remove('is-closing');
+            _closeTimer = null;
+        }, 300);
+    }
+
+    // --- Alerts (FIX: always use openDrawer full sequence, never raw data-open) ---
+    async function showAlert(msg, durMs = 3500, opts = {}) {
         if (!alertBar) return;
         const ms = durMs || 3500;
-        const sticky = !!(opts && opts.sticky);
 
         if (alertMsgEl && msg) alertMsgEl.textContent = msg;
 
+        // Timer bar reset
         let timer = alertBar.querySelector('.cart-alert__timer');
         if (!timer) {
             timer = document.createElement('div');
@@ -129,55 +225,41 @@
             alertBar.appendChild(timer);
         } else {
             const bar = timer.querySelector('.bar');
-            if (bar) {
-                bar.replaceWith(bar.cloneNode(true));
-            } else {
-                timer.innerHTML = '<span class="bar"></span>';
-            }
+            if (bar) bar.replaceWith(bar.cloneNode(true));
+            else timer.innerHTML = '<span class="bar"></span>';
         }
 
-        alertBar.style.setProperty('--durMs', String(ms) + 'ms');
+        alertBar.style.setProperty('--durMs', `${ms}ms`);
         alertBar.classList.add('is-shown');
-        // STRICT: Never show drawer alerts or open drawer on /cart
-        if (window.location.pathname === '/cart') return;
 
-        alertBar.classList.add('is-shown');
-        panel.setAttribute('data-open', '');
-        alertBar.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        // Strict: never open drawer on /cart
+        if (IS_CART_PAGE) return;
+
+        // Full opening sequence, but DO NOT refresh (prevents warning -> refresh -> warning loops)
+        await openDrawer({ refreshCart: false, source: 'alert', silent: true });
+
+        requestAnimationFrame(() => {
+            try { alertBar.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (_) { }
+        });
+
+        if (opts?.sticky) return;
 
         clearTimeout(showAlert._t);
-
-        if (sticky) {
-            warnUntilTs = Date.now() + ms;
-            startKeepOpen();
-            showAlert._t = setTimeout(() => {
-                warnUntilTs = 0;
-                clearInterval(keepOpenInterval);
-                alertBar.classList.remove('is-shown');
-            }, ms);
-        } else {
-            showAlert._t = setTimeout(() => {
-                alertBar.classList.remove('is-shown');
-            }, ms);
-        }
+        showAlert._t = setTimeout(() => {
+            alertBar.classList.remove('is-shown');
+        }, ms);
     }
 
     alertClose && alertClose.addEventListener('click', () => {
-        alertBar && alertBar.classList.remove('is-shown'); warnUntilTs = 0; clearInterval(keepOpenInterval);
+        alertBar && alertBar.classList.remove('is-shown');
     });
 
-    document.addEventListener('cart:inventory-warning', (e) => {
-        // Show in drawer regardless of page type if the drawer is present
-        const detail = e && e.detail;
-        if (!detail || !detail.message) return;
-        showAlert(detail.message, 6000);
-        panel.setAttribute('data-open', '');
-    });
-
+    // --- Header count updater ---
     function updateHeaderCount(n) {
         document.querySelectorAll('[data-cart-count]').forEach(b => { b.textContent = String(n || 0); });
     }
 
+    // --- Cart row template + binding ---
     function rowTpl(line, idx) {
         const cp = Number(line.compare_at_price || 0);
         const img = (line.image || (line.featured_image && (line.featured_image.url || line.featured_image))) || '';
@@ -237,6 +319,7 @@
     `;
     }
 
+    // --- Paint cart ---
     function paint(cart) {
         itemsEl.innerHTML = '';
 
@@ -258,6 +341,8 @@
             panel.classList.add('is-empty');
 
             document.dispatchEvent(new CustomEvent('cart:refreshed', { detail: cart }));
+            // Legacy event still dispatched, but our listener ignores payload events to prevent loops
+            document.dispatchEvent(new CustomEvent('cart:refresh', { detail: cart }));
             return;
         }
 
@@ -267,13 +352,18 @@
         subEl.textContent = nf.format((cart.items_subtotal_price || 0) / 100);
         updateHeaderCount(cart.item_count || cart.items.length || 0);
         panel.classList.remove('is-empty');
-        document.dispatchEvent(new CustomEvent('cart:refreshed', { detail: cart }));
 
-        // Immediately enforce inventory after any cart refresh
+        window.CH_CART = cart;
+
+        document.dispatchEvent(new CustomEvent('cart:refreshed', { detail: cart }));
+        // Legacy: dispatch still, but handled safely below
+        document.dispatchEvent(new CustomEvent('cart:refresh', { detail: cart }));
+
+        // Enforce inventory after refresh
         checkCartInventory(cart);
     }
 
-    // VALIDATE LINES VIA /cart/change.js (no more relying on /variants)
+    // --- Inventory validation via /cart/change.js (auto-fix) ---
     function checkCartInventory(cart) {
         if (!cart || !Array.isArray(cart.items) || !cart.items.length) return;
         if (inventoryCheckInFlight) return;
@@ -287,16 +377,11 @@
                 const key = String(item.key || item.id || line);
                 const cacheKey = `${key}:${currentQty}`;
 
-                if (autoInventoryFixSeen.has(cacheKey)) {
-                    return Promise.resolve();
-                }
+                if (autoInventoryFixSeen.has(cacheKey)) return Promise.resolve();
 
                 return fetch('/cart/change.js', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                     body: JSON.stringify({ line, quantity: currentQty })
                 })
                     .then((r) => {
@@ -330,39 +415,48 @@
             if (!fixes.length) return;
 
             const first = fixes[0];
-            if (typeof showAlert === 'function') {
-                const msg =
-                    first.available > 0
-                        ? `Unfortunately we only have ${first.available} of "${first.title}" available right now. We've updated your cart.`
-                        : `Unfortunately "${first.title}" is now out of stock and has been removed from your cart.`;
-                showAlert(msg, 6000);
-            }
+            const msg =
+                first.available > 0
+                    ? `Unfortunately we only have ${first.available} of "${first.title}" available right now. We've updated your cart.`
+                    : `Unfortunately "${first.title}" is now out of stock and has been removed from your cart.`;
+            showAlert(msg, 6000);
 
             return Promise.allSettled(
                 fixes.map(fix =>
                     fetch('/cart/change.js', {
                         method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        },
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                         body: JSON.stringify({ line: fix.line, quantity: fix.quantity })
                     }).catch(() => { })
                 )
-            ).then(() => {
-                refresh();
-            });
+            ).then(() => refresh());
         }).finally(() => {
             inventoryCheckInFlight = null;
         });
     }
 
+    // --- Refresh cart data ---
     function refresh() {
         showLoadingPlaceholder();
         fetch('/cart.js', { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
-            .then(r => r.json()).then(paint).catch(() => { });
+            .then(r => r.json())
+            .then(paint)
+            .catch(() => { });
     }
 
+    // Avoid double-refreshes when we are manually handling lifecycle
+    let selfUpdating = false;
+
+    // IMPORTANT: cart:refresh can be both a request (no detail) and legacy payload (detail=cart).
+    // Ignore payload events to prevent refresh -> paint -> dispatch -> refresh loops.
+    document.addEventListener('cart:refresh', (e) => {
+        if (selfUpdating) return;
+        const d = e && e.detail;
+        if (d && typeof d === 'object' && Array.isArray(d.items)) return; // ignore payload
+        refresh();
+    });
+
+    // --- Qty changes (single definition; duplicate removed) ---
     function setQtyForRow(row, nextQ, showLoader) {
         const key = row.getAttribute('data-key');
         const line = Number(row.getAttribute('data-line')) || 1;
@@ -383,9 +477,10 @@
         inflightByKey.set(id, true);
         if (showLoader) setRowLoading(row, true);
 
-        const payload = key
-            ? { id: key, quantity: nextQ }
-            : { line, quantity: nextQ };
+        // Prevent global refresh-request listeners from nuking DOM during delete animation
+        if (isDelete) selfUpdating = true;
+
+        const payload = key ? { id: key, quantity: nextQ } : { line, quantity: nextQ };
 
         fetch('/cart/change.js', {
             method: 'POST',
@@ -401,6 +496,8 @@
                 if (showLoader) setRowLoading(row, false);
 
                 if (status === 422 && data && data.status === 422) {
+                    if (isDelete) selfUpdating = false;
+
                     const rawMsg = String(data.description || data.message || '');
                     const titleEl = row.querySelector('.it-title');
                     const title = titleEl ? titleEl.textContent.trim() : '';
@@ -408,13 +505,9 @@
                     const left = m && m[1] ? m[1] : null;
 
                     let msg;
-                    if (left && title) {
-                        msg = `Unfortunately we only have ${left} of "${title}" available right now.`;
-                    } else if (title) {
-                        msg = `Unfortunately we don't have enough "${title}" in stock for that quantity.`;
-                    } else {
-                        msg = rawMsg || 'Unfortunately we don\u2019t have enough stock for that quantity.';
-                    }
+                    if (left && title) msg = `Unfortunately we only have ${left} of "${title}" available right now.`;
+                    else if (title) msg = `Unfortunately we don't have enough "${title}" in stock for that quantity.`;
+                    else msg = rawMsg || 'Unfortunately we don\u2019t have enough stock for that quantity.';
 
                     showAlert(msg, 6000);
                     refresh();
@@ -424,13 +517,16 @@
                 if (isDelete && status >= 200 && status < 300) {
                     row.classList.add('is-removing');
                     row.addEventListener('animationend', () => {
+                        selfUpdating = false;
                         refresh();
                     }, { once: true });
                 } else {
+                    if (isDelete) selfUpdating = false;
                     refresh();
                 }
             })
             .catch(() => {
+                if (isDelete) selfUpdating = false;
                 inflightByKey.delete(id);
                 if (showLoader) setRowLoading(row, false);
                 refresh();
@@ -453,9 +549,7 @@
             setQtyForRow(row, curr + 1);
         });
 
-        rmv && rmv.addEventListener('click', () => {
-            setQtyForRow(row, 0, true);
-        });
+        rmv && rmv.addEventListener('click', () => setQtyForRow(row, 0, true));
 
         input && input.addEventListener('change', () => {
             const val = parseInt(input.value, 10);
@@ -468,87 +562,71 @@
         });
     }
 
-    closeBtn && closeBtn.addEventListener('click', () => {
-        panel.classList.add('is-closing');
-        panel.removeAttribute('data-open');
-        panel.classList.remove('is-open'); // Force removal of conflicting class
-        panel.setAttribute('aria-hidden', 'true');
-        setTimeout(() => panel.classList.remove('is-closing'), 300);
-    });
-
-    overlayEl && overlayEl.addEventListener('click', () => {
-        closeBtn.click();
-    });
-
-    // Checkout validation
-    document.addEventListener('click', (e) => {
+    // --- Checkout validation (terms) ---
+    function handleCheckoutClick(e) {
         const btn = e.target.closest('[data-checkout], [name="checkout"], .cart__checkout-button');
-        if (!btn || !panel.contains(btn)) return;
+        if (!btn) return;
+
+        // Only enforce if click is inside the drawer panel
+        if (!panel.contains(btn)) return;
 
         const cb = getAgreeCheckbox();
         if (cb && !cb.checked) {
             e.preventDefault();
+            e.stopPropagation();
             e.stopImmediatePropagation();
-            // Pulse the checkbox
+
+            // Pulse checkbox
             cb.style.outline = '2px solid #e03a2f';
             setTimeout(() => cb.style.outline = '', 400);
 
-            // Show yellow warning
+            // Drawer alert (won't open drawer on /cart due to IS_CART_PAGE guard)
             showAlert('You must agree to the Terms of Service to check out.', 4000, { sticky: true });
-            return;
-        }
-    }, true); // USE CAPTURE PHASE
 
-    // SCROLL LOCK MANAGER
-    // Restored to ensure body scroll is unlocked when drawer closes
-    function syncScrollLock() {
-        if (panel.hasAttribute('data-open')) {
-            document.documentElement.style.overflow = 'hidden';
-            document.body.style.overflow = 'hidden';
-        } else {
-            // ONLY unlock if we are the ones who locked it (or if we want to be aggressive about unlocking)
-            // Ideally, we check if other panels are open, but for now we prioritize clearing our own mess.
-            document.documentElement.style.overflow = '';
-            document.body.style.overflow = '';
-            document.body.classList.remove('no-scroll', 'overflow-hidden', 'ch-panel-open');
+            // Ensure full drawer open lifecycle (FIX)
+            if (!IS_CART_PAGE) openDrawer({ refreshCart: false, source: 'checkout-terms', silent: true });
+
+            // If on /cart page, at least bring checkbox into view
+            if (IS_CART_PAGE) {
+                try { cb.scrollIntoView({ block: 'center', behavior: 'smooth' }); cb.focus(); } catch (_) { }
+            }
+
+            return false;
         }
     }
 
-    new MutationObserver((muts) => {
-        for (const m of muts) {
-            if (m.attributeName === 'data-open') {
-                syncScrollLock();
-            }
-        }
-    }).observe(panel, { attributes: true });
+    document.addEventListener('click', handleCheckoutClick, true);
+    document.addEventListener('mousedown', handleCheckoutClick, true);
 
-    // Global open
+    // --- Global open requests ---
     document.addEventListener('cart:open', () => {
-        if (window.location.pathname === '/cart') return;
-        panel.setAttribute('data-open', '');
-        refresh();
+        if (IS_CART_PAGE) return;
+        openDrawer({ refreshCart: true, source: 'cart:open', silent: false });
     });
 
-    // Global refresh
-    document.addEventListener('cart:refresh', refresh);
+    // --- Inventory warning event (FIX: no direct data-open) ---
+    document.addEventListener('cart:inventory-warning', (e) => {
+        const msg = e?.detail?.message;
+        if (!msg) return;
+        showAlert(msg, 6000);
+        // IMPORTANT: do NOT also set data-open here; showAlert handles full open lifecycle
+    });
 
-    // CRITICAL FIX: Sync data-open with the generic ch:panel controller
+    // --- Sync with generic panel controller ---
     document.addEventListener('ch:panel', (e) => {
         const d = e.detail || {};
-        if (d.name === 'cart') {
-            if (d.open) {
-                panel.setAttribute('data-open', '');
-                refresh();
-            } else {
-                panel.removeAttribute('data-open');
-                // Force immediate unlock in case mutation observer is too slow or misses
-                syncScrollLock();
-            }
+        if (d.name !== 'cart') return;
+
+        if (d.open) {
+            openDrawer({ refreshCart: true, source: 'ch:panel', silent: false });
+        } else {
+            closeDrawer({ source: 'ch:panel' });
         }
     });
 
-    // Initial load
+    // --- Init ---
+    bindCloseHandlersOnce();
+    ensureOverlayEl();
     refresh();
     syncScrollLock();
-
 })();

@@ -27,11 +27,12 @@ CMH · Feature Grid (3 big + 4 small)
                 {% if t.subtitle != blank %}<p class="fg__lg-sub">{{ t.subtitle }}</p>{% endif %}
                 {% if t.image != blank %}
                   <div class="fg__lg-media">
+                    {%- comment -%}Why Shop large cards: illustrations ~200-300px wide{%- endcomment -%}
                     {{ t.image
-                      | image_url: width: 1600
+                      | image_url: width: 400
                       | image_tag:
-                          widths: '600,900,1200,1600',
-                          sizes: '(max-width: 740px) 90vw, (max-width: 1100px) 60vw, 30vw',
+                          widths: '160,240,300,400',
+                          sizes: '(max-width: 740px) 60vw, (max-width: 1100px) 40vw, 300px',
                           loading: 'lazy',
                           decoding: 'async',
                           alt: alt_text }}
@@ -97,11 +98,7 @@ CMH · Feature Grid (3 big + 4 small)
       padding:0 28px;
     }
 
-    /* Mobile: smaller top gap + tighter heading + narrower side padding */
     @media (max-width: 740px){
-      #cmh-fg-{{ section.id }}{
-        padding-top:8px; /* reduce gap from previous section on mobile */
-      }
       #cmh-fg-{{ section.id }} .page-width{
         padding:0 16px;
       }
@@ -123,13 +120,20 @@ CMH · Feature Grid (3 big + 4 small)
       gap: var(--gap-sm);
     }
 
-    @media (max-width:1100px){
-      .fg__grid--lg{ grid-template-columns: repeat(2, minmax(0,1fr)); }
-      .fg__grid--sm{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    /* Tablet landscape: keep 3 columns for large cards, 4 for small */
+    @media (min-width:900px) and (max-width:1100px){
+      .fg__grid--lg{ grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; }
+      .fg__grid--sm{ grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
     }
+    /* Tablet portrait: 2 columns for both */
+    @media (min-width:741px) and (max-width:899px){
+      .fg__grid--lg{ grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+      .fg__grid--sm{ grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+    }
+    /* Mobile: stack everything */
     @media (max-width:740px){
-      .fg__grid--lg{ grid-template-columns: 1fr; }
-      .fg__grid--sm{ grid-template-columns: 1fr; } /* stacked like your 2nd screenshot */
+      .fg__grid--lg{ grid-template-columns: 1fr; gap: 14px; }
+      .fg__grid--sm{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
     }
 
     /* ---------- Card Base ---------- */
@@ -177,57 +181,80 @@ CMH · Feature Grid (3 big + 4 small)
     }
 
     /* ---------- SMALL Cards (Affiliate/Wholesale/Rewards style) ---------- */
+    /* UNIFIED LAYOUT: Compact Grid (Icon + Title | Subtitle below) */
+    /* UNIFIED LAYOUT: Compact Grid (Icon + Title | Subtitle below) */
+    /* UNIFIED LAYOUT: Compact Grid (Icon + Title | Subtitle below) */
     .fg__sm-main{
-      display:flex;
-      align-items:center;
-      gap:16px;
-      height:100%;
+      display: grid !important;
+      grid-template-columns: auto auto !important; /* Allow columns to shrink-wrap for centering */
+      grid-template-rows: auto auto !important;
+      column-gap: 16px !important; /* Increased col-gap for desktop */
+      row-gap: 24px !important;    /* Significant gap to push Title up and Subtitle down */
+      align-items: center !important;
+      justify-content: center !important;
+      width: 100%;
+      height: 100%;
+      text-align: left !important;
     }
 
+    /* Flatten text wrapper */
+    .fg__sm-text {
+      display: contents !important;
+    }
+
+    /* Row 1, Col 1: Icon */
     .fg__sm-icon{
+      grid-row: 1;
+      grid-column: 1;
       color: var(--brand);
       flex-shrink:0;
       display:flex;
       align-items:center;
       justify-content:center;
+      width: 48px; /* Larger icon slot for desktop */
+      height: 48px;
+      margin: 0;
     }
     .fg__sm-icon svg{
-      width:32px;
-      height:32px;
-      display:block;
+      width: 36px; /* Larger icon svg */
+      height: 36px;
+      display: block;
     }
 
-    .fg__sm-text{
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-      flex:1;
-    }
-
-    /* Desktop: strong headline + clean subtitle */
+    /* Row 1, Col 2: Title */
     .fg__sm-title{
+      grid-row: 1;
+      grid-column: 2;
       margin:0;
       font-weight:800;
-      line-height:1.25;
-      font-size: clamp(1.1rem, 1rem + 0.6vw, 1.5rem);
+      line-height:1.1;
+      font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.6rem); /* Significantly larger */
       color: var(--ink);
+      align-self: center;
+      text-align: left;
     }
+
+    /* Row 2, Full Width: Subtitle */
     .fg__sm-sub{
-      margin:0;
-      line-height:1.45;
+      grid-row: 2;
+      grid-column: 1 / -1;
+      margin: 0;
+      line-height:1.4;
       color: var(--muted);
-      font-size: clamp(.9rem, .85rem + 0.25vw, 1rem);
-      white-space: normal;   /* never truncate */
+      font-size: 1.15rem; /* Larger desktop subtitle */
+      white-space: normal;
       overflow: visible;
-      text-overflow: clip;
+      text-align: center !important;
     }
 
     .fg__sm-big{
+      grid-column: 1 / -1;
       font-weight:800;
       line-height:1;
-      font-size: clamp(2.2rem, 1.8rem + 1vw, 3rem); /* nice, bold number on desktop */
+      font-size: clamp(2rem, 1.8rem + 1vw, 2.8rem);
       color: var(--brand);
       white-space: nowrap;
+      margin-top: 4px;
     }
 
     /* SMALL hover colors */
@@ -240,30 +267,36 @@ CMH · Feature Grid (3 big + 4 small)
     .fg__card--sm:hover .fg__sm-big{ color:#fff; }
     .fg__card--sm:hover .fg__sm-icon{ color:#fff; }
 
-    /* MOBILE: stack like reference screenshot, center everything, number under text */
-    @media (max-width:740px){
-      .fg__sm-main{
-        flex-direction:column;
-        align-items:center;
-        text-align:center;
-        gap:10px;
+
+
+    /* MOBILE (≤480px): same horizontal layout, just smaller */
+    /* MOBILE (≤480px): Compact Grid (Icon+Title row, Subtitle row) */
+    /* MOBILE (≤480px): Tweaks for smaller screens (layout is same as base) */
+    @media (max-width:480px){
+      .fg__link--sm {
+        padding: 16px 12px;
       }
-      .fg__sm-text{
-        align-items:center;
+      .fg__sm-main {
+        column-gap: 12px;
+        row-gap: 8px !important;
       }
-      .fg__sm-title{
-        font-size: 1.2rem;   /* slightly bigger on mobile */
+      .fg__sm-icon {
+        width: 36px !important;  /* Ensure larger icon */
+        height: 36px !important;
       }
-      .fg__sm-sub{
-        font-size: 0.9rem;
-        line-height:1.4;
+      .fg__sm-icon svg {
+        width: 100%;
+        height: 100%;
       }
-      .fg__sm-icon svg{
-        width:28px;
-        height:28px;
+      .fg__sm-title {
+        font-size: 0.75rem !important; /* Force larger title */
+        line-height: 1.15;
       }
-      .fg__sm-big{
-        font-size: 2.4rem;   /* big number stands out more on mobile */
+      .fg__sm-sub {
+        font-size: 0.65rem !important; /* Force larger subtitle */
+      }
+      .fg__sm-big {
+        font-size: 1.4rem;
       }
     }
 
@@ -341,215 +374,48 @@ CMH · Feature Grid (3 big + 4 small)
       font-size:clamp(24px, 3vw + 8px, 32px);
       color: var(--heading-color, inherit);
     }
-        /* ---------- SMALL Cards (Affiliate/Wholesale/Rewards style) ---------- */
-    /* DESKTOP layout: icon + title left, big number right, subtitle centered below */
-    .fg__sm-main{
-      display:grid;
-      grid-template-columns:auto 1fr auto;
-      grid-auto-rows:auto;
-      column-gap:16px;
-      row-gap:6px;
-      align-items:center;
-      height:100%;
+
+
+
+    /* Mobile overrides - Mostly inheriting flex, just sizing */
+    @media (max-width: 740px) {
+      .fg__card--sm {
+        min-height: auto;
+        border-radius: 12px;
+      }
+      .fg__grid--sm {
+        gap: 12px;
+      }
+      .fg__link--sm {
+        padding: 16px;
+      }
     }
 
-    /* flatten wrapper so we can place title + subtitle as grid items */
-    .fg__sm-text{
-      display:contents;
+    /* FINAL MOBILE OVERRIDES (≤480px) - Optimized & User Defined */
+    @media (max-width:480px){
+      .fg__link--sm {
+        padding: 16px 12px !important;
+      }
+      .fg__sm-main {
+        column-gap: 6px !important; /* Tight gap for icon proximity */
+        row-gap: 8px !important;
+      }
+      .fg__sm-icon {
+        width: 36px !important;
+        height: 36px !important;
+      }
+      .fg__sm-icon svg {
+        width: 73%;
+        height: 73%;
+      }
+      .fg__sm-title {
+        font-size: .75rem !important;
+        line-height: 1.15;
+      }
+      .fg__sm-sub {
+        font-size: 0.65rem !important;
+      }
     }
-
-    .fg__sm-icon{
-      color: var(--brand);
-      flex-shrink:0;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      grid-column:1;
-      grid-row:1;
-    }
-    .fg__sm-icon svg{
-      width:32px;
-      height:32px;
-      display:block;
-    }
-
-    /* title: left-aligned next to icon */
-    .fg__sm-title{
-      margin:0;
-      font-weight:800;
-      line-height:1.25;
-      font-size: clamp(1.1rem, 1rem + 0.6vw, 1.5rem);
-      color: var(--ink);
-      grid-column:2;
-      grid-row:1;
-      text-align:left;
-    }
-
-    /* subtitle: full width, centered under everything */
-    .fg__sm-sub{
-      margin:0;
-      line-height:1.45;
-      color: var(--muted);
-      font-size: clamp(.9rem, .85rem + 0.25vw, 1rem);
-      white-space: normal;
-      overflow: visible;
-      text-overflow: clip;
-      grid-column:1 / -1;    /* span whole card */
-      grid-row:2;
-      text-align:center;
-    }
-
-    /* big number: right side of top row (if present) */
-    .fg__sm-big{
-      font-weight:800;
-      line-height:1;
-      font-size: clamp(2.2rem, 1.8rem + 1vw, 3rem);
-      color: var(--brand);
-      white-space: nowrap;
-      grid-column:3;
-      grid-row:1;
-    }
-
-    /* SMALL hover colors */
-    .fg__card--sm:hover{
-      background: var(--brand);
-      color:#fff;
-    }
-    .fg__card--sm:hover .fg__sm-title,
-    .fg__card--sm:hover .fg__sm-sub,
-    .fg__card--sm:hover .fg__sm-big{ color:#fff; }
-    .fg__card--sm:hover .fg__sm-icon{ color:#fff; }
-/* ---------- SMALL Cards (desktop & default) ---------- */
-/* Desktop: icon + title left on top row, subtitle centered below, top-aligned */
-.fg__card--sm{
-  min-height: 150px;       /* you can go 130–150px to taste */
-  border-radius:14px;
-}
-
-.fg__sm-main{
-  display:grid;
-  grid-template-columns:auto 1fr auto;
-  grid-auto-rows:auto;
-  column-gap:16px;
-  row-gap:4px;
-  align-items:flex-start;  /* TOP align instead of center */
-  height:auto;             /* let content decide */
-}
-
-.fg__sm-text{
-  display:contents;        /* lets title/sub act as grid items */
-}
-
-.fg__sm-icon{
-  color: var(--brand);
-  flex-shrink:0;
-  display:flex;
-  align-items:flex-start;
-  justify-content:center;
-  grid-column:1;
-  grid-row:1;
-}
-.fg__sm-icon svg{
-  width:32px;
-  height:32px;
-  display:block;
-}
-
-/* title: left next to icon */
-.fg__sm-title{
-  margin:0;
-  font-weight:800;
-  line-height:1.25;
-  font-size: clamp(1.1rem, 1rem + 0.6vw, 1.5rem);
-  color: var(--ink);
-  grid-column:2;
-  grid-row:1;
-  text-align:left;
-}
-
-/* subtitle: centered under whole row */
-.fg__sm-sub{
-  margin:4px 0 0;
-  line-height:1.45;
-  color: var(--muted);
-  font-size: clamp(.9rem, .85rem + 0.25vw, 1rem);
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  grid-column:1 / -1;
-  grid-row:2;
-  text-align:center;
-}
-
-/* big number: right side of top row (if present) */
-.fg__sm-big{
-  font-weight:800;
-  line-height:1;
-  font-size: clamp(2.1rem, 1.7rem + 1vw, 2.7rem);
-  color: var(--brand);
-  white-space: nowrap;
-  grid-column:3;
-  grid-row:1;
-}
-
-/* SMALL hover colors */
-.fg__card--sm:hover{
-  background: var(--brand);
-  color:#fff;
-}
-.fg__card--sm:hover .fg__sm-title,
-.fg__card--sm:hover .fg__sm-sub,
-.fg__card--sm:hover .fg__sm-big{ color:#fff; }
-.fg__card--sm:hover .fg__sm-icon{ color:#fff; }
-
-/* ---------- MOBILE overrides (less white space, stacked) ---------- */
-@media (max-width:740px){
-  .fg__card--sm{
-    min-height:auto;                /* shrink on mobile */
-    border-radius:12px;
-  }
-  .fg__grid--sm{
-    gap:12px;                       /* tighter between cards */
-  }
-  .fg__link--sm{
-    padding:10px 12px 12px;         /* less vertical padding */
-  }
-
-  .fg__sm-main{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    text-align:center;
-    gap:6px;
-  }
-
-  .fg__sm-text{
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-  }
-
-  .fg__sm-title{
-    font-size:1.1rem;
-    text-align:center;
-  }
-  .fg__sm-sub{
-    font-size:0.9rem;
-    line-height:1.4;
-    text-align:center;
-    margin-top:2px;
-  }
-
-  .fg__sm-icon svg{
-    width:28px;
-    height:28px;
-  }
-  .fg__sm-big{
-    font-size:2.2rem;
-  }
-}
-
-
   </style>
 
   <script>

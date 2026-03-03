@@ -408,7 +408,7 @@
 }
 
 .ch-card .ch-rating {
-    min-height: 18px !important;
+    min-height: 0 !important;
 }
 
 /* Body grid: spacer before CTA so buttons pin to the bottom uniformly */
@@ -429,7 +429,7 @@
         min-content
         /* CTA */
         !important;
-    gap: 8px !important;
+    gap: 6px !important;
 }
 
 /* === Pill badges (like your refs) === */
@@ -757,389 +757,6 @@
     stroke: #fff !important;
 }
 
-/* Qty | long ATC | View box */
-.ch-qv-cta-row {
-    display: grid;
-    grid-template-columns: 130px minmax(0, 1fr) auto;
-    /* qty | ATC fills | view */
-    gap: 10px;
-    align-items: center;
-    margin-top: .6rem;
-}
-
-/* Long Add to cart */
-.ch-atc-btn {
-    height: 38px;
-    border-radius: 9999px;
-    background: #d12f24;
-    color: #fff;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    width: 100%;
-    /* ← makes it long */
-    cursor: pointer;
-    position: relative;
-    transition: background .1s ease;
-    font-size: .78rem;
-}
-
-.ch-atc-btn:hover {
-    background: #B3281F;
-}
-
-/* View = boxed button that turns yellow on hover */
-.ch-view-btn {
-    height: 38px;
-    border-radius: 8px;
-    background: #fff;
-    color: #0f172a;
-    border: 1px solid #0f172a;
-    padding: 0 14px;
-    font-size: .78rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    line-height: 1;
-}
-
-.ch-view-btn:hover,
-.ch-view-btn:focus-visible {
-    background: #facc15;
-    /* yellow hover */
-    border-color: #facc15;
-    color: #0f172a;
-}
-
-/* Mobile: stack qty on first row; ATC fills; View stays to the right */
-@media (max-width: 991px) {
-    .ch-qv-cta-row {
-        grid-template-columns: 1fr 1fr auto;
-        grid-template-areas:
-            "qty qty qty"
-            "atc atc view";
-    }
-
-    .ch-qty {
-        grid-area: qty;
-    }
-
-    .ch-atc-btn {
-        grid-area: atc;
-    }
-
-    .ch-view-btn {
-        grid-area: view;
-        justify-self: end;
-    }
-}
-
-/* Wrapper: 2 rows (top: qty + view, bottom: long ATC) */
-.ch-qv-cta {
-    display: grid;
-    gap: 10px;
-    margin-top: .6rem;
-}
-
-/* Row 1: qty (unchanged by us) + View button */
-.ch-qv-cta-top {
-    display: grid;
-    grid-template-columns: 130px auto;
-    /* qty | view */
-    gap: 10px;
-    align-items: center;
-}
-
-@media (max-width:991px) {
-    .ch-qv-cta-top {
-        grid-template-columns: 1fr auto;
-    }
-}
-
-/* Long ATC (single button on its own row) */
-.ch-atc-btn {
-    height: 38px;
-    border-radius: 9999px;
-    background: #d12f24;
-    color: #fff;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    cursor: pointer;
-    position: relative;
-    transition: background .1s ease;
-    font-size: .78rem;
-}
-
-.ch-atc-btn--full {
-    width: 100%;
-}
-
-.ch-atc-btn:hover {
-    background: #B3281F;
-}
-
-/* View button = boxed; turns yellow on hover */
-.ch-view-btn {
-    height: 38px;
-    border-radius: 8px;
-    background: #fff;
-    color: #0f172a;
-    border: 1px solid #0f172a;
-    padding: 0 14px;
-    font-size: .78rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    line-height: 1;
-}
-
-.ch-view-btn:hover,
-.ch-view-btn:focus-visible {
-    background: #facc15;
-    /* yellow */
-    border-color: #facc15;
-    color: #0f172a;
-}
-
-/* Right column is already flex; pin order to ensure Trust is under CTAs */
-.ch-qv-info-col {
-    display: flex;
-    flex-direction: column;
-}
-
-.ch-qv-cta {
-    order: 2;
-}
-
-.ch-trust-card {
-    order: 3;
-    margin-top: .5rem;
-}
-
-/* Two-row CTA layout (qty + view, then long ATC) */
-.ch-qv-cta {
-    display: grid;
-    gap: 10px;
-    margin-top: .6rem;
-}
-
-/* Row 1: prevent the qty from shrinking and keep its internals centered */
-.ch-qv-cta-top {
-    display: grid;
-    grid-template-columns: max-content auto;
-    /* qty uses its natural width */
-    gap: 10px;
-    align-items: center;
-}
-
-/* Qty: keep original look, but stop it from squishing */
-.ch-qty {
-    min-width: 170px;
-    /* fits − [ 1 ] + comfortably; bump if you use bigger fonts */
-    width: max-content;
-    /* use natural width */
-}
-
-.ch-qty__input {
-    text-align: center;
-}
-
-/* ensure centered number */
-
-/* Long ATC on its own row */
-.ch-atc-btn {
-    height: 38px;
-    border-radius: 9999px;
-    background: #d12f24;
-    color: #fff;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 0;
-    cursor: pointer;
-    position: relative;
-    transition: background .1s ease;
-    font-size: .78rem;
-}
-
-.ch-atc-btn--full {
-    width: 100%;
-}
-
-.ch-atc-btn:hover {
-    background: #B3281F;
-}
-
-/* View button: boxed + arrow animation + yellow hover */
-.ch-view-btn {
-    height: 38px;
-    border-radius: 8px;
-    background: #fff;
-    color: #0f172a;
-    border: 1px solid #0f172a;
-    padding: 0 14px;
-    font-size: .78rem;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    line-height: 1;
-    transition: border-color .15s ease, background .15s ease;
-}
-
-.ch-view-arrow {
-    display: inline-block;
-    transition: transform .18s ease;
-}
-
-.ch-view-btn:hover,
-.ch-view-btn:focus-visible {
-    background: #facc15;
-    border-color: #facc15;
-    color: #0f172a;
-}
-
-.ch-view-btn:hover .ch-view-arrow,
-.ch-view-btn:focus-visible .ch-view-arrow {
-    transform: translateX(4px);
-    /* slide arrow to the right on hover/focus */
-}
-
-/* Mobile: stack nicely */
-@media (max-width: 991px) {
-    .ch-qv-cta-top {
-        grid-template-columns: 1fr auto;
-    }
-}
-
-/* Qty layout: perfectly centered, equal button widths */
-.ch-qty {
-    display: flex;
-    align-items: center;
-    height: 38px;
-    border: 1px solid #1f2937;
-    border-radius: 9999px;
-    overflow: hidden;
-    background: #fff;
-}
-
-.ch-qty__btn {
-    width: 38px;
-    min-width: 38px;
-    height: 38px;
-    display: grid;
-    place-items: center;
-    border: 0;
-    background: transparent;
-    line-height: 1;
-}
-
-.ch-qty__input {
-    width: 64px;
-    min-width: 64px;
-    text-align: center;
-    margin: 0;
-    padding: 0;
-    border: 0;
-    background: #fff;
-    font-weight: 600;
-    font-size: .85rem;
-    -moz-appearance: textfield;
-}
-
-.ch-qty__input::-webkit-outer-spin-button,
-.ch-qty__input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
-
-/* View button: yellow on hover + arrow slide */
-.ch-view-btn {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.ch-view-arrow {
-    display: inline-block;
-    transition: transform .18s ease;
-}
-
-.ch-view-btn:hover .ch-view-arrow,
-.ch-view-btn:focus-visible .ch-view-arrow {
-    transform: translateX(4px);
-}
-
-.ch-view-btn:hover,
-.ch-view-btn:focus-visible {
-    background: #facc15;
-    border-color: #facc15;
-    color: #0f172a;
-}
-
-/* Trust card spacing in the right column */
-.ch-qv-info-col {
-    display: flex;
-    flex-direction: column;
-}
-
-.ch-trust-card {
-    margin-top: .6rem;
-}
-
-.ch-qv-info-col {
-    display: flex;
-    flex-direction: column;
-}
-
-.ch-qv-cta {
-    order: 1;
-}
-
-/* qty + View (top row) */
-.ch-qv-row--bottom {
-    order: 2;
-}
-
-/* long ATC (bottom row) */
-.ch-trust-card {
-    order: 3;
-}
-
-/* trust box under CTAs */
-/* Desktop-only: pull the first footer column to the left */
-@media (min-width: 990px) {
-
-    /* Shift the WHOLE first column (the one that contains the social block) */
-    .site-footer .flex-footer>.flex__item:first-child {
-        margin-left: -48px !important;
-        /* tweak: -32, -64, etc. */
-    }
-}
-
-/* keyframes: translate + rotate together so it never "droops" */
-@keyframes atcspin {
-    0% {
-        transform: translate(-50%, -50%) rotate(0deg);
-    }
-
-    100% {
-        transform: translate(-50%, -50%) rotate(360deg);
-    }
-
-}
 
 /* ---------- Base card ---------- */
 .ch-card,
@@ -1821,7 +1438,9 @@
     font-size: 11px;
     color: #6b7280;
     margin-left: 4px;
-}/* === EXTRACTED QV STYLES from snippets/ch-product-card.liquid === */
+}
+
+/* === EXTRACTED QV STYLES from snippets/ch-product-card.liquid === */
 .stand-qv {
     position: fixed;
     inset: 0;
@@ -2718,6 +2337,209 @@
     /* the important part: keep it centered WHILE spinning */
     animation: atcspin 0.7s linear infinite;
     pointer-events: none;
+    margin-top: -8px;
+    margin-left: -8px;
+}
+
+@keyframes atcspin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* spinner turns white when hovered (on red background) */
+.sbtn.ch-atcbtn.is-adding:hover::after,
+.sbtn.ch-atcbtn.is-adding:focus-visible::after {
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-top-color: #FFFFFF;
+    border-right-color: #FFFFFF;
+    border-bottom-color: transparent;
+    border-left-color: transparent;
+}
+
+/* Remove icon inside the black "Quick view" tooltip only */
+.ch-pop svg {
+    display: none !important;
+}
+
+/* Mobile: stack price + old price but keep all cards the same height */
+@media (max-width: 767px) {
+
+    /* Price row: always exactly 2 lines tall on all cards */
+    .ch-card .ch-price .ch-price__row {
+        display: flex !important;
+        flex-direction: column !important;
+        /* current price on top, old price below */
+        align-items: flex-start !important;
+        gap: 0 !important;
+        flex-wrap: nowrap !important;
+        white-space: normal !important;
+        min-height: 36px !important;
+        /* 2 × 18px lines */
+    }
+
+    /* Normalize the line-height and kill margins so 2 lines fit in 36px */
+    .ch-card .ch-price__cur,
+    .ch-card .ch-price__compare {
+        line-height: 18px !important;
+        margin: 0 !important;
+        white-space: normal !important;
+    }
+
+    /* Old price always sits as a second line (no side-by-side) */
+    .ch-card .ch-price__compare {
+        display: block !important;
+        margin-top: 0 !important;
+    }
+}
+
+/* Mobile: same alignment, just a bit more breathing room */
+@media (max-width: 767px) {
+    .ch-card .ch-price .ch-price__row {
+        min-height: 42px !important;
+        /* was 36–40; this adds ~1/3 line of air */
+    }
+
+    /* small gap between price block and button */
+    .ch-card .ch-price {
+        margin-bottom: 4px !important;
+    }
+
+    .ch-card .ch-price__cur,
+    .ch-card .ch-price__compare {
+        line-height: 18px !important;
+        margin: 0 !important;
+    }
+
+    .ch-card .ch-price__compare {
+        display: block !important;
+    }
+}
+
+/* === FIXED CARD SIZE DESKTOP + MOBILE (add at the very end) === */
+
+/* reset the old height:100%; let us control min-height instead */
+.ch-card {
+    height: auto !important;
+}
+
+/* Desktop breakpoint */
+@media (min-width: 1024px) {
+    .ch-card {
+        min-height: 460px;
+        /* tweak to taste */
+    }
+
+    .ch-card__media {
+        aspect-ratio: auto !important;
+        height: 260px;
+        /* fixed media area */
+    }
+}
+
+/* Tablet + mobile */
+@media (max-width: 1023px) {
+    .ch-card {
+        min-height: 250px;
+        /* slightly shorter on small screens */
+    }
+
+    .ch-card__media {
+        aspect-ratio: auto !important;
+        height: 150px;
+        /* fixed media area */
+    }
+}
+
+/* 🔒 FINAL OVERRIDE: fixed card size desktop + mobile */
+/* put this AT THE VERY END of your CSS */
+
+/* Reset old behavior */
+.ch-card {
+    height: auto !important;
+    max-width: none !important;
+}
+
+/* Desktop: 2–3 cards per row in sliders/rows */
+@media (min-width: 1024px) {
+    .ch-card {
+        box-sizing: border-box;
+        width: 260px !important;
+        max-width: 260px !important;
+        min-height: 460px !important;
+        flex: 0 0 260px !important;
+        /* fixes flex “compression” */
+    }
+
+    .ch-card__media {
+        aspect-ratio: auto !important;
+        height: 260px !important;
+        /* fixed media window */
+    }
+}
+
+/* Mobile + tablet */
+@media (max-width: 1023px) {
+    .ch-card {
+        box-sizing: border-box;
+        width: 175px !important;
+        /* adjust if you want more/less peek */
+        max-width: 200px !important;
+        min-height: 380px !important;
+        flex: 0 0 220px !important;
+    }
+
+    /* Mobile + tablet – collection + search */
+    @media (max-width: 1023px) {
+
+        .template-collection .ch-card,
+        .template-search .ch-card {
+            box-sizing: border-box;
+            width: 163px !important;
+            max-width: 160px !important;
+            min-height: 380px !important;
+            flex: 0 0 160px !important;
+            /* match flex-basis to width */
+        }
+    }
+
+
+    .ch-card__media {
+        aspect-ratio: auto !important;
+        height: 150px !important;
+    }
+}
+
+/* Trim extra height + bottom padding if you want tighter cards */
+.ch-card {
+    min-height: 0 !important;
+    /* or a smaller value than you use now */
+}
+
+.ch-card__body {
+    padding-bottom: 8px !important;
+    /* default is 12px in your code */
+}
+
+/* 🔒 MAX IN CART STATE – faint grey button */
+.sbtn.ch-atcbtn[data-maxed="true"],
+.sbtn.ch-atcbtn[data-maxed="true"]:disabled {
+    background: #f9fafb !important;
+    /* light grey fill */
+    border-color: #d1d5db !important;
+    /* faint grey border (“grid”) */
+    color: #9ca3af !important;
+    /* muted grey text */
+    cursor: default !important;
+    pointer-events: none !important;
+    /* belt and suspenders */
+}
+
+/* prevent hover from turning it red */
+.sbtn.ch-atcbtn[data-maxed="true"]:hover,
+.sbtn.ch-atcbtn[data-maxed="true"]:focus-visible {
+    transform: rotate(360deg);
+}
 }
 
 /* spinner turns white when hovered (on red background) */
@@ -2916,3 +2738,127 @@
     color: #9ca3af !important;
     box-shadow: none !important;
 }
+
+/* ==================================================================================================================================================
+   RESPONSIVE CARD FIX - Tablet & Small Laptop Breakpoints
+   Addresses spacing issues at 711px-1024px screen widths
+   ================================================================================================================================================== */
+
+/* Tablet portrait (711px-899px): Ensure proper 2-column layout */
+@media (min-width: 711px) and (max-width: 899px) {
+    .ch-card {
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* Ensure cards fill their grid cells properly */
+    .chpc__slide .ch-card,
+    .chpc__card .ch-card,
+    .chpc--proxy .ch-card,
+    .ch-cell .ch-card {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+    }
+
+    /* Fix carousel wrapper */
+    .chpc__card,
+    .chpc--proxy {
+        width: 100% !important;
+        display: block !important;
+    }
+}
+
+/* Tablet landscape & small laptop (900px-1024px): Optimize 3-column layout */
+@media (min-width: 900px) and (max-width: 1024px) {
+    .ch-card {
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* Ensure consistent card widths in carousels */
+    .chpc__slide .ch-card,
+    .chpc__card .ch-card,
+    .chpc--proxy .ch-card {
+        width: 100% !important;
+    }
+
+    /* Fix carousel wrappers */
+    .chpc__card,
+    .chpc--proxy {
+        width: 100% !important;
+        display: block !important;
+    }
+
+    /* Reduce excessive body padding for tighter cards */
+    .ch-card__body {
+        padding: 9px 7px 9px !important;
+    }
+}
+
+/* General fix: Ensure cards respect their container width */
+.ch-card {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* Carousel-specific: Cards should fill the slide width */
+.chpc__slide {
+    box-sizing: border-box !important;
+}
+
+.chpc__slide .ch-card,
+.chpc__card .ch-card,
+.chpc--proxy .ch-card {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Ensure carousel wrappers don't restrict card width */
+.chpc__card,
+.chpc--proxy {
+    width: 100% !important;
+    display: block !important;
+}
+
+/* Custom Vendor + Rating Row (Okendo) */
+.ch-card__vendor-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.ch-card__vendor {
+    /* Allow vendor to truncate if needed, taking remaining space */
+    flex: 1;
+    min-width: 0;
+    /* inherit existing truncated styles */
+}
+
+.ch-card-rating-custom {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    line-height: 1;
+}
+
+.ch-rating-avg {
+    font-weight: 600;
+    color: #111827;
+}
+
+.ch-rating-count {
+    color: #6b7280;
+}
+/* Fix star vertical alignment */
+.ch-card-rating-custom svg {
+    margin-top: -2px; /* Slight lift for optical axis */
+    display: block;   /* Remove line-height descenders */
+    position: relative;
+    top: -1px;
+}
+

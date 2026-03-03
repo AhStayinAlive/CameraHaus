@@ -1,0 +1,317 @@
+{%- comment -%}
+  ch-events-blog.liquid
+  Auto-populates event cards from a selected blog.
+  Reuses the same visual style as the manual Events Deck.
+{%- endcomment -%}
+
+{%- liquid
+  assign chosen_blog = blogs[section.settings.blog]
+  assign limit       = section.settings.limit | default: 6
+  assign tag_filter  = section.settings.tag_filter | strip | downcase
+  assign heading     = section.settings.heading | default: 'Camerahaus Events'
+  assign eyebrow     = section.settings.eyebrow | default: 'CURATED EXPERIENCES'
+  assign cta_label   = section.settings.cta_label | default: 'Browse All Events →'
+  assign cta_url     = section.settings.cta_url
+  assign brand       = section.settings.brand | default: '#D12F24'
+
+  if cta_url == blank and chosen_blog
+    assign cta_url = chosen_blog.url
+  endif
+
+  assign articles_raw = chosen_blog.articles
+-%}
+
+{% if chosen_blog == blank %}
+  {%- if request.design_mode -%}
+    <section class="ch-eblog" style="padding:40px 20px;text-align:center;color:#9ca3af;">
+      <p>Select a blog in the Theme Editor to populate this section.</p>
+    </section>
+  {%- endif -%}
+{% else %}
+
+{%- comment -%} Collect matching articles {%- endcomment -%}
+{%- capture matched_html -%}
+  {%- assign count = 0 -%}
+  {%- for article in articles_raw -%}
+    {%- if count >= limit -%}{%- break -%}{%- endif -%}
+
+    {%- liquid
+      assign skip = false
+      if tag_filter != blank
+        assign art_tags = article.tags | join: ',' | downcase
+        unless art_tags contains tag_filter
+          assign skip = true
+        endunless
+      endif
+    -%}
+
+    {%- unless skip -%}
+      {%- assign count = count | plus: 1 -%}
+      <li class="ch-eblog__cell" role="listitem">
+        <a href="{{ article.url }}" class="ch-eblog-card">
+          <span class="ch-eblog-card__media" aria-hidden="true">
+            {%- if article.image -%}
+              {{ article.image
+                | image_url: width: 480
+                | image_tag:
+                  widths: '180,240,360,480',
+                  sizes: '(max-width: 739px) 60vw, (max-width: 1099px) 42vw, 330px',
+                  loading: 'lazy',
+                  decoding: 'async',
+                  alt: article.title }}
+            {%- else -%}
+              {{ 'image' | placeholder_svg_tag: 'ch-eblog-card__ph' }}
+            {%- endif -%}
+          </span>
+          <span class="ch-eblog-card__overlay">
+            {%- if article.published_at -%}
+              <span class="ch-eblog-card__date">{{ article.published_at | date: section.settings.date_format }}</span>
+            {%- endif -%}
+            <span class="ch-eblog-card__title">{{ article.title }}</span>
+            {%- if article.excerpt_or_content != blank -%}
+              <span class="ch-eblog-card__excerpt">{{ article.excerpt_or_content | strip_html | truncatewords: 12 }}</span>
+            {%- endif -%}
+          </span>
+        </a>
+      </li>
+    {%- endunless -%}
+  {%- endfor -%}
+{%- endcapture -%}
+
+<section
+  id="ch-eblog-{{ section.id }}"
+  class="ch-eblog"
+  role="region"
+  aria-labelledby="ch-eblog-eyebrow-{{ section.id }}"
+  style="--brand: {{ brand }};"
+>
+  <div class="page-width ch-eblog__wrap">
+    <header class="ch-eblog__head">
+      <div class="ch-eblog__head-main">
+        <p id="ch-eblog-eyebrow-{{ section.id }}" class="ch-eblog__eyebrow">{{ eyebrow }}</p>
+        <h3 class="ch-eblog__heading">{{ heading }}</h3>
+      </div>
+      {% if cta_label != blank and cta_url != blank %}
+        <div class="ch-eblog__cta-head">
+          <a class="ch-eblog__btn" href="{{ cta_url }}">
+            <span class="ch-eblog__btn-label">{{ cta_label }}</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      {% endif %}
+    </header>
+
+    <div class="ch-eblog__viewport" aria-roledescription="carousel" aria-label="{{ heading }}">
+      <ul class="ch-eblog__track" role="list" data-eblog-track>
+        {{ matched_html }}
+      </ul>
+
+      <div class="ch-eblog__arrows" aria-hidden="false">
+        <button class="ch-eblog__arrow ch-eblog__arrow--prev" type="button" aria-label="Previous events" data-eblog-prev>
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="ch-eblog__arrow ch-eblog__arrow--next" type="button" aria-label="Next events" data-eblog-next>
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    #ch-eblog-{{ section.id }} {
+      padding-top: {{ section.settings.padding_top | default: 28 }}px;
+      padding-bottom: {{ section.settings.padding_bottom | default: 24 }}px;
+      overflow-x: hidden;
+    }
+    #ch-eblog-{{ section.id }} .page-width { max-width: 1440px; margin: 0 auto; padding: 0 28px; }
+    @media (max-width: 739.98px) {
+      #ch-eblog-{{ section.id }} .page-width { padding: 0 16px; }
+      #ch-eblog-{{ section.id }} { padding-top: 16px; padding-bottom: 16px; }
+    }
+
+    #ch-eblog-{{ section.id }} .ch-eblog__head {
+      margin: 6px 0 14px; display: flex; align-items: flex-end;
+      justify-content: space-between; gap: 8px 16px; flex-wrap: wrap;
+    }
+    #ch-eblog-{{ section.id }} .ch-eblog__head-main { display: grid; gap: 4px; min-width: 0; }
+    #ch-eblog-{{ section.id }} .ch-eblog__eyebrow {
+      margin: 0; text-transform: uppercase; letter-spacing: 0.22em;
+      font-size: 12px; font-weight: 700; color: #6b7280;
+    }
+    #ch-eblog-{{ section.id }} .ch-eblog__heading {
+      margin: 0; font-weight: 800; letter-spacing: -0.02em; line-height: 1.12;
+      font-size: clamp(26px, 2.6vw + 10px, 40px); color: var(--heading-color, inherit);
+    }
+    @media (max-width: 739.98px) {
+      #ch-eblog-{{ section.id }} .ch-eblog__eyebrow { font-size: 11px; letter-spacing: 0.2em; }
+      #ch-eblog-{{ section.id }} .ch-eblog__heading { font-size: clamp(22px, 5.6vw, 30px); line-height: 1.15; }
+    }
+
+    #ch-eblog-{{ section.id }} .ch-eblog__btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px;
+      border-radius: 10px; background: var(--brand); color: #fff;
+      font-size: 14px; font-weight: 700; text-decoration: none; white-space: nowrap;
+      transition: background .15s, transform .15s;
+    }
+    #ch-eblog-{{ section.id }} .ch-eblog__btn:hover { filter: brightness(.9); transform: translateY(-1px); }
+    @media (max-width: 739.98px) {
+      #ch-eblog-{{ section.id }} .ch-eblog__btn { font-size: 13px; padding: 8px 14px; }
+    }
+
+    #ch-eblog-{{ section.id }} .ch-eblog__viewport { position: relative; overflow: visible; }
+    #ch-eblog-{{ section.id }} .ch-eblog__track {
+      display: flex; gap: 12px; list-style: none; margin: 0; padding: 0;
+      overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    }
+    #ch-eblog-{{ section.id }} .ch-eblog__track::-webkit-scrollbar { display: none; }
+
+    #ch-eblog-{{ section.id }} .ch-eblog__cell { flex: 0 0 25%; max-width: 25%; scroll-snap-align: start; }
+    @media (max-width: 1099.98px) {
+      #ch-eblog-{{ section.id }} .ch-eblog__cell { flex: 0 0 33.333%; max-width: 33.333%; }
+    }
+    @media (max-width: 739.98px) {
+      #ch-eblog-{{ section.id }} .ch-eblog__viewport {
+        width: calc(100vw - (env(safe-area-inset-left) + env(safe-area-inset-right)));
+        margin-left: calc(50% - 50vw + env(safe-area-inset-left));
+        margin-right: calc(50% - 50vw + env(safe-area-inset-right));
+      }
+      #ch-eblog-{{ section.id }} .ch-eblog__track {
+        scroll-padding-inline: max(16px, env(safe-area-inset-left));
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: 30vw;
+      }
+      #ch-eblog-{{ section.id }} .ch-eblog__cell { flex: 0 0 60vw; max-width: 60vw; width: 60vw; }
+      #ch-eblog-{{ section.id }} .ch-eblog__arrows { display: none !important; }
+    }
+
+    #ch-eblog-{{ section.id }} .ch-eblog-card {
+      position: relative; display: block; width: 100%; aspect-ratio: 3/4;
+      min-height: 240px; border-radius: 22px; overflow: hidden;
+      background: #f3f4f6; color: #111; text-decoration: none;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,.12), 0 8px 10px -6px rgba(0,0,0,.1);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    #ch-eblog-{{ section.id }} .ch-eblog-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 14px 30px -5px rgba(0,0,0,.18);
+    }
+    @media (max-width: 739.98px) {
+      #ch-eblog-{{ section.id }} .ch-eblog-card { min-height: 150px; }
+    }
+
+    #ch-eblog-{{ section.id }} .ch-eblog-card__media { position: absolute; inset: 0; }
+    #ch-eblog-{{ section.id }} .ch-eblog-card__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    #ch-eblog-{{ section.id }} .ch-eblog-card__ph { width: 100%; height: 100%; object-fit: cover; }
+
+    #ch-eblog-{{ section.id }} .ch-eblog-card__overlay {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-end; padding: 18px 16px;
+      background: linear-gradient(to top, rgba(0,0,0,.65) 0%, rgba(0,0,0,.15) 50%, transparent 100%);
+      color: #fff; transition: background .2s;
+    }
+    #ch-eblog-{{ section.id }} .ch-eblog-card:hover .ch-eblog-card__overlay {
+      background: linear-gradient(to top, rgba(0,0,0,.72) 0%, rgba(0,0,0,.2) 55%, transparent 100%);
+    }
+
+    #ch-eblog-{{ section.id }} .ch-eblog-card__date {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; opacity: .85; margin-bottom: 4px;
+    }
+    #ch-eblog-{{ section.id }} .ch-eblog-card__title {
+      font-size: 16px; font-weight: 700; line-height: 1.2;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    #ch-eblog-{{ section.id }} .ch-eblog-card__excerpt {
+      font-size: 12px; margin-top: 4px; opacity: .8;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden; line-height: 1.35;
+    }
+    @media (max-width: 739.98px) {
+      #ch-eblog-{{ section.id }} .ch-eblog-card__title { font-size: 14px; }
+      #ch-eblog-{{ section.id }} .ch-eblog-card__overlay { padding: 14px 12px; }
+    }
+
+    #ch-eblog-{{ section.id }} .ch-eblog__arrows {
+      position: absolute; top: 50%; left: -16px; right: -16px;
+      transform: translateY(-50%); display: flex; justify-content: space-between;
+      pointer-events: none; z-index: 4;
+    }
+    #ch-eblog-{{ section.id }} .ch-eblog__arrow {
+      pointer-events: auto; width: 36px; height: 36px; border-radius: 50%;
+      border: 1.5px solid rgba(17,24,39,.12); background: #fff;
+      display: grid; place-items: center; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(0,0,0,.1);
+      transition: background .15s, border-color .15s, opacity .15s; color: #111827;
+    }
+    #ch-eblog-{{ section.id }} .ch-eblog__arrow:hover {
+      background: var(--brand); border-color: var(--brand); color: #fff;
+    }
+    #ch-eblog-{{ section.id }} .ch-eblog__arrow:hover svg { stroke: #fff; }
+    #ch-eblog-{{ section.id }} .ch-eblog__arrow:disabled { opacity: .3; cursor: default; pointer-events: none; }
+  </style>
+
+  <script>
+    (function () {
+      var section = document.getElementById('ch-eblog-{{ section.id }}');
+      if (!section) return;
+
+      function init(root) {
+        var track = root.querySelector('[data-eblog-track]');
+        var prevBtn = root.querySelector('[data-eblog-prev]');
+        var nextBtn = root.querySelector('[data-eblog-next]');
+        if (!track) return;
+
+        var cellWidth = function () {
+          var cell = track.querySelector('.ch-eblog__cell');
+          return cell ? cell.offsetWidth + 12 : 300;
+        };
+
+        function updateArrows() {
+          if (!prevBtn || !nextBtn) return;
+          prevBtn.disabled = track.scrollLeft <= 4;
+          nextBtn.disabled = track.scrollLeft + track.clientWidth >= track.scrollWidth - 4;
+        }
+
+        if (prevBtn) prevBtn.addEventListener('click', function () { track.scrollBy({ left: -cellWidth(), behavior: 'smooth' }); });
+        if (nextBtn) nextBtn.addEventListener('click', function () { track.scrollBy({ left: cellWidth(), behavior: 'smooth' }); });
+
+        track.addEventListener('scroll', updateArrows, { passive: true });
+        updateArrows();
+        new ResizeObserver(updateArrows).observe(track);
+      }
+
+      init(section);
+      document.addEventListener('shopify:section:load', function (e) {
+        var s = e.target.querySelector('[id^="ch-eblog-"]');
+        if (s) init(s);
+      });
+    })();
+  </script>
+</section>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Events (Blog)",
+  "tag": "section",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow label", "default": "CURATED EXPERIENCES" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Camerahaus Events" },
+    { "type": "blog", "id": "blog", "label": "Blog" },
+    { "type": "range", "id": "limit", "label": "Number of posts to show", "min": 2, "max": 12, "step": 1, "default": 6 },
+    { "type": "text", "id": "tag_filter", "label": "Tag filter (optional)", "info": "Only show posts with this tag. Leave blank for all posts." },
+    { "type": "text", "id": "date_format", "label": "Date format", "default": "%b %-d, %Y" },
+    { "type": "text", "id": "cta_label", "label": "CTA button label", "default": "Browse All Events →" },
+    { "type": "url", "id": "cta_url", "label": "CTA button URL", "info": "Defaults to the selected blog URL if empty." },
+    { "type": "color", "id": "brand", "label": "Accent color", "default": "#D12F24" },
+    { "type": "range", "id": "padding_top", "label": "Top padding (px)", "min": 0, "max": 80, "step": 4, "default": 28 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding (px)", "min": 0, "max": 80, "step": 4, "default": 24 }
+  ],
+  "presets": [
+    { "name": "Events (Blog)", "category": "Camerahaus" }
+  ]
+}
+{% endschema %}

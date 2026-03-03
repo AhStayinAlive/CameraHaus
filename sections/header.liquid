@@ -1,0 +1,322 @@
+{% comment %}
+CH Header — (red top bar + centered search button + dark-red nav band)
+- Desktop: predictive search panel + mega menus
+- Mobile: desktop-style search bar (white + red button) that opens existing right-side search panel
+- Mobile top row icons trimmed: remove Search & Wishlist, keep Cart
+- Bottom tab bar (mobile) wired to existing panels
+- Shy header (mobile): shrinks on scroll down, expands on scroll up
+
+NOTE: This file already includes the full desktop predictive search panel
+with working Suggestions and a dynamic “View "<query>” CTA.
+{% endcomment %}
+
+<section id="ch-header-{{ section.id }}" class="ch-header" role="banner">
+  {%- assign main_handle = section.settings.menu_main -%}
+  {%- assign parent_title = section.settings.categories_parent_title | default: 'Category' -%}
+  {%- assign stores_parent_title = section.settings.stores_parent_title | default: 'Stores' -%}
+  {%- assign menu_obj = linklists[main_handle] -%}
+
+
+  {%- assign categories_parent_index = -1 -%}
+  {% if menu_obj and menu_obj.links %}
+    {%- assign p_norm = parent_title | strip | downcase -%}
+    {% for l in menu_obj.links %}
+      {%- assign t_norm = l.title | strip | downcase -%}
+      {% if t_norm == p_norm %}{%- assign categories_parent_index = forloop.index0 -%}{% break %}{% endif %}
+    {% endfor %}
+    {% if categories_parent_index == -1 %}
+      {% for l in menu_obj.links %}
+        {%- assign t_norm = l.title | strip | downcase -%}
+        {% if t_norm contains 'categor' %}{%- assign categories_parent_index = forloop.index0 -%}{% break %}{% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if categories_parent_index == -1 %}
+      {% for l in menu_obj.links %}
+        {% if l.links and l.links.size > 0 %}{%- assign categories_parent_index = forloop.index0 -%}{% break %}{% endif %}
+      {% endfor %}
+    {% endif %}
+  {% endif %}
+
+  {%- assign icon_override_lines = section.settings.icon_overrides | default: '' | newline_to_br | split: '<br />' -%}
+  {%- assign search_prompts = section.settings.search_prompts | default: "Search Canon products\nSearch Nikon products\nSearch Sony E-mount lenses\nSearch gimbals\nSearch 128GB SD cards" | newline_to_br | split: '<br />' -%}
+  {% unless brand_rows %}
+  {% assign brand_rows = "
+  AgfaPhoto|agfaphoto-min.png|vendor:AgfaPhoto,
+  AKASO|akaso-min.png|vendor:AKASO,
+  Aputure|aputure-min.png|vendor:Aputure,
+  Benro|benro-min.png|vendor:Benro,
+  BetaFPV|betafpv-min.png|vendor:BetaFPV,
+  Billingham|billingham-min.png|vendor:Billingham,
+  Canon|canon-min.png|vendor:Canon,
+  DJI|dji-min.png|vendor:DJI,
+  Eirmai|eirmai-min.png|vendor:Eirmai,
+  FIMI|fimi-min.png|vendor:FIMI,
+  Fujifilm|fujifilm-min.png|vendor:Fujifilm,
+  GoPro|gopro-min.png|vendor:GoPro,
+  Holga|holga-min.png|vendor:Holga,
+  Hoya|hoya-min.png|vendor:Hoya,
+  Insta360|insta360-min.png|vendor:Insta360,
+  JJC|jjc-min.png|vendor:JJC,
+  K&F Concept|k&f-min.png|vendor:K&F Concept OR vendor:K&F,
+  Kenko|kenko-min.png|vendor:Kenko,
+  LUMIX|lumix-min.png|vendor:LUMIX OR vendor:Panasonic,
+  Manfrotto|manfrotto-min.png|vendor:Manfrotto,
+  Meike|meike-min.png|vendor:Meike,
+  Nikon|nikon-min.png|vendor:Nikon,
+  Sigma|sigma-min.png|vendor:Sigma,
+  Sony|sony-min.png|vendor:Sony,
+  Tamron|tamron-min.png|vendor:Tamron,
+  ZEISS|zeiss-min.png|vendor:ZEISS
+  " %}
+  {% endunless %}
+
+  
+  <div class="bar">
+    <div class="wrap row">
+      <!-- Mobile menu button -->
+      <button type="button" class="btn only-m" aria-label="Open menu" aria-controls="ch-menu-drawer" aria-expanded="false" data-open-drawer>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+
+      <!-- Logo -->
+      <a href="{{ routes.root_url }}" class="logo" aria-label="{{ shop.name }}">
+        {% if section.settings.logo %}
+          {% assign d_w = section.settings.logo_width_desktop | default: 200 %}
+          {% assign m_w = section.settings.logo_width_mobile  | default: 140 %}
+          {% assign mobile_logo = section.settings.logo_mobile | default: section.settings.logo %}
+          
+          {%- assign m_w_2x = m_w | times: 2 -%}
+          {%- assign d_w_2x = d_w | times: 2 -%}
+
+          <picture>
+            <source media="(max-width: 991px)" srcset="{{ mobile_logo | image_url: width: m_w }} 1x, {{ mobile_logo | image_url: width: m_w_2x }} 2x">
+            {%- assign logo_height = d_w | times: section.settings.logo.height | divided_by: section.settings.logo.width | round -%}
+            <img src="{{ section.settings.logo | image_url: width: d_w }}" 
+                 srcset="{{ section.settings.logo | image_url: width: d_w }} 1x, {{ section.settings.logo | image_url: width: d_w_2x }} 2x"
+                 alt="{{ section.settings.logo.alt | default: shop.name }}" 
+                 width="{{ d_w }}" 
+                 height="{{ logo_height }}" 
+                 class="logo__img" 
+                 fetchpriority="high" 
+                 loading="eager">
+          </picture>
+        {% else %}
+          <span style="font-weight:500; font-size:20px; line-height:1; letter-spacing:.2px; color:#fff;">{{ shop.name }}</span>
+        {% endif %}
+      </a>
+
+      {%- comment -%} DESKTOP SEARCH + PREDICTIVE PANEL {%- endcomment -%}
+      <div class="desk-search-wrap only-d" data-ps-wrap
+           data-prefill-url="{{ section.settings.default_preview_collection.url | default: '' }}"
+           data-prefill-handle="{{ section.settings.default_preview_collection.handle | default: '' }}"
+           data-limit="{{ section.settings.search_limit_products | default: 6 }}"
+           data-locale="{{ request.locale.iso_code | default: 'en-PH' }}"
+           data-currency="{{ shop.currency | default: 'PHP' }}">
+
+        <form action="{{ routes.search_url }}" method="get" class="desk-search" role="search" aria-label="Search site" novalidate>
+          <input type="search" name="q" placeholder="" aria-label="Search products"
+                 autocomplete="off" data-ps-input aria-controls="ps-panel-{{ section.id }}" aria-expanded="false">
+          <button class="sbtn" type="submit">search</button>
+        </form>
+        {% render 'ch-panel-search-mobile', section: section %}
+      </div>
+
+      <!-- Right icons (mobile: Cart only; desktop: Search + Account + Wishlist + Cart) -->
+      <div class="right">
+        <button class="btn only-d" aria-label="Search" data-panel-open="search" data-open-search>
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
+        </button>
+
+        <a href="/account" class="btn only-d" aria-label="Account">
+          <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>
+        </a>
+
+        {% assign cartCount = cart.item_count | default: 0 %}
+<a href="{{ routes.cart_url }}"
+   class="btn"
+   aria-label="Cart"
+   {% unless template.name == 'cart' %}
+     data-cart
+     data-panel-open="cart"
+   {% endunless %}>
+  <span class="cart-ico-wrap">
+    <svg class="ico ico-cart" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 3h2l2 11.5a2 2 0 0 0 2 1.5h8.2a2 2 0 0 0 2-1.5L21 8H6.2"/>
+      <circle cx="9.5" cy="19.5" r="1.6"/>
+      <circle cx="18"   cy="19.5" r="1.6"/>
+    </svg>
+
+    <span class="bubble{% if cartCount == 0 %} is-empty{% endif %}" data-cart-count>
+      {{ cartCount }}
+    </span>
+  </span>
+
+  {% if section.settings.show_cart_badge %}
+    <span class="sr-only" aria-live="polite" data-cart-live></span>
+  {% endif %}
+</a>
+
+
+
+      </div>
+    </div>
+
+    <!-- ===== Mobile search bar (opens existing side panel) ===== -->
+    <div class="wrap only-m">
+      <form class="m-search" role="search" action="{{ routes.search_url }}" onsubmit="return false">
+        <input type="search" aria-label="Search products" placeholder="" readonly data-open-search data-panel-open="search">
+        <button type="button" class="sbtn" data-open-search data-panel-open="search">search</button>
+      </form>
+    </div>
+
+    <!-- ===== LOWER NAV with visible triggers for mega ===== -->
+    <div class="nav-spacer" aria-hidden="true"></div>
+  </div>
+<nav class="nav-band only-d" role="navigation" aria-label="Main" style="background-color: #d12f24 !important;">
+  <div class="wrap nav">
+    <div class="nav-left">
+
+      {%- comment -%} Categories mega (single wrap) {%- endcomment -%}
+      <div data-mega="cats" class="mmg-wrap" aria-haspopup="true" aria-expanded="false">
+        <a href="{{ section.settings.categories_fallback_url | default: '/collections/all' }}">
+          All Categories <span class="chev" aria-hidden="true"></span>
+        </a>
+        {%- render 'ch-mega',
+          mode: 'cats',
+          menu_obj: menu_obj,
+          parent_title: section.settings.categories_parent_title,
+          categories_fallback_url: section.settings.categories_fallback_url
+        -%}
+      </div>
+
+      {%- comment -%} Brands mega - pulls from brands page section {%- endcomment -%}
+      <div data-mega="brands" class="mmg-wrap" aria-haspopup="true" aria-expanded="false">
+        <a href="{{ section.settings.brands_fallback_url | default: '/pages/brands' }}">
+          Brands <span class="chev" aria-hidden="true"></span>
+        </a>
+        {%- render 'ch-mega',
+          mode: 'brands',
+          brands_fallback_url: section.settings.brands_fallback_url,
+          header_section_blocks: section.blocks
+        -%}
+      </div>
+
+      {%- comment -%} Stores mega (Where to find us — one column) {%- endcomment -%}
+      <div data-mega="stores" class="mmg-wrap" aria-haspopup="true" aria-expanded="false">
+        <a href="{{ section.settings.stores_fallback_url | default: '/pages/store-branches' }}">
+          Where to find us <span class="chev" aria-hidden="true"></span>
+        </a>
+        {%- render 'ch-mega',
+          mode: 'stores',
+          menu_obj: menu_obj,
+          stores_parent_title: section.settings.stores_parent_title | default: 'Stores',
+          stores_fallback_url: section.settings.stores_fallback_url
+        -%}
+      </div>
+
+      {%- comment -%} Other top-level links (exclude Categories/Brands/Stores to avoid duplicates) {%- endcomment -%}
+      {% if menu_obj %}
+        {% assign p_norm = parent_title | strip | downcase %}
+        {% assign s_norm = stores_parent_title | strip | downcase %}
+        {% for l in menu_obj.links %}
+          {% assign t = l.title | strip | downcase %}
+          {% if t != 'brands' and t != p_norm and t != s_norm %}
+            {% unless t contains 'store' or t contains 'where to find' %}
+              <div data-mini>
+                <a href="{{ l.url }}"
+                   aria-haspopup="{% if l.links.size > 0 %}true{% else %}false{% endif %}"
+                   data-mini-link
+                   data-has-children="{% if l.links.size > 0 %}true{% else %}false{% endif %}">
+                  {{ l.title }}{% if l.links.size > 0 %}<span class="chev" aria-hidden="true"></span>{% endif %}
+                </a>
+                {% if l.links.size > 0 %}
+                  <div class="mega mini">
+                    <ul style="list-style:none; margin:0; padding:0;">
+                      {% for s in l.links %}<li><a href="{{ s.url }}">{{ s.title }}</a></li>{% endfor %}
+                    </ul>
+                  </div>
+                {% endif %}
+              </div>
+            {% endunless %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
+
+    </div>
+
+    <div>
+      {% if section.settings.support_email %}
+        <a href="mailto:{{ section.settings.support_email }}" class="contact">
+          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" ry="2"/><path d="M21 7l-9 6L3 7"/></svg>
+          {{ section.settings.support_email }}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
+
+<script type="application/json" data-ps-prompts>
+  {{ search_prompts | json }}
+</script>
+
+
+
+
+  {%- capture search_body -%}{% render 'ch-panel-search-mobile', section: section %}{%- endcapture -%}
+  {% render 'ch-side-panel', id: 'search', title: 'SEARCH OUR SITE', aria_label: 'Search our site', body: search_body %}
+
+  {% render 'ch-menu-drawer-mobile' %}
+
+</section>
+
+{% schema %}
+{
+  "name": "CH Header",
+  "settings": [
+    { "type": "image_picker", "id": "logo", "label": "Logo (desktop)" },
+    { "type": "image_picker", "id": "logo_mobile", "label": "Logo (mobile)" },
+    { "type": "range", "id": "logo_width_desktop", "label": "Logo width desktop (px)", "min": 120, "max": 600, "step": 5, "default": 200 },
+    { "type": "range", "id": "logo_width_mobile", "label": "Logo width mobile (px)", "min": 88, "max": 200, "step": 4, "default": 140 },
+
+    { "type": "link_list", "id": "menu_main", "label": "Main menu" },
+    { "type": "text", "id": "categories_parent_title", "label": "Categories parent title", "default": "Category" },
+    { "type": "url", "id": "categories_fallback_url", "label": "All Categories link" },
+    { "type": "url", "id": "brands_fallback_url", "label": "Brands link (fallback)" },
+
+    { "type": "collection", "id": "default_preview_collection", "label": "Search preview collection" },
+    { "type": "range", "id": "search_limit_products", "label": "Search: product limit", "min": 3, "max": 12, "step": 1, "default": 6 },
+
+    { "type": "text", "id": "support_email", "label": "Support email (lower band)", "default": "support@email.ph" },
+
+    { "type": "textarea", "id": "search_prompts", "label": "Rotating search prompts (one per line)", "default": "Search Canon products\nSearch Nikon products\nSearch Sony E-mount lenses\nSearch gimbals\nSearch 128GB SD cards" }
+  ],
+  "blocks": [
+    {
+      "type": "brand",
+      "name": "Brand (Mega Menu)",
+      "limit": 30,
+      "settings": [
+        {
+          "type": "text",
+          "id": "brand_name",
+          "label": "Brand Name",
+          "info": "e.g., Canon, Nikon, Sony"
+        },
+        {
+          "type": "image_picker",
+          "id": "brand_logo",
+          "label": "Brand Logo"
+        },
+        {
+          "type": "url",
+          "id": "brand_url",
+          "label": "Brand Collection URL"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    { "name": "CH Header" }
+  ]
+}
+{% endschema %}

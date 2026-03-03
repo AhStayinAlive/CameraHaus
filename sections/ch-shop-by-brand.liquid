@@ -29,7 +29,9 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
             <span class="chb-search-text" data-mobile="View brands">
               {{ section.settings.cta_text | default: 'Browse all brands' }}
             </span>
-            <svg class="chb-search-icon" width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">…</svg>
+            <svg class="chb-search-icon lucide lucide-arrow-right-icon lucide-arrow-right" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+            </svg>
           </a>
         {%- endif -%}
       </div>
@@ -60,23 +62,27 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
                 <a class="chb-photo-card" href="{{ link_url }}" aria-label="Shop {{ bname | escape }}" data-cta="Shop {{ bname | escape }}">
                   <span class="chb-photo-wrap" aria-hidden="true">
                     {%- if block.settings.brand_photo -%}
+                      {%- assign src_180  = block.settings.brand_photo | image_url: width: 180 -%}
+                      {%- assign src_240  = block.settings.brand_photo | image_url: width: 240 -%}
                       {%- assign src_360  = block.settings.brand_photo | image_url: width: 360 -%}
-                      {%- assign src_720  = block.settings.brand_photo | image_url: width: 720 -%}
-                      {%- assign src_1080 = block.settings.brand_photo | image_url: width: 1080 -%}
-                      {%- assign src_1440 = block.settings.brand_photo | image_url: width: 1440 -%}
+                      {%- assign src_480  = block.settings.brand_photo | image_url: width: 480 -%}
+                      {%- assign src_600  = block.settings.brand_photo | image_url: width: 600 -%}
                       <img class="chb-photo" loading="lazy" decoding="async" alt=""
-                           src="{{ src_720 }}"
-                           srcset="{{ src_360 }} 360w, {{ src_720 }} 720w, {{ src_1080 }} 1080w, {{ src_1440 }} 1440w"
-                           sizes="(min-width:1100px) 300px, (min-width:740px) 44vw, 80vw">
+                           src="{{ src_480 }}"
+                           srcset="{{ src_180 }} 180w, {{ src_240 }} 240w, {{ src_360 }} 360w, {{ src_480 }} 480w, {{ src_600 }} 600w"
+                           sizes="(min-width:1100px) 300px, (min-width:740px) 44vw, 50vw">
                     {%- endif -%}
                   </span>
                   <span class="chb-gradient" aria-hidden="true"></span>
                   <span class="chb-logo-wrap" aria-hidden="true">
                     {%- if block.settings.brand_logo -%}
-                      {%- assign lg_240 = block.settings.brand_logo | image_url: width: 240 -%}
-                      {%- assign lg_480 = block.settings.brand_logo | image_url: width: 480 -%}
+                      {%- assign lg_96  = block.settings.brand_logo | image_url: width: 96 -%}
+                      {%- assign lg_160 = block.settings.brand_logo | image_url: width: 160 -%}
                       <img class="chb-logo" loading="lazy" decoding="async" alt="{{ alt_text | escape }}"
-                           src="{{ lg_480 }}" srcset="{{ lg_240 }} 240w, {{ lg_480 }} 480w" sizes="40vw">
+                           src="{{ lg_96 }}" 
+                           srcset="{{ lg_96 }} 96w, {{ lg_160 }} 160w" 
+                           sizes="(min-width: 740px) 72px, 56px"
+                           width="96" height="96">
                     {%- else -%}
                       <span class="chb-text-logo">{{ bname }}</span>
                     {%- endif -%}
@@ -98,23 +104,27 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
                 <a class="chb-photo-card" href="{{ link_url }}" aria-label="Shop {{ bname | escape }}" data-cta="Shop {{ bname | escape }}">
                   <span class="chb-photo-wrap" aria-hidden="true">
                     {%- if block.settings.brand_photo -%}
+                      {%- assign src_180  = block.settings.brand_photo | image_url: width: 180 -%}
+                      {%- assign src_240  = block.settings.brand_photo | image_url: width: 240 -%}
                       {%- assign src_360  = block.settings.brand_photo | image_url: width: 360 -%}
-                      {%- assign src_720  = block.settings.brand_photo | image_url: width: 720 -%}
-                      {%- assign src_1080 = block.settings.brand_photo | image_url: width: 1080 -%}
-                      {%- assign src_1440 = block.settings.brand_photo | image_url: width: 1440 -%}
+                      {%- assign src_600  = block.settings.brand_photo | image_url: width: 600 -%}
+                      {%- assign src_800  = block.settings.brand_photo | image_url: width: 800 -%}
                       <img class="chb-photo" loading="lazy" decoding="async" alt=""
-                           src="{{ src_720 }}"
-                           srcset="{{ src_360 }} 360w, {{ src_720 }} 720w, {{ src_1080 }} 1080w, {{ src_1440 }} 1440w"
-                           sizes="(min-width:1100px) 300px, (min-width:740px) 44vw, 80vw">
+                           src="{{ src_600 }}"
+                           srcset="{{ src_180 }} 180w, {{ src_240 }} 240w, {{ src_360 }} 360w, {{ src_600 }} 600w, {{ src_800 }} 800w"
+                           sizes="(min-width:1100px) 300px, (min-width:740px) 44vw, 50vw">
                     {%- endif -%}
                   </span>
                   <span class="chb-gradient" aria-hidden="true"></span>
                   <span class="chb-logo-wrap" aria-hidden="true">
                     {%- if block.settings.brand_logo -%}
-                      {%- assign lg_240 = block.settings.brand_logo | image_url: width: 240 -%}
-                      {%- assign lg_480 = block.settings.brand_logo | image_url: width: 480 -%}
+                      {%- assign lg_96  = block.settings.brand_logo | image_url: width: 96 -%}
+                      {%- assign lg_160 = block.settings.brand_logo | image_url: width: 160 -%}
                       <img class="chb-logo" loading="lazy" decoding="async" alt="{{ alt_text | escape }}"
-                           src="{{ lg_480 }}" srcset="{{ lg_240 }} 240w, {{ lg_480 }} 480w" sizes="40vw">
+                           src="{{ lg_96 }}" 
+                           srcset="{{ lg_96 }} 96w, {{ lg_160 }} 160w" 
+                           sizes="(min-width: 740px) 72px, 56px"
+                           width="96" height="96">
                     {%- else -%}
                       <span class="chb-text-logo">{{ bname }}</span>
                     {%- endif -%}
@@ -145,8 +155,8 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
 
 <style>
 #ch-brands-{{ section.id }}{
-  padding-top:24px;
-  padding-bottom:24px;
+  padding-top:{{ section.settings.padding_top | default: 24 }}px;
+  padding-bottom:{{ section.settings.padding_bottom | default: 24 }}px;
   --brand:#D12F24;
   --gap: {{ section.settings.tile_gap | default: 14 }}px;
   --radius: {{ section.settings.tile_radius | default: 16 }}px;
@@ -169,30 +179,27 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
 
   #ch-brands-{{ section.id }} .chb-cta-btn{
     display:inline-flex; align-items:center;
-    min-width:40px; height:36px; padding:0 12px;
+    min-width:40px; height:36px; padding:0 14px;
     border:0; border-radius:8px; cursor:pointer; color:#fff; background:var(--brand);
     font-weight:700; line-height:1; text-decoration:none; position:relative;
-    padding-right:26px;
+    gap: 8px; /* space between text and icon */
   }
   #ch-brands-{{ section.id }} .chb-cta-btn::before,
-  #ch-brands-{{ section.id }} .chb-cta-btn *::before{ content:none !important; display:none !important; }
-  #ch-brands-{{ section.id }} .chb-search-icon{ display:none !important; }
-  #ch-brands-{{ section.id }} .chb-cta-btn::after{
-    content:"";
-    position:absolute; top:50%; right:8px;
-    width:10px; height:10px;
-    border-right:2px solid currentColor;
-    border-top:2px solid currentColor;
-    transform:translateY(-50%) rotate(45deg);
-    transition:transform .22s ease, opacity .22s ease;
+  #ch-brands-{{ section.id }} .chb-cta-btn *::before,
+  #ch-brands-{{ section.id }} .chb-cta-btn::after { content:none !important; display:none !important; }
+  
+  #ch-brands-{{ section.id }} .chb-search-icon{
+    display:block !important;
+    transition: transform .22s ease;
   }
+  
   @media (hover:hover){
     #ch-brands-{{ section.id }} .chb-cta-btn:hover{
       background: color-mix(in srgb, var(--brand) 88%, white 12%);
       box-shadow: 0 6px 18px rgba(0,0,0,.18);
     }
-    #ch-brands-{{ section.id }} .chb-cta-btn:hover::after{
-      transform: translateY(-50%) translateX(4px) rotate(45deg);
+    #ch-brands-{{ section.id }} .chb-cta-btn:hover .chb-search-icon{
+      transform: translateX(3px);
     }
   }
   #ch-brands-{{ section.id }} .chb-cta-btn:focus-visible{
@@ -251,7 +258,7 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
     box-shadow:0 2px 10px rgba(0,0,0,.18); opacity:0; transform:translateY(4px); transition:opacity .25s ease, transform .25s ease;
   }
   @media (hover:hover){ .chb-photo-card:hover::after{ opacity:1; transform:translateY(0); } }
-  @media (max-width:739.98px){ .chb-photo-card::after{ opacity:1; } }
+  @media (max-width:739.98px){ .chb-photo-card::after{ display:none; } }
 
   .chb-tile[data-featured="true"] .chb-photo-card{ box-shadow:0 0 0 2px var(--brand) inset, 0 10px 24px rgba(209,47,36,.14); }
   .chb-badge{ position:absolute; top:10px; left:10px; z-index:2; font-size:.75rem; color:#fff; background:var(--brand); border-radius:999px; padding:4px 8px; box-shadow:0 4px 10px rgba(0,0,0,.16); }
@@ -285,112 +292,155 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
       font-size: clamp(22px, 4.8vw, 28px);
     }
     #ch-brands-{{ section.id }} .chb-cta-btn{
-      height:28px; padding:0 24px 0 8px; border-radius:8px; line-height:1; white-space:nowrap;
+      height:32px; /* Increased from 28px */
+      padding:0 10px; border-radius:8px; line-height:1; white-space:nowrap;
+      font-size: 13px;
     }
     #ch-brands-{{ section.id }} .chb-search-text{ font-size:0; }
     #ch-brands-{{ section.id }} .chb-search-text::after{
-      content: attr(data-mobile); font-size:12px; font-weight:700;
+      content: attr(data-mobile); font-size:13px; font-weight:700;
     }
-    #ch-brands-{{ section.id }} .chb-cta-btn::after{ right:8px; width:9px; height:9px; }
+    #ch-brands-{{ section.id }} .chb-cta-btn svg { width:14px; height:14px; }
   }
 
   /* 👇 one-time float-in intro, card by card */
-  #ch-brands-{{ section.id }}.chb--pre .chb-tile{
-    opacity:0;
-    transform:translate3d(0,22px,0);
+  /* 👇 one-time float-in intro, card by card */
+  /* Initial hidden state when section has .chb--pre */
+  #ch-brands-{{ section.id }}.chb--pre .chb-tile {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
   }
 
-  /* tiles that are actively animating in */
-  #ch-brands-{{ section.id }} .chb-tile--intro{
-    animation: ch-fade-up .6s cubic-bezier(.22,.61,.36,1) forwards;
+  /* Active animation state applied by JS */
+  #ch-brands-{{ section.id }} .chb-tile--intro {
+    opacity: 0; /* Start hidden for animation */
+    animation: ch-fade-up 0.6s cubic-bezier(.22, .61, .36, 1) forwards;
     will-change: opacity, transform;
   }
 
-  #ch-brands-{{ section.id }}.chb--done .chb-tile{
-    opacity:1;
-    transform:none;
-    animation:none;
+  /* Done state (fallback) */
+  #ch-brands-{{ section.id }}.chb--done .chb-tile {
+    opacity: 1;
+    transform: none;
+    animation: none;
   }
 
-  @media (prefers-reduced-motion: reduce){
-    #ch-brands-{{ section.id }}.chb--pre .chb-tile{
-      opacity:1;
-      transform:none;
+  @media (prefers-reduced-motion: reduce) {
+    #ch-brands-{{ section.id }}.chb--pre .chb-tile {
+      opacity: 1;
+      transform: none;
     }
-    #ch-brands-{{ section.id }} .chb-tile--intro{
-      animation:none !important;
+    #ch-brands-{{ section.id }} .chb-tile--intro {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
     }
+  }
+
+  @keyframes ch-fade-up {
+    from { opacity: 0; transform: translate3d(0, 20px, 0); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0); }
   }
 </style>
 
 
 
-{{ 'ch-slider.js' | asset_url | script_tag }}
-
 <script>
   (function(){
-    var root = document.getElementById('ch-brands-{{ section.id }}');
-    if(!root) return;
+    function initBrandsSlider(){
+      var root = document.getElementById('ch-brands-{{ section.id }}');
+      if(!root) return;
 
-    // A-Z Filter Logic (Specific to this section, kept separate)
-    var azWrap = root.querySelector('[data-az]');
-    var tiles  = root.querySelectorAll('[data-tile]');
-    
-    // Initialize shared slider
-    var slider = new ChHorizontalSlider(root, {
-      trackSel: '[data-track]',
-      prevSel: '.chpc__arrow--prev',
-      nextSel: '.chpc__arrow--next',
-      dotsSel: '[data-dots]'
-    });
-
-    function applyFilters(){
-      var letter = root.getAttribute('data-letter') || 'all';
-      tiles.forEach(function(tile){
-        var first = tile.getAttribute('data-letter') || '';
-        var show = (letter === 'all' || first === letter);
-        tile.hidden = !show;
-      });
-      // Refresh slider logic (dots/arrows/pages) after visibility changes
-      slider.refresh();
-      // Optional: re-trigger intro if desired, or just let it be
+      var attempts = 0;
+      var interval = setInterval(function(){
+        if(typeof ChHorizontalSlider !== 'undefined'){
+          clearInterval(interval);
+          startSlider(root);
+        } else {
+          attempts++;
+          if(attempts > 50){ // 5 seconds max
+            clearInterval(interval);
+            console.warn("ChHorizontalSlider failed to load");
+            // Failsafe: show content so it's not hidden
+            root.classList.remove('chb--pre');
+            root.classList.add('chb--done');
+          }
+        }
+      }, 100);
     }
 
-    if(azWrap){
-      azWrap.addEventListener('click', function(e){
-        var btn = e.target.closest('.chb-chip'); if(!btn) return;
-        var letter = btn.getAttribute('data-letter');
-        root.setAttribute('data-letter', letter);
+    function startSlider(root){
+      // A-Z Filter Logic (Specific to this section, kept separate)
+      var azWrap = root.querySelector('[data-az]');
+      var tiles  = root.querySelectorAll('[data-tile]');
+      
+      // Initialize shared slider
+      var slider = new ChHorizontalSlider(root, {
+        trackSel: '[data-track]',
+        prevSel: '.chpc__arrow--prev',
+        nextSel: '.chpc__arrow--next',
+        dotsSel: '[data-dots]'
+      });
 
-        azWrap.querySelectorAll('.chb-chip').forEach(function(b){
-          var active = b === btn;
-          b.classList.toggle('is-active', active);
-          b.setAttribute('aria-pressed', active ? 'true' : 'false');
+      function applyFilters(skipIntro){
+        var letter = root.getAttribute('data-letter') || 'all';
+        tiles.forEach(function(tile){
+          var first = tile.getAttribute('data-letter') || '';
+          var show = (letter === 'all' || first === letter);
+          tile.hidden = !show;
         });
+        // Refresh slider logic (dots/arrows/pages) after visibility changes
+        slider.refresh();
+        
+        if(!skipIntro){
+          // Trigger intro animation (only for manual filter updates)
+          slider.hasIntro = false;
+          slider.runIntro();
+        }
+      }
 
-        applyFilters();
+      if(azWrap){
+        azWrap.addEventListener('click', function(e){
+          var btn = e.target.closest('.chb-chip'); if(!btn) return;
+          var letter = btn.getAttribute('data-letter');
+          root.setAttribute('data-letter', letter);
+
+          azWrap.querySelectorAll('.chb-chip').forEach(function(b){
+            var active = b === btn;
+            b.classList.toggle('is-active', active);
+            b.setAttribute('aria-pressed', active ? 'true' : 'false');
+          });
+
+          applyFilters(false);
+        });
+      }
+
+      // Analytics
+      root.addEventListener('click', function(e){
+        var link = e.target.closest('.chb-photo-card'); if(!link) return;
+        var tile = link.closest('[data-tile]'); if(!tile) return;
+        if(typeof window.gtag === 'function'){
+          try{
+            window.gtag('event','brand_click',{
+              event_category:'Shop by Brands',
+              event_label:(tile.getAttribute('data-brand')||'').toUpperCase(),
+              location:'carousel',
+              section_id:'{{ section.id }}'
+            });
+          }catch(err){}
+        }
       });
+
+      // Initial filter apply (WITHOUT triggering intro immediately)
+      // Let IntersectionObserver (in constructor) handle the float-in when scrolled into view.
+      applyFilters(true);
     }
 
-    // Analytics
-    root.addEventListener('click', function(e){
-      var link = e.target.closest('.chb-photo-card'); if(!link) return;
-      var tile = link.closest('[data-tile]'); if(!tile) return;
-      if(typeof window.gtag === 'function'){
-        try{
-          window.gtag('event','brand_click',{
-            event_category:'Shop by Brands',
-            event_label:(tile.getAttribute('data-brand')||'').toUpperCase(),
-            location:'carousel',
-            section_id:'{{ section.id }}'
-          });
-        }catch(err){}
-      }
-    });
-
-    // Initial filter apply
-    applyFilters();
-
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', initBrandsSlider);
+    } else {
+      initBrandsSlider();
+    }
   })();
 </script>
 </section>
@@ -407,7 +457,9 @@ Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button inste
 
     { "type": "checkbox", "id": "enable_az_filter", "label": "Enable A–Z filter chips", "default": false },
     { "type": "range", "id": "tile_gap", "label": "Gap (px)", "min": 6, "max": 24, "step": 2, "default": 14 },
-    { "type": "range", "id": "tile_radius", "label": "Tile corner radius (px)", "min": 8, "max": 28, "step": 2, "default": 16 }
+    { "type": "range", "id": "tile_radius", "label": "Tile corner radius (px)", "min": 8, "max": 28, "step": 2, "default": 16 },
+    { "type": "range", "id": "padding_top", "label": "Top padding (px)", "min": 0, "max": 80, "step": 4, "default": 24 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding (px)", "min": 0, "max": 80, "step": 4, "default": 24 }
   ],
   "blocks": [
     {

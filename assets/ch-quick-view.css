@@ -1,8 +1,22 @@
 /* STANDALONE QV STYLES (Extracted from ch-quick-view.liquid) */
+
+/* Prevent body scroll when quick view is open - robust method */
+html.ch-qv-open {
+    overflow: hidden !important;
+}
+
+body.ch-qv-open {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    top: var(--scroll-y, 0);
+}
+
 .stand-qv {
     position: fixed;
     inset: 0;
-    z-index: 9999;
+    z-index: 2147483647;
+    /* Force on top of everything including header */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -32,8 +46,8 @@
     position: relative;
     background: #fff;
     border-radius: 20px;
-    max-width: 1080px;
-    width: min(1080px, 96vw);
+    max-width: 1280px;
+    width: min(1280px, 96vw);
     max-height: 92vh;
     display: flex;
     overflow: hidden;
@@ -44,7 +58,7 @@
 }
 
 .stand-qv__panel.is-closing {
-    animation: qvOut .13s ease forwards;
+    QA animation: qvOut .13s ease forwards;
 }
 
 @keyframes qvIn {
@@ -432,6 +446,7 @@
     overflow: hidden;
     height: 38px;
     background: #fff;
+    opacity: 1 !important;
 }
 
 .ch-qty__btn {
@@ -460,8 +475,8 @@
 .ch-atc-btn {
     height: 38px;
     border-radius: 9999px;
-    background: #d12f24;
-    color: #fff;
+    background: #d12f24 !important;
+    color: #fff !important;
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -472,6 +487,7 @@
     cursor: pointer;
     position: relative;
     font-size: .7rem;
+    opacity: 1 !important;
 }
 
 .ch-atc-btn:hover {
@@ -486,6 +502,22 @@
 
 .ch-atc-btn.is-loading .ch-atc-label {
     opacity: 0;
+}
+
+/* 🔒 MAX IN CART STATE */
+.ch-atc-btn.is-maxed {
+    background: #f9fafb !important;
+    border: 1px solid #d1d5db !important;
+    color: #9ca3af !important;
+    cursor: default !important;
+    pointer-events: none !important;
+    box-shadow: none !important;
+}
+
+.ch-atc-btn.is-maxed:hover,
+.ch-atc-btn.is-maxed:focus {
+    background: #f9fafb !important;
+    transform: none !important;
 }
 
 .ch-atc-btn.is-loading::after {

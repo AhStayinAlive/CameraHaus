@@ -35,15 +35,17 @@ Mobile Menu Drawer — lines to edges, darker active cats, slide animations, ins
   top:0;
   left:0;
   width:var(--panel-w);
-  height:100%;
-  background:#fff;
+  height:100%;  background:#fff;
   color:var(--ink);
   border-right:1px solid var(--line);
   transform:translateX(-104%);
-  transition:transform .32s cubic-bezier(.22,.61,.36,1);
+  /* SMOOTHER: 0.4s with custom ease */
+  transition:transform .4s cubic-bezier(0.25, 1, 0.5, 1);
   z-index:11;
   display:flex;
   flex-direction:column;
+  padding-top:0 !important; /* prevent inheriting body padding */
+  margin-top:0 !important; /* prevent inherited margin */
 }
 
 #ch-menu-drawer.is-open .ch-mdrawer__panel{ 
@@ -54,30 +56,35 @@ Mobile Menu Drawer — lines to edges, darker active cats, slide animations, ins
 /* tabs */
 #ch-menu-drawer .ch-topbar{
   position:absolute;
-  top:0;
+  top:0 !important;
   left:0;
   right:0;
+  width:100%; /* force width */
   height:var(--ch-topbar-h);
   margin:0 !important;
+  padding-top:0 !important;
 
   background:#f6f6f6;
   border-bottom:1px solid var(--line);
   padding-right:56px; /* space for the X button */
   z-index:12;
+  display: flex;
+  align-items: stretch;
 }
 
 
-#ch-menu-drawer .ch-tabs{ display:grid; grid-template-columns:1fr 1fr; }
+#ch-menu-drawer .ch-tabs{ display:grid; grid-template-columns:1fr 1fr; flex:1; height:100%; }
 #ch-menu-drawer .ch-tab{
-  padding:22px 16px;
+  padding:0 16px; height:100%; display:flex; align-items:center; justify-content:center;
   font-weight:700; font-size:14px; color:#2b2b2b;
-  background:var(--tab-idle); border:0; border-bottom:1px solid var(--line);
+  background:var(--tab-idle); border:0; border-bottom:2px solid transparent;
   border-radius:0; cursor:pointer; position:relative; text-transform:uppercase; letter-spacing:.02em;
+  transition: border-color .2s ease, background .2s ease;
 }
 #ch-menu-drawer .ch-tab + .ch-tab{ border-left:1px solid var(--line); }
-#ch-menu-drawer .ch-tab.is-active{ background:var(--tab-active); }
-#ch-menu-drawer .ch-tab.is-active::after{
-  content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--brand);
+#ch-menu-drawer .ch-tab.is-active{ 
+  background:var(--tab-active); 
+  border-bottom-color:var(--brand);
 }
 
 /* INSIDE black “X” — nicer, top-right placement */
@@ -206,23 +213,7 @@ Mobile Menu Drawer — lines to edges, darker active cats, slide animations, ins
   outline:2px solid #111;
   outline-offset:2px;
 }
-/* FIX: remove extra padding/margin that pushes MENU/CATEGORIES down */
-#ch-menu-drawer .ch-mdrawer__panel{
-  padding: 0 !important;   /* kills the white band above the tabs */
-  margin: 0 !important;    /* in case theme gives it a top margin */
-}
-
-/* keep the topbar stuck to the top of the panel */
-/* keep the topbar stuck to the top of the panel */
-#ch-menu-drawer .ch-topbar{
-  /* position: relative;  <-- removed to fix gap on PDP */
-  top: 0;
-  margin: 0 !important;
-}
-#ch-menu-drawer.ch-mdrawer > .ch-mdrawer__panel{
-  padding-top:0 !important;
-  margin-top:0 !important;
-}
+#ch-menu-drawer .ch-tab:focus{ outline:none; }
 
 </style>
 
@@ -258,7 +249,7 @@ Mobile Menu Drawer — lines to edges, darker active cats, slide animations, ins
             </a>
           </li>
           <li>
-            <a class="ch-row" href="{{ _store_url }}">
+            <a class="ch-row" href="/pages/store-branches">
               <span class="ico" aria-hidden="true">
                 <!-- store locator -->
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
@@ -359,23 +350,6 @@ Mobile Menu Drawer — lines to edges, darker active cats, slide animations, ins
 
   let opener = null;
   let currentPane = 'menu';
-  function fixTopbarOffset() {
-    const panel = root.querySelector('.ch-mdrawer__panel');
-    const topbar = root.querySelector('.ch-topbar');
-    if (!panel || !topbar) return;
-
-    // reset any previous inline adjustment
-    topbar.style.marginTop = '';
-
-    const panelRect = panel.getBoundingClientRect();
-    const topbarRect = topbar.getBoundingClientRect();
-    const delta = topbarRect.top - panelRect.top;
-
-    // if header is pushed down, pull it back up
-    if (delta > 1) {
-      topbar.style.marginTop = '-' + delta + 'px';
-    }
-  }
 
   const setOpen = (open) => {
     root.classList.toggle('is-open', !!open);
@@ -385,9 +359,6 @@ Mobile Menu Drawer — lines to edges, darker active cats, slide animations, ins
     if (open) {
       opener = document.activeElement;
       (root.querySelector('button, a[href]') || root).focus();
-
-      // 🔧 fix header droop after layout has settled
-      requestAnimationFrame(fixTopbarOffset);
     } else {
       opener && opener.focus && opener.focus({ preventScroll: true });
     }

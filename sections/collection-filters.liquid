@@ -17,13 +17,12 @@
     assign _filters = collection.filters
   endif
 %}
-<script>
-  console.log('[CH Filters] Liquid Render - is_search: {{ is_search }}, filters size: {{ _filters.size }}');
-</script>
+
 
 {%- assign _grid_id = section.settings.grid_section_id | default: 'main-collection-product-grid' -%}
 
 {{ 'ch-filters.css' | asset_url | stylesheet_tag }}
+
 <section id="ch-filters-{{ section.id }}"
   class="ch ch-sidebar-nav"
   data-grid-section-id="{{ _grid_id }}"
@@ -453,10 +452,10 @@
     </div>
     <div class="ch-drawer__bd" data-form-slot></div>
   </aside>
-  
+
   <script>
 (() => {
-  console.log('[CH Filters] Script starting...');
+
   const SECTION_ID = '{{ section.id }}';
   let gridFetchController = null;
   let forceClearPrice = false;
@@ -493,13 +492,13 @@
   // ---------- SORT ----------
   function getSortValue() {
     const sel = document.querySelector(SORT_SELECTORS);
-    if (sel && typeof sel.value !== 'undefined') return sel.value || '';
+    if (sel && typeof sel.value !== 'undefined') return sel.value || 'best-selling';
     const u = new URL(location.href);
-    return u.searchParams.get('sort_by') || '';
+    return u.searchParams.get('sort_by') || 'best-selling';
   }
   function syncSortSelectToURL(uLike) {
     const u = uLike instanceof URL ? uLike : new URL(uLike, location.origin);
-    const current = u.searchParams.get('sort_by') || '';
+    const current = u.searchParams.get('sort_by') || 'best-selling';
     document.querySelectorAll(SORT_SELECTORS).forEach(s => {
       if (s && 'value' in s) s.value = current;
     });
@@ -562,7 +561,7 @@ applyFiltersDebounced(0);
   const $collectionRoot = $root.closest('.ch-collection');
   function syncCollectionCollapse() {
     if (!$collectionRoot) {
-        console.warn('[CH Filters] syncCollectionCollapse: No collection root found');
+
         return;
     }
     if (isMobile()) {
@@ -571,16 +570,16 @@ applyFiltersDebounced(0);
     }
     
     if (!$panel) {
-        console.error('[CH Filters] syncCollectionCollapse: Panel not found!');
+
         // If panel is missing, do not force remove class, just return
         return;
     }
 
     if ($panel.classList.contains('is-collapsed')) {
-      console.log('[CH Filters] Panel is collapsed -> Adding is-filter-collapsed to root');
+
       $collectionRoot.classList.add('is-filter-collapsed');
     } else {
-      console.log('[CH Filters] Panel is OPEN -> Removing is-filter-collapsed from root');
+
       $collectionRoot.classList.remove('is-filter-collapsed');
     }
   }
@@ -637,12 +636,12 @@ applyFiltersDebounced(0);
 
   // Listen for the shared grid's toggle event (from search/collection toolbar)
   document.addEventListener('ch:toggle-filters', (e) => {
-    console.log('[CH Filters] ch:toggle-filters received', e.detail);
+
     if(isMobile()){
-      console.log('[CH Filters] Toggling drawer (mobile)');
+
       $drawer.classList.contains('is-open') ? closeDrawer() : openDrawer();
     } else {
-      console.log('[CH Filters] Toggling panel (desktop)');
+
       $panel.classList.toggle('is-collapsed');
       syncCollectionCollapse();
     }
@@ -995,123 +994,105 @@ document.addEventListener('click', (e) => {
     if (!bar) return;
     bar.innerHTML = '';
 
-    // ----- Count chip -----
-    let countTxt = ($count?.textContent || '').trim();
-    const headerChips = [];
+    // -- Helper to add separator
+    const addSep = () => {
+        const sep = document.createElement('span');
+        sep.className = 'ch-sep';
+        bar.appendChild(sep);
+    };
 
+    // 1. COUNT CHIP: "14 Products Found" (14 is red)
+    let countTxt = ($count?.textContent || '').trim(); // e.g. "14 results"
     if (countTxt) {
-      countTxt = countTxt.replace(/\bresults\b/i, 'products found');
-      const countChip = document.createElement('span');
-      countChip.className = 'ch-chip ch-chip--count';
-      countChip.textContent = countTxt;
+      // Extract number
+      const numMatch = countTxt.match(/(\d+)/);
+      const number = numMatch ? numMatch[1] : '0';
+      
+      const countChip = document.createElement('div'); // Using div for flex alignment
+      countChip.className = 'ch-chip--count';
+      
+      // "<span class='ch-num'>14</span> Products Found"
+      countChip.innerHTML = `<span class="ch-num">${number}</span> Products Found`;
       bar.appendChild(countChip);
     }
 
-    // ----- List/filter chips -----
+    // 2. ACTIVE CHIPS
+    // Collect all active filters first so we can manage separators
+    const activeItems = [];
+
+    // Checkboxes
     $form.querySelectorAll('input[type="checkbox"]:checked').forEach((cb) => {
-      const label =
-        cb.closest('.ch-option')?.querySelector('.ch-label')?.textContent?.trim() ||
-        cb.value;
-      const chip = document.createElement('span');
-      chip.className = 'ch-chip';
-      chip.innerHTML = `<span class="ch-chip-text">${label}</span>`;
-
-      const x = document.createElement('button');
-      x.type = 'button';
-      x.setAttribute('aria-label', `Remove ${label}`);
-      x.addEventListener('click', () => {
-        console.log('[CH Filters] Standard chip remove clicked', { label, name: cb.name, value: cb.value });
-        console.log('[CH Filters] Standard chip remove clicked', { label, name: cb.name, value: cb.value });
-        // 1) Uncheck the underlying filter so applyFilters() sees the new state
-        cb.checked = false;
-
-        // 2) Trigger the removal animation immediately
-        chip.classList.add('is-removing');
-
-        let fired = false;
-        const run = () => {
-          if (fired) return;
-          fired = true;
-
-          // Physically remove this chip from the bar
-          if (chip.parentNode) chip.parentNode.removeChild(chip);
-
-          // Apply filters just like a normal checkbox change
-          if (isMobile()) {
-            showGridMask();
-            closeDrawer();
-            closeOverlay();
-          }
-          applyFilters(); // not debounced so it definitely runs once
-        };
-
-        // Prefer the CSS transition end
-        chip.addEventListener('transitionend', run, { once: true });
-
-        // Fallback in case transitionend never fires (edge cases / no transform)
-        setTimeout(run, 220);
-      });
-
-      chip.appendChild(x);
-      bar.appendChild(chip);
-      headerChips.push({ label, name: cb.name, value: cb.value });
+      const label = cb.closest('.ch-option')?.querySelector('.ch-label')?.textContent?.trim() || cb.value;
+      activeItems.push({ type:'checkbox', el: cb, label: label });
     });
 
-    // ----- Price chip -----
+    // Price
     const rMinNow = $form.querySelector('input[data-range="min"]');
     const rMaxNow = $form.querySelector('input[data-range="max"]');
+    if (rMinNow && rMaxNow) {
+        const cap = Number(rMaxNow.max || 0) || 0;
+        const lo = Number(rMinNow.value || 0);
+        const hi = Number(rMaxNow.value || 0);
+        const isDefault = (lo === 0 && (hi >= cap - 100)); // fuzzy match for float issues
+        
+        if (!isDefault) {
+             const label = `₱${Math.round(lo / 100).toLocaleString()} — ₱${Math.round(hi / 100).toLocaleString()}`;
+             activeItems.push({ type:'price', label: label });
+        }
+    }
 
-if (rMinNow && rMaxNow) {
-  const cap = Number(rMaxNow.max || 0) || 0;
-  const lo = Number(rMinNow.value || 0);
-  const hi = Number(rMaxNow.value || 0);
+    // Render Chips with separators
+    activeItems.forEach((item, index) => {
+        // Add separator before every chip (between count and first chip, and between chips)
+        // Note: count is always present? if so, yes. If no count, we might skip first sep.
+        // Assuming count is usually there.
+        addSep();
 
-  if (!(lo === 0 && (hi >= cap - 100))) {
-    const label = `₱${(lo / 100).toLocaleString()} — ₱${(hi / 100).toLocaleString()}`;
-    const chip = document.createElement('span');
-    chip.className = 'ch-chip';
-    chip.innerHTML = `<span class="ch-chip-text">${label}</span>`;
+        const chip = document.createElement('div');
+        chip.className = 'ch-chip';
+        // "x Label"
+        chip.innerHTML = `<button type="button" class="ch-x-btn" aria-label="Remove ${item.label}">×</button> ${item.label}`;
+        
+        // Click handler
+        chip.addEventListener('click', (e) => {
+            // Logic to remove
+            if(item.type === 'checkbox') {
+                 item.el.checked = false;
+                 // apply immediate UI feedback if desired
+                 chip.style.opacity = '0.5';
+                 if (isMobile()) { showGridMask(); closeDrawer(); closeOverlay(); }
+                 applyFiltersDebounced(0); // Debounce 0 to run next tick
+            } else if (item.type === 'price') {
+                 // reset price
+                 document.dispatchEvent(new CustomEvent('ch:reset-price'));
+            }
+        });
 
-    const x = document.createElement('button');
-    x.type = 'button';
-    x.setAttribute('aria-label', 'Reset price filter');
-    // optional: visible "x"
-    x.textContent = '×';
+        bar.appendChild(chip);
+    });
 
-x.addEventListener('click', () => {
-  // Tell the serializer to drop *all* price-related params
-  forceClearPrice = true;
+    // 3. CLEAR ALL (if any chips exist)
+    if (activeItems.length > 0) {
+        addSep(); // Separator before Clear button
 
-  // Optional: visually reset the UI right away
-  resetPriceToDefault();
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'ch-clear-btn';
+        clearBtn.textContent = 'Clear all';
+        // Optional "x" icon in textContent or SVG? User image has "x Clear all" (with x icon left or right?)
+        // Image 1: "Clear all x" (x on right). Image 2: "x Clear all". User text: "make the numebr red... style Clear all button (Red pill)".
+        // Img 2 has "x Clear all". Let's do that.
+        clearBtn.innerHTML = `× Clear all`;
 
-  if (isMobile()) {
-    showGridMask();
-    closeDrawer();
-    closeOverlay();
-  }
+        clearBtn.addEventListener('click', () => {
+             document.dispatchEvent(new CustomEvent('ch:clear-all'));
+        });
 
-  // No local buildChips() here – let the AJAX response dictate chips
-  applyFilters();
-});
-
-
-
-    chip.appendChild(x);
-    bar.appendChild(chip);
-    headerChips.push({ label });
-  }
-}
-
-
-    // Clear-all button only if there are any “real” chips
-    const hasChips = bar.querySelectorAll('.ch-chip:not(.ch-chip--count)').length > 0;
-    if (window.makeClearAll) window.makeClearAll(bar, hasChips);
-
-    // Optional: still broadcast for anything listening
-    document.dispatchEvent(
-      new CustomEvent('ch:filters-change', { detail: { chips: headerChips } })
-    );
+        bar.appendChild(clearBtn);
+    }
+    
+    // Dispatch event for other listeners
+    document.dispatchEvent( new CustomEvent('ch:filters-change', { detail: { count: activeItems.length } }) );
   }
 
   // ---------- GRID DETECTION ----------
@@ -1480,8 +1461,19 @@ if (e.target.matches('input[type="checkbox"]')) {
   });
 
   // init
-  buildChips();
-  syncCollectionCollapse();
+  const init = () => {
+    buildChips();
+    syncCollectionCollapse();
+    limitAllLists($form);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  window.addEventListener('pageshow', () => { setTimeout(init, 50); });
 
   // Reset price listener (moved from secondary IIFE to access resetPriceToDefault)
   document.addEventListener('ch:reset-price', () => {
@@ -1500,8 +1492,6 @@ if (e.target.matches('input[type="checkbox"]')) {
 
     applyFilters(); // not debounced, we want this to fire once
   });
-
-  limitAllLists($form);
 })();
 </script>
 
@@ -1512,7 +1502,7 @@ if (e.target.matches('input[type="checkbox"]')) {
    Internals: observeToolbar()
    -------------------------------------------------------------------- */
 (function () {
-  var HOST_SEL = '.active-facets, .active-facets-vertical, .facets__wrapper .active-facets';
+  var HOST_SEL = '.ch-chipline, [id^="ChFilterChips-"], .active-facets, .active-facets-vertical, .facets__wrapper .active-facets';
   var HIDE_SEL = '.active-facets__list, .active-facets__button, .active-facets__button-remove, .active-facets-vertical-browse';
   var DEFAULT_GRID_SELECTORS = [
     '#CollectionProductGrid',
@@ -1613,6 +1603,12 @@ if (e.target.matches('input[type="checkbox"]')) {
   function makeClearAll(bar, hasChips) {
     var root = bar || ensureGlobalChipBar();
     var btn = root.querySelector('[data-clear-all]');
+    
+    if (!hasChips) {
+      if (btn && btn.parentNode) btn.parentNode.removeChild(btn);
+      return null;
+    }
+
     if (!btn) {
       btn = document.createElement('button');
       btn.type = 'button';
@@ -1623,7 +1619,6 @@ if (e.target.matches('input[type="checkbox"]')) {
       });
       root.appendChild(btn);
     }
-    btn.style.display = hasChips ? 'inline-flex' : 'none';
     return btn;
   }
 

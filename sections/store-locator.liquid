@@ -1,0 +1,1006 @@
+<!-- =============== Store Locator (rev) =============== -->
+<section class="locator" id="store-locator" aria-label="Store locator">
+  <a class="skip" href="#sl-map">Skip to map</a>
+  <a class="skip" href="#sl-list">Skip to store list</a>
+
+  <!-- New top bar + semantic H2 -->
+  <div class="catc__top">
+    <h2 class="catc__heading">{{ section.settings.title | escape }}</h2>
+    <div class="catc__right"></div>
+  </div>
+
+  <div class="sl-shell">
+    <aside class="rail" aria-label="Store list and controls">
+      <!-- Controls -->
+      <div class="controls" role="search">
+        <div class="control-row">
+          <div class="search" role="searchbox">
+            <!-- White icon on brand-red chip -->
+            <span class="search-icon" aria-hidden="true">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M10 2a8 8 0 105.3 14.3l4.2 4.2 1.4-1.4-4.2-4.2A8 8 0 0010 2zm0 2a6 6 0 110 12 6 6 0 010-12z"
+                      fill="currentColor"/>
+              </svg>
+            </span>
+            <input
+              id="sl-search"
+              type="search"
+              placeholder="Search city, store, or address…"
+              autocomplete="off"
+            />
+            <button id="sl-clear" class="clear" aria-label="Clear search">×</button>
+          </div>
+        </div>
+
+        <div class="meta-section">
+          <div class="result-info">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+              <circle cx="12" cy="10" r="3"/>
+            </svg>
+            <span id="sl-count" class="count">0 stores</span>
+          </div>
+          <p id="sl-a11y-hint" class="assist" role="note">
+            Click any store to view on map
+          </p>
+        </div>
+      </div>
+
+      <!-- Scrollable rail body -->
+      <div class="rail-body" aria-describedby="sl-a11y-hint">
+        <ul id="sl-list" class="store-list" role="list" aria-label="Store results"></ul>
+      </div>
+    </aside>
+
+    <div id="sl-map" class="map" role="region" aria-label="Map of store locations"></div>
+  </div>
+</section>
+
+<!-- Leaflet + MarkerCluster -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+
+<style>
+:root{
+  --brand: #d12f24;
+  --brand-dk: #b5281f;
+  --pin:   #ED1B24;
+  --pin-dk:#c2161d;
+  --ink:#0a0a0a;
+  --muted:rgba(0,0,0,.65);
+  --hair:#e6e7ee;
+  --card:#fff;
+  --radius:12px;
+  --radius-lg:14px;
+  --shadow:0 1px 2px rgba(0,0,0,.06), 0 8px 24px rgba(0,0,0,.06);
+  --focus:0 0 0 3px rgba(17,17,17,.2);
+  --maxw:1280px;
+  --ink-strong:#2b2f36;
+}
+
+  /* Base */
+  .locator{
+    max-width:var(--maxw);
+    margin:0 auto;
+    padding:16px 16px 24px;
+    color:var(--ink);
+    font:14px/1.43 system-ui,-apple-system,"Segoe UI",Roboto,Arial;
+  }
+
+  /* Header */
+.catc__top{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+  padding:8px 0 16px;
+  border-bottom:1px solid var(--hair);
+  margin-bottom:16px;
+}
+
+.catc__heading{
+  font-size:clamp(24px, 2.4vw + 8px, 34px);
+  font-weight: var(--font-heading-weight, 600);
+  letter-spacing:-0.01em;
+  line-height:1.1;
+  margin:0;
+  text-align:center;
+  color: var(--heading-color, var(--ink-strong));
+}
+
+  .skip{ position:absolute; left:-10000px; width:1px; height:1px; overflow:hidden; }
+  .skip:focus{
+    position:static; display:inline-block; padding:6px 10px; background:#fff;
+    border:1px solid #111; border-radius:8px; margin-bottom:8px;
+  }
+
+  /* Layout */
+  .sl-shell{
+    display:grid;
+    gap:24px;
+    grid-template-columns:minmax(360px,420px) 1fr;
+    align-items:stretch;
+  }
+  .rail{
+    height:80vh;
+    min-height:520px;
+    display:flex;
+    flex-direction:column;
+  }
+  .rail-body{
+    flex:1;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    margin-top:16px;
+    padding-right:8px;
+  }
+  .map{
+    height:80vh;
+    min-height:520px;
+    border-radius:var(--radius);
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .leaflet-container{ background:#f5f6fa; }
+
+  /* Controls panel */
+  .controls{
+    position:sticky;
+    top:16px;
+    z-index:5;
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    padding:12px;
+  }
+  .control-row{ display:flex; flex-direction:column; gap:12px; }
+
+  /* Search group */
+  .search{
+    display:flex; align-items:center;
+    border:1px solid #e5e7eb; border-radius:12px;
+    background:#fff; height:48px; overflow:hidden;
+    box-shadow:0 1px 3px rgba(0,0,0,0.06);
+    transition:box-shadow .2s ease, border-color .2s ease;
+  }
+  .search:focus-within{ border-color:var(--brand); box-shadow:0 0 0 3px rgba(209,47,36,0.15); }
+  
+  .search-icon{
+    flex:none; width:48px; height:100%;
+    background:var(--brand);
+    color:#fff !important;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .search-icon .icon,
+  .search-icon svg {
+    width:22px; height:22px;
+    color:#fff !important;
+    fill:#fff !important;
+  }
+  .search-icon .icon path,
+  .search-icon svg path {
+    fill:#fff !important;
+    stroke:none;
+  }
+
+  .search input{
+    flex:1; height:100%; border:0; outline:0; font-size:15px; padding:0 12px;
+    background:#fff; color:var(--ink);
+  }
+  .search input::placeholder{ color:#9ca3af; }
+  .clear{
+    flex:none; border:0; background:transparent; width:40px; height:100%;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color:#9ca3af; font-size:20px;
+    transition:color .2s;
+  }
+  .clear:hover{ color:var(--ink); background:#f9fafb; }
+
+  .meta-section{ 
+    margin-top:16px; 
+    padding:12px 0 8px;
+    border-top:1px solid #F3F4F6;
+  }
+  .result-info{ display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+  .result-info svg{ color:#6B7280; flex-shrink:0; }
+  .count{ color:#374151; font-weight:600; font-size:14px; }
+  .assist{ margin:0; color:#9CA3AF; font-size:13px; line-height:1.5; }
+
+  /* List / cards */
+  .store-list{
+    list-style:none; margin:0; padding:0; display:grid; gap:12px;
+  }
+
+  /* Entrance animation */
+  .store-card{
+    background:var(--card);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow);
+    padding:16px;
+    border:1px solid transparent;
+    transition:
+      background-color .22s ease,
+      color .22s ease,
+      border-color .22s ease,
+      box-shadow .22s ease,
+      transform .22s ease,
+      opacity .18s ease;
+    opacity:0; transform:translateY(6px);
+    animation:sl-in .24s ease forwards;
+    will-change: transform, box-shadow, background-color, color;
+  }
+  @keyframes sl-in{ to{ opacity:1; transform:translateY(0);} }
+
+  /* Hover */
+  .store-card:hover{
+    background:var(--brand);
+    color:#fff;
+    transform:translateY(-3px) scale(1.015);
+    box-shadow:0 2px 4px rgba(0,0,0,.08), 0 14px 32px rgba(0,0,0,.16);
+    border-color:var(--brand);
+  }
+  .store-card:hover .store-name{ color:#fff; }
+  .store-card:hover .locality{ color:#fff; }
+  .store-card:hover .loc-ico{ color:#fff; }
+  .store-card:hover .status{
+    background:rgba(255,255,255,.16);
+    color:#fff;
+    transition: background-color .22s ease, color .22s ease;
+  }
+
+  /* Active/selected */
+  .store-card[aria-selected="true"]{
+    background:var(--brand-dk);
+    color:#fff;
+    border-color:var(--brand-dk);
+  }
+  .store-card[aria-selected="true"] .store-name,
+  .store-card[aria-selected="true"] .locality,
+  .store-card[aria-selected="true"] .loc-ico,
+  .store-card[aria-selected="true"] .status{ color:#fff; }
+  .store-card[aria-selected="true"] .status{ background:rgba(255,255,255,.16); }
+
+  .store-card:focus-within{ outline:none; box-shadow:var(--focus); }
+
+  .row{ display:flex; gap:8px; align-items:flex-start; justify-content:space-between; }
+  .store-name{ font-size:19px; font-weight:600; line-height:28px; margin:0; }
+  .locality{
+    color:var(--muted); line-height:20px; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    display:flex; align-items:center; gap:6px;
+  }
+  .loc-ico{ width:16px; height:16px; color:var(--brand); flex:0 0 16px; }
+
+  .status{
+    flex:none; font-size:11px; font-weight:600; padding:4px 10px; border-radius:6px; background:#F3F4F6; color:#6B7280; line-height:1; text-transform:uppercase; letter-spacing:0.03em;
+  }
+  .status.open{ background:#D1FAE5; color:#065F46; }
+  .status.closed{ background:rgba(209,47,36,.12); color:#d12f24; }
+
+  .store-card button.toggle{ all:unset; display:block; width:100%; cursor:pointer; }
+  .store-card button.toggle:focus-visible{ outline:none; box-shadow:var(--focus); border-radius:10px; }
+  .store-card button.toggle::after, .store-card button.toggle::before { display:none !important; }
+
+  /* Custom clusters */
+  .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large{ background:transparent !important; }
+  .marker-cluster div{ background:transparent !important; border:none !important; }
+  .ch-cluster{
+    width:40px; height:40px; border-radius:999px;
+    background:var(--brand); color:#fff; border:2px solid #fff;
+    display:flex; align-items:center; justify-content:center; font-weight:700;
+    box-shadow:0 2px 10px rgba(0,0,0,.18);
+  }
+
+  /* Camerahaus pins */
+  .ch-pin{
+    position:relative;
+    width:34px; height:34px; border-radius:999px;
+    background:var(--brand);
+    border:3px solid var(--brand);
+    box-shadow:0 2px 10px rgba(0,0,0,.18);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .ch-pin--active{ transform:scale(1.08); border-color:var(--brand-dk); }
+  .ch-pin-img{
+    width:72%; height:72%;
+    display:block; object-fit:contain;
+    clip-path:circle(50% at 50% 50%);  /* hide square corners */
+    border-radius:50%;
+  }
+
+  /* Marker interaction */
+  .leaflet-marker-icon .ch-pin,
+  .leaflet-marker-icon .ch-pin *{ pointer-events:none; }
+
+  /* Mobile */
+  @media (max-width:980px){
+    .locator{ font-size:12.5px; }
+    .sl-shell{
+      grid-template-rows:auto minmax(240px,40vh) minmax(200px,50vh);
+      grid-template-columns:1fr;
+      gap:0;
+    }
+    .rail{ display:contents; height:auto; min-height:unset; }
+    .controls{
+      grid-area:1/1; position:sticky; top:0; z-index:30; padding:10px 12px 8px;
+      border-radius:0; box-shadow:0 6px 24px rgba(0,0,0,.06);
+    }
+    .control-row{ display:block; }
+    .search{ height:48px; border-radius:12px; }
+    .search-icon{ width:48px; }
+    .map{
+      grid-area:2/1; height:40vh; min-height:240px; width:100%;
+      border-radius:0; box-shadow:none;
+    }
+    .rail-body{
+      grid-area:3/1; max-height:50vh; overflow-y:auto; overflow-x:hidden; padding:10px 12px 16px;
+    }
+    .store-card{ border-radius:16px; padding:14px; }
+    .store-name{ font-size:16px; line-height:24px; }
+    .locality{ font-size:12.5px; line-height:18px; }
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    .store-card,.clear{ transition:none !important; }
+    .store-card{ animation:none !important; opacity:1 !important; transform:none !important; }
+  }
+</style>
+
+{% assign chicon = 'chicon.jpg' | file_url %}
+
+<script>
+(() => {
+  const ICON_URLS = ["{{ chicon }}", "/content/files/chicon.jpg", "/files/chicon.jpg"];
+
+  /* ===== Time / Open status helpers ===== */
+  const PH_TZ = 'Asia/Manila';
+  const daily = (o,c)=>({0:[[o,c]],1:[[o,c]],2:[[o,c]],3:[[o,c]],4:[[o,c]],5:[[o,c]],6:[[o,c]]});
+  const mw_th = (o,c)=>({1:[[o,c]],2:[[o,c]],3:[[o,c]],4:[[o,c]]});
+  const th_su = (o,c)=>({4:[[o,c]],5:[[o,c]],6:[[o,c]],0:[[o,c]]});
+  const mon_wed = (o,c)=>({1:[[o,c]],2:[[o,c]],3:[[o,c]]});
+  const fri = (o,c)=>({5:[[o,c]]});
+  const sat_sun = (o,c)=>({6:[[o,c]],0:[[o,c]]});
+  const mon_fri = (o,c)=>({1:[[o,c]],2:[[o,c]],3:[[o,c]],4:[[o,c]],5:[[o,c]]});
+  const mergeSchedules=(...p)=>{const o={0:[],1:[],2:[],3:[],4:[],5:[],6:[]};p.forEach(x=>Object.keys(x).forEach(d=>o[d].push(...x[d])));for(let d=0;d<7;d++){if(!o[d])o[d]=[]}return o;}
+  const toMinutes=t=>{const [h,m]=t.split(':').map(Number);return h*60+(m||0);}
+  const phNow=()=>{const fmt=new Intl.DateTimeFormat('en-CA',{timeZone:PH_TZ,hour12:false,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit'});const parts=fmt.formatToParts(new Date());const g=t=>Number(parts.find(p=>p.type===t).value);return new Date(g('year'),g('month')-1,g('day'),g('hour'),g('minute'),g('second'));}
+  const isOpenNow=s=>{const n=phNow(),d=n.getDay(),m=n.getHours()*60+n.getMinutes(),r=(s&&s[d])||[];return r.some(([o,c])=>{const O=toMinutes(o),C=toMinutes(c);return m>=O&&m<=C;});}
+
+  /* ===== Store data populated from Liquid Schema (with fallback) ===== */
+  const LIQUID_EPOCH = [
+    {% for block in section.blocks %}
+    {
+      id: "{{ block.id }}",
+      name: `{{ block.settings.title | escape }}`,
+      address: `{{ block.settings.address | escape }}`,
+      city: `{{ block.settings.city | escape }}`,
+      phones: "{{ block.settings.phone_list | strip_newlines }}".split(',').map(s=>s.trim()).filter(Boolean),
+      hours: `{{ block.settings.hours_display | strip_newlines | replace: '\n', '\\n' }}`,
+      coords: { lat: {{ block.settings.lat | default: 0 }}, lng: {{ block.settings.lng | default: 0 }} },
+      schedule: (function(){
+        try {
+          {% if block.settings.schedule_code != blank %}
+            return {{ block.settings.schedule_code }};
+          {% else %}
+            return daily('{{ block.settings.open_time }}', '{{ block.settings.close_time }}');
+          {% endif %}
+        } catch(e){ console.error("Store schedule error", e); return daily('10:00','21:00'); }
+      })()
+    }{% unless forloop.last %},{% endunless %}
+    {% endfor %}
+  ];
+
+  const DEFAULT_STORES = [
+    {
+      id: "def_mbay", name: "CameraHaus Ayala Malls Manila Bay",
+      address: "4th floor, Bay Area Building, Macapagal Blvd., Tambo Paranaque City",
+      city: "Parañaque",
+      phones: ["(0998) 9690980", "7943-0196"],
+      hours: "Mon–Wed 10:00am–9:00pm\nThurs–Sun 10:00am–10:00pm",
+      coords: { lat: 14.5233, lng: 120.9884 },
+      schedule: mergeSchedules(mon_wed('10:00','21:00'), th_su('10:00','22:00'))
+    },
+    {
+      id: "def_north", name: "CameraHaus Plus SM North EDSA",
+      address: "5F, Cyberzone Annex",
+      city: "Quezon City",
+      phones: ["(02) 8332-8927", "(0998) 969-0655"],
+      hours: "Sun–Sat 10:00am–10:00pm",
+      coords: { lat: 14.657027, lng: 121.030479 },
+      schedule: daily('10:00','22:00')
+    },
+    {
+      id: "def_mega", name: "CameraHaus Plus Megamall",
+      address: "4F, Building B, Cyberzone, SM Megamall",
+      city: "Mandaluyong",
+      phones: ["(02) 8635-6039", "(0998) 969-0652"],
+      hours: "Monday–Sunday 10:00am–10:00pm",
+      coords: { lat: 14.585735, lng: 121.057037 },
+      schedule: daily('10:00','22:00')
+    },
+    {
+      id: "def_moa", name: "CameraHaus Plus SM Mall of Asia",
+      address: "2nd Floor, Cyberzone Mall of Asia",
+      city: "Pasay",
+      phones: ["(02) 8889-0795", "(0998) 969-0656"],
+      hours: "Mon–Fri 11:00am–9:00pm / Sat–Sun 10:00am–10:00pm",
+      coords: { lat: 14.535067, lng: 120.982155 },
+      schedule: mergeSchedules(mon_fri('11:00','21:00'), sat_sun('10:00','22:00'))
+    },
+    {
+      id: "def_glorietta", name: "CameraHaus Glorietta 2",
+      address: "3F, Ayala Center",
+      city: "Makati City",
+      phones: ["(02) 7625-3756", "(0998) 969-0654"],
+      hours: "Mon–Thu 10:00am–9:00pm / Sat–Sun 10:00am–10:00pm",
+      coords: { lat: 14.5512, lng: 121.0260 },
+      schedule: mergeSchedules(mw_th('10:00','21:00'), sat_sun('10:00','22:00'), fri('10:00','21:00'))
+    },
+    {
+      id: "def_aura", name: "CameraHaus Plus SM Aura",
+      address: "4th floor SM Aura Premier, Fort Bonifacio Global City",
+      city: "Taguig",
+      phones: ["(02) 8847-9676", "(0998) 969-0651"],
+      hours: "Mon–Sunday 10:00am–10:00pm",
+      coords: { lat: 14.5353, lng: 121.0547 },
+      schedule: daily('10:00','22:00')
+    },
+    {
+      id: "def_ermita", name: "CameraHaus Robinsons Place Ermita",
+      address: "3F, Pedro Gil Wing, Ermita",
+      city: "Manila",
+      phones: ["(02) 8732-0126", "(0998) 969-0646"],
+      hours: "Mon–Sun 10:00am–10:00pm",
+      coords: { lat: 14.5774, lng: 120.9854 },
+      schedule: daily('10:00','22:00')
+    },
+    {
+      id: "def_baguio", name: "CameraHaus SM Baguio",
+      address: "3rd Flr, SM City Baguio",
+      city: "Baguio",
+      phones: ["(0998) 969 0648"],
+      hours: "Mon–Thu 10:00am–9:00pm\nFri–Sun 10:00am–10:00pm",
+      coords: { lat: 16.4110, lng: 120.5940 },
+      schedule: mergeSchedules(mw_th('10:00','21:00'), th_su('10:00','22:00'))
+    },
+    {
+      id: "def_iloilo", name: "CameraHaus SM Iloilo",
+      address: "3rd Floor, SM City Iloilo",
+      city: "Iloilo",
+      phones: ["(033) 320-3631", "(0998) 969-0974"],
+      hours: "Daily 10:00am–10:00pm",
+      coords: { lat: 10.7200, lng: 122.5550 },
+      schedule: daily('10:00','22:00')
+    },
+    {
+      id: "def_cebu", name: "CameraHaus SM Cebu",
+      address: "Upper Ground Flr, SM City Cebu",
+      city: "Cebu City",
+      phones: ["(032) 239-5878", "(0998) 969-0973"],
+      hours: "Daily 10:00am–9:00pm",
+      coords: { lat: 10.3110, lng: 123.9180 },
+      schedule: daily('10:00','21:00')
+    },
+    {
+      id: "def_davao", name: "CameraHaus SM Davao",
+      address: "Ground Floor, SM City Davao",
+      city: "Davao",
+      phones: ["(082) 297-8460", "(0933) 147-9365"],
+      hours: "Daily 10:00am–8:00pm",
+      coords: { lat: 7.0630, lng: 125.6070 },
+      schedule: daily('10:00','20:00')
+    },
+    {
+      id: "def_abreeza", name: "CameraHaus Abreeza Davao",
+      address: "3F, Abreeza Mall",
+      city: "Davao City",
+      phones: ["(082) 321-4298", "(0933) 518-8378"],
+      hours: "Daily 10:00am–9:00pm",
+      coords: { lat: 7.0910, lng: 125.6130 },
+      schedule: daily('10:00','21:00')
+    },
+    {
+      id: "def_gensan", name: "CameraHaus Gensan",
+      address: "Upper Ground Floor, Mall of Gensan",
+      city: "General Santos City",
+      phones: ["(085) 815-4438", "(0946) 268 2940"],
+      hours: "Daily 10:00am–9:00pm",
+      coords: { lat: 6.1210, lng: 125.1760 },
+      schedule: daily('10:00','21:00')
+    },
+    {
+      id: "def_butuan", name: "CameraHaus Butuan",
+      address: "VCDU Bldg, J.C Aquino Ave., Elloso St., Brgy Imadejas",
+      city: "Butuan",
+      phones: ["(083) 552-6588", "(0998) 866 6399"],
+      hours: "Daily 10:00am–9:00pm",
+      coords: { lat: 8.9490, lng: 125.5430 },
+      schedule: daily('10:00','21:00')
+    },
+    {
+      id: "def_cdo", name: "Camerahaus Cagayan De Oro",
+      address: "3F, SM CDO Downtown Premier",
+      city: "Cagayan de Oro",
+      phones: ["0906 383 0283", "0968 855 9855"],
+      hours: "Daily 10:00am–9:00pm",
+      coords: { lat: 8.4820, lng: 124.6460 },
+      schedule: daily('10:00','21:00')
+    },
+    {
+      id: "def_fuji", name: "Fujifilm Concept Store Manila Bay Ayala",
+      address: "4th floor, Bay Area Building, Macapagal Blvd., Tambo Paranaque City",
+      city: "Parañaque",
+      phones: ["(0998) 9690980", "7943-0196"],
+      hours: "Mon–Wed 10:00am–9:00pm\nThurs–Sun 10:00am–10:00pm",
+      coords: { lat: 14.5233, lng: 120.9884 },
+      schedule: mergeSchedules(mon_wed('10:00','21:00'), th_su('10:00','22:00'))
+    },
+    {
+      id: "def_canon", name: "Canon SM Megamall",
+      address: "4th Floor Canon Image Square, Cyberzone Bldg B, SM Megamall",
+      city: "Mandaluyong",
+      phones: ["8681-4468", "(0998) 969-0653"],
+      hours: "Mon–Sun 10:00am–10:00pm",
+      coords: { lat: 14.585735, lng: 121.057037 },
+      schedule: daily('10:00','22:00')
+    }
+  ];
+
+  /* Use Liquid blocks if available (user edited), else Default */
+  const STORE_DATA = LIQUID_EPOCH.length > 0 ? LIQUID_EPOCH : DEFAULT_STORES;
+
+  /* ===== DOM refs ===== */
+  const els = {
+    list: document.getElementById('sl-list'),
+    search: document.getElementById('sl-search'),
+    clear: document.getElementById('sl-clear'),
+    count: document.getElementById('sl-count'),
+    map: document.getElementById('sl-map'),
+  };
+  const isMobile = matchMedia('(max-width:980px)').matches;
+
+  /* ===== Leaflet map setup ===== */
+  const PH_BOUNDS = [[4.3,116.0],[21.3,127.3]];
+  const map = L.map(els.map, {
+    scrollWheelZoom: !isMobile,
+    touchZoom: true,
+    preferCanvas: true,
+    maxBounds: PH_BOUNDS,
+    maxBoundsViscosity: .7
+  });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap &copy; CARTO'
+  }).addTo(map);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19,
+    pane: 'overlayPane'
+  }).addTo(map);
+
+  // Cluster
+  const cluster = L.markerClusterGroup({
+    spiderfyOnMaxZoom:true,
+    iconCreateFunction: (c) => {
+      const count = c.getChildCount();
+      const size = count >= 50 ? 54 : count >= 10 ? 46 : 40;
+      const html = `<div class="ch-cluster" style="width:${size}px;height:${size}px;font-size:${Math.max(12, Math.min(18, size*0.38))}px">${count}</div>`;
+      return L.divIcon({ html, className:'', iconSize:[size, size] });
+    }
+  });
+
+  cluster.on('clusterclick', (e) => {
+    const children = e.layer.getAllChildMarkers();
+    if (!children || !children.length) return;
+    if (map.getZoom() >= map.getMaxZoom()){
+      e.layer.spiderfy();
+      setTimeout(() => children[0].openPopup(), 0);
+      return;
+    }
+    map.once('moveend', () => {
+      const first = children[0];
+      if (first) first.openPopup();
+    });
+    e.layer.zoomToBounds();
+  });
+
+  function camIcon(active=false){
+    const src = "{{ chicon }}";
+    const html = `<div class="ch-pin ${active ? 'ch-pin--active' : ''}"><img class="ch-pin-img" src="${src}" alt=""></div>`;
+    return L.divIcon({ className:'', html, iconSize:[34,34], iconAnchor:[17,34], popupAnchor:[0,-30] });
+  }
+
+  const POPUP_MAX = isMobile ? 240 : 360;
+  const POPUP_MIN = isMobile ? 180 : 280;
+  const markersById = new Map();
+  let activeId = null;
+
+  function popupHTML(s){
+    const addrText = `${s.address}, ${s.city}`;
+    const dest = encodeURIComponent(addrText);
+    const phoneHtml = s.phones?.length ? `<div style="margin-top:6px;"><strong>Phone</strong><br>${s.phones.map(p=>`<a href="tel:${p.replace(/[^0-9+]/g,'')}" style="color:#2563eb">${p}</a>`).join(' · ')}</div>` : '';
+    const hoursHtml = s.hours ? `<div style="margin-top:6px;"><strong>Hours</strong><br><pre style="margin:0; font-family:inherit; white-space:pre-line;">${s.hours}</pre></div>` : '';
+
+    return `
+      <div style="min-width:${POPUP_MIN-20}px; max-width:${POPUP_MAX-20}px; font-size:${isMobile?'12px':'13px'}; line-height:1.4;">
+        <div style="font-weight:700; margin-bottom:4px">${s.name}</div>
+        <div style="color:rgba(0,0,0,.7)">${addrText}</div>
+        ${phoneHtml}
+        ${hoursHtml}
+        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap">
+          <a href="https://www.google.com/maps/dir/?api=1&destination=${dest}" target="_blank" rel="noopener"
+             style="background:#d12f24; color:#fff; padding:6px 10px; border-radius:999px; text-decoration:none; font-weight:700; font-size:${isMobile?'12px':'13px'}; line-height:1.2;">
+            Get directions
+          </a>
+          <button class="sl-copy" data-copy="${addrText}"
+             style="border:1px solid #ddd; background:#fff; padding:6px 10px; border-radius:999px; cursor:pointer; font-size:${isMobile?'12px':'13px'}; line-height:1.2;">
+            Copy address
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  // create markers
+  STORE_DATA.forEach(s => {
+    if (!s.coords || !s.coords.lat) return;
+    const m = L.marker([s.coords.lat, s.coords.lng], {
+      icon: camIcon(false), keyboard: false, riseOnHover: true
+    });
+    m.on('click', function () {
+      activeId = s.id;
+      markersById.forEach((mk, mid) => mk.setIcon(camIcon(mid === s.id)));
+      cluster.zoomToShowLayer(this, () => {
+        this.setPopupContent(popupHTML(s));
+        this.openPopup();
+      });
+    });
+    m.bindPopup(popupHTML(s), {
+      className: 'sl-popup', maxWidth: POPUP_MAX, minWidth: POPUP_MIN, autoPan: true, autoPanPadding:[20,20]
+    });
+    cluster.addLayer(m);
+    markersById.set(s.id, m);
+  });
+
+  map.addLayer(cluster);
+  map.whenReady(() => setTimeout(()=> map.invalidateSize(), 60));
+  try { map.fitBounds(cluster.getBounds().pad(0.2)); } 
+  catch(_) { map.setView([12.8797,121.7740], 5); }
+  window.addEventListener('orientationchange', () => setTimeout(()=> map.invalidateSize(), 120), {passive:true});
+
+  /* ===== Search + list rendering ===== */
+  let query = '';
+  let timer;
+  const localityText = s => [s.address?.split(',')[0]||'', s.city||''].filter(Boolean).join(', ');
+  const statusPill = s => {
+    const open = isOpenNow(s.schedule);
+    return `<span class="status ${open ? 'open' : 'closed'}">${open ? 'Open' : 'Closed'}</span>`;
+  };
+
+  const locIcon = `
+    <svg class="loc-ico" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+      <path stroke-linecap="round" stroke-linejoin="round"
+            d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349M3.75 21V9.349m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .414.336.75.75.75Z"/>
+    </svg>`;
+
+  function storeCard(s, i){
+    return `
+      <li class="store-card" style="animation-delay:${i*40}ms" data-id="${s.id}" aria-selected="${activeId===s.id?'true':'false'}">
+        <button class="toggle" aria-label="Show ${s.name} on map" data-id="${s.id}">
+          <div class="row">
+            <h3 class="store-name">${s.name}</h3>
+            ${statusPill(s)}
+          </div>
+          <div class="locality" title="${localityText(s)}">${locIcon}${localityText(s)}</div>
+        </button>
+      </li>
+    `;
+  }
+
+  function filtered(){
+    const q = query.trim().toLowerCase();
+    if (!q) return STORE_DATA;
+    return STORE_DATA.filter(s =>
+      s.name.toLowerCase().includes(q) ||
+      (s.city||'').toLowerCase().includes(q) ||
+      (s.address||'').toLowerCase().includes(q)
+    );
+  }
+
+  function renderList(items){
+    els.list.innerHTML = items.map((s,i)=>storeCard(s,i)).join('');
+    els.count.textContent = `${items.length} result${items.length!==1?'s':''}`;
+    els.list.querySelectorAll('.toggle').forEach(btn=>{
+      btn.addEventListener('click', () => selectStore(btn.dataset.id, {center:true, open:true}));
+      btn.addEventListener('keydown', e=>{ if (e.key==='Enter' || e.key===' '){ e.preventDefault(); btn.click(); } });
+    });
+  }
+
+  renderList(filtered());
+  els.search.addEventListener('input', ()=>{ clearTimeout(timer); timer = setTimeout(()=>{ query = els.search.value; renderList(filtered()); }, 160); });
+  els.clear.addEventListener('click', ()=>{ els.search.value=''; query=''; renderList(filtered()); els.search.focus(); });
+
+  function selectStore(id, opts={center:false, open:false}){
+    activeId = id;
+    document.querySelectorAll('.store-card').forEach(c => c.setAttribute('aria-selected', c.dataset.id===id?'true':'false'));
+    markersById.forEach((m, mid)=> m.setIcon(camIcon(mid===id)));
+    const m = markersById.get(id);
+    if (!m) return;
+    cluster.zoomToShowLayer(m, function(){
+      if (opts.center){ map.setView(m.getLatLng(), Math.max(map.getZoom(), 15), {animate:true}); }
+      if (opts.open){
+        const s = STORE_DATA.find(x=>x.id===id);
+        m.setPopupContent(popupHTML(s));
+        m.openPopup();
+      }
+      if (isMobile){
+        const top = window.scrollY + els.map.getBoundingClientRect().top - 8;
+        window.scrollTo({top, behavior:'smooth'});
+      }
+    });
+  }
+
+  document.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('.sl-copy');
+    if (!btn) return;
+    try{
+      await navigator.clipboard.writeText(btn.dataset.copy);
+      btn.textContent='Copied!';
+      setTimeout(()=>btn.textContent='Copy address',1200);
+    }catch(_){}
+  });
+
+  window.addEventListener('load', () => {
+    document.querySelectorAll('.ch-pin').forEach(el => {
+      const hasImg = getComputedStyle(el).backgroundImage !== 'none';
+      if(!hasImg){ const f=el.querySelector('.ch-pin-fallback'); if(f) f.style.display='flex'; }
+    });
+  });
+
+  setInterval(()=> renderList(filtered()), 60000);
+})();
+</script>
+{% schema %}
+{
+  "name": "Store Locator",
+  "settings": [
+    { "type": "text", "id": "title", "label": "Heading", "default": "Find a Camerahaus near you" }
+  ],
+  "blocks": [
+    {
+      "type": "store",
+      "name": "Store",
+      "settings": [
+        { "type": "text", "id": "title", "label": "Store Name", "default": "Camerahaus" },
+        { "type": "textarea", "id": "address", "label": "Address" },
+        { "type": "text", "id": "city", "label": "City/Locality" },
+        { "type": "textarea", "id": "phone_list", "label": "Phone Numbers (comma separated)" },
+        { "type": "textarea", "id": "hours_display", "label": "Hours Text (for display)", "info": "e.g. Mon-Sun 10am-9pm" },
+        { "type": "text", "id": "lat", "label": "Latitude" },
+        { "type": "text", "id": "lng", "label": "Longitude" },
+        
+        { "type": "header", "content": "Schedule Logic" },
+        { "type": "paragraph", "content": "Use 'Simple' for daily same hours, or 'Advanced' for complex logic." },
+        { "type": "text", "id": "open_time", "label": "Simple Open Time (24h)", "default": "10:00" },
+        { "type": "text", "id": "close_time", "label": "Simple Close Time (24h)", "default": "21:00" },
+        { "type": "textarea", "id": "schedule_code", "label": "Advanced JS Schedule Logic", "info": "e.g. mergeSchedules(mon_fri('11:00','21:00'), sat_sun('10:00','22:00'))" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Store Locator",
+      "blocks": [
+        {
+          "type": "store",
+          "settings": {
+            "title": "CameraHaus Ayala Malls Manila Bay",
+            "address": "4th floor, Bay Area Building, Macapagal Blvd., Tambo Paranaque City",
+            "city": "Parañaque",
+            "phone_list": "(0998) 9690980, 7943-0196",
+            "hours_display": "Mon–Wed 10:00am–9:00pm\nThurs–Sun 10:00am–10:00pm",
+            "lat": "14.5233", "lng": "120.9884",
+            "schedule_code": "mergeSchedules(mon_wed('10:00','21:00'), th_su('10:00','22:00'))"
+          }
+        },
+        {
+          "type": "store",
+          "settings": {
+            "title": "CameraHaus Plus SM North EDSA",
+            "address": "5F, Cyberzone Annex",
+            "city": "Quezon City",
+            "phone_list": "(02) 8332-8927, (0998) 969-0655",
+            "hours_display": "Sun–Sat 10:00am–10:00pm",
+            "lat": "14.657027", "lng": "121.030479",
+            "schedule_code": "daily('10:00','22:00')"
+          }
+        },
+        {
+          "type": "store",
+          "settings": {
+            "title": "CameraHaus Plus Megamall",
+            "address": "4F, Building B, Cyberzone, SM Megamall",
+            "city": "Mandaluyong",
+            "phone_list": "(02) 8635-6039, (0998) 969-0652",
+            "hours_display": "Monday–Sunday 10:00am–10:00pm",
+            "lat": "14.585735", "lng": "121.057037",
+            "schedule_code": "daily('10:00','22:00')"
+          }
+        },
+        {
+          "type": "store",
+          "settings": {
+            "title": "CameraHaus Plus SM Mall of Asia",
+            "address": "2nd Floor, Cyberzone Mall of Asia",
+            "city": "Pasay",
+            "phone_list": "(02) 8889-0795, (0998) 969-0656",
+            "hours_display": "Mon–Fri 11:00am–9:00pm / Sat–Sun 10:00am–10:00pm",
+            "lat": "14.535067", "lng": "120.982155",
+            "schedule_code": "mergeSchedules(mon_fri('11:00','21:00'), sat_sun('10:00','22:00'))"
+          }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "CameraHaus Glorietta 2",
+             "address": "3F, Ayala Center",
+             "city": "Makati City",
+             "phone_list": "(02) 7625-3756, (0998) 969-0654",
+             "hours_display": "Mon–Thu 10:00am–9:00pm / Sat–Sun 10:00am–10:00pm",
+             "lat": "14.5512", "lng": "121.0260",
+             "schedule_code": "mergeSchedules(mw_th('10:00','21:00'), sat_sun('10:00','22:00'), fri('10:00','21:00'))"
+           }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "CameraHaus Plus SM Aura",
+             "address": "4th floor SM Aura Premier, Fort Bonifacio Global City",
+             "city": "Taguig",
+             "phone_list": "(02) 8847-9676, (0998) 969-0651",
+             "hours_display": "Mon–Sunday 10:00am–10:00pm",
+             "lat": "14.5353", "lng": "121.0547",
+             "schedule_code": "daily('10:00','22:00')"
+           }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "CameraHaus Robinsons Place Ermita",
+             "address": "3F, Pedro Gil Wing, Ermita",
+             "city": "Manila",
+             "phone_list": "(02) 8732-0126, (0998) 969-0646",
+             "hours_display": "Mon–Sun 10:00am–10:00pm",
+             "lat": "14.5774", "lng": "120.9854",
+             "schedule_code": "daily('10:00','22:00')"
+           }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "CameraHaus SM Baguio",
+             "address": "3rd Flr, SM City Baguio",
+             "city": "Baguio",
+             "phone_list": "(0998) 969 0648",
+             "hours_display": "Mon–Thu 10:00am–9:00pm\nFri–Sun 10:00am–10:00pm",
+             "lat": "16.4110", "lng": "120.5940",
+             "schedule_code": "mergeSchedules(mw_th('10:00','21:00'), th_su('10:00','22:00'))"
+           }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "CameraHaus SM Iloilo",
+             "address": "3rd Floor, SM City Iloilo",
+             "city": "Iloilo",
+             "phone_list": "(033) 320-3631, (0998) 969-0974",
+             "hours_display": "Daily 10:00am–10:00pm",
+             "lat": "10.7200", "lng": "122.5550",
+             "schedule_code": "daily('10:00','22:00')"
+           }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "CameraHaus SM Cebu",
+             "address": "Upper Ground Flr, SM City Cebu",
+             "city": "Cebu City",
+             "phone_list": "(032) 239-5878, (0998) 969-0973",
+             "hours_display": "Daily 10:00am–9:00pm",
+             "lat": "10.3110", "lng": "123.9180",
+             "schedule_code": "daily('10:00','21:00')"
+           }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "CameraHaus SM Davao",
+             "address": "Ground Floor, SM City Davao",
+             "city": "Davao",
+             "phone_list": "(082) 297-8460, (0933) 147-9365",
+             "hours_display": "Daily 10:00am–8:00pm",
+             "lat": "7.0630", "lng": "125.6070",
+             "schedule_code": "daily('10:00','20:00')"
+           }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "CameraHaus Abreeza Davao",
+             "address": "3F, Abreeza Mall",
+             "city": "Davao City",
+             "phone_list": "(082) 321-4298, (0933) 518-8378",
+             "hours_display": "Daily 10:00am–9:00pm",
+             "lat": "7.0910", "lng": "125.6130",
+             "schedule_code": "daily('10:00','21:00')"
+           }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "CameraHaus Gensan",
+             "address": "UPPER Ground Floor, Mall of Gensan",
+             "city": "General Santos City",
+             "phone_list": "(085) 815-4438, (0946) 268 2940",
+             "hours_display": "Daily 10:00am–9:00pm",
+             "lat": "6.1210", "lng": "125.1760",
+             "schedule_code": "daily('10:00','21:00')"
+           }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "CameraHaus Butuan",
+             "address": "VCDU Bldg, J.C Aquino Ave., Elloso St., Brgy Imadejas",
+             "city": "Butuan",
+             "phone_list": "(083) 552-6588, (0998) 866 6399",
+             "hours_display": "Daily 10:00am–9:00pm",
+             "lat": "8.9490", "lng": "125.5430",
+             "schedule_code": "daily('10:00','21:00')"
+           }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "Camerahaus Cagayan De Oro",
+             "address": "3F, SM CDO Downtown Premier",
+             "city": "Cagayan de Oro",
+             "phone_list": "0906 383 0283, 0968 855 9855",
+             "hours_display": "Daily 10:00am–9:00pm",
+             "lat": "8.4820", "lng": "124.6460",
+             "schedule_code": "daily('10:00','21:00')"
+           }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "Fujifilm Concept Store Manila Bay Ayala",
+             "address": "4th floor, Bay Area Building, Macapagal Blvd., Tambo Paranaque City",
+             "city": "Parañaque",
+             "phone_list": "(0998) 9690980, 7943-0196",
+             "hours_display": "Mon–Wed 10:00am–9:00pm\nThurs–Sun 10:00am–10:00pm",
+             "lat": "14.5233", "lng": "120.9884",
+             "schedule_code": "mergeSchedules(mon_wed('10:00','21:00'), th_su('10:00','22:00'))"
+           }
+        },
+        {
+           "type": "store",
+           "settings": {
+             "title": "Canon SM Megamall",
+             "address": "4th Floor Canon Image Square, Cyberzone Bldg B, SM Megamall",
+             "city": "Mandaluyong",
+             "phone_list": "8681-4468, (0998) 969-0653",
+             "hours_display": "Mon–Sun 10:00am–10:00pm",
+             "lat": "14.585735", "lng": "121.057037",
+             "schedule_code": "daily('10:00','22:00')"
+           }
+        }
+      ]
+    }
+  ]
+}
+{% endschema %}

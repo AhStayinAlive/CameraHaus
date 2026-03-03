@@ -25,6 +25,12 @@ class ChHorizontalSlider {
         this.currentPage = 0;
         this.hasIntro = false;
         this.mqDesktop = window.matchMedia('(min-width:1100px)');
+
+        // Caches for metrics to avoid reflows
+        this.cachedPageWidth = 1;
+        this.cachedTotalPages = 1;
+        this.isScrolling = false;
+
         this.mqMobile = window.matchMedia('(max-width:739.98px)');
 
         if (!this.track) return;
@@ -33,12 +39,25 @@ class ChHorizontalSlider {
     }
 
     init() {
-        this.track.addEventListener('scroll', () => this.onScroll(), { passive: true });
+        // Debounce/Throttle scroll
+        this.track.addEventListener('scroll', () => {
+            if (!this.isScrolling) {
+                window.requestAnimationFrame(() => {
+                    this.onScroll();
+                    this.isScrolling = false;
+                });
+                this.isScrolling = true;
+            }
+        }, { passive: true });
 
         if (this.btnPrev) this.btnPrev.addEventListener('click', () => this.scrollToPage(this.currentPage - 1));
         if (this.btnNext) this.btnNext.addEventListener('click', () => this.scrollToPage(this.currentPage + 1));
 
-        window.addEventListener('resize', () => this.refresh());
+        window.addEventListener('resize', () => {
+            // Debounce resize
+            clearTimeout(this.resizeTimer);
+            this.resizeTimer = setTimeout(() => this.refresh(), 150);
+        });
 
         if (this.mqDesktop.addEventListener) {
             this.mqDesktop.addEventListener('change', () => this.updateArrows());
@@ -66,21 +85,26 @@ class ChHorizontalSlider {
         this.refresh();
     }
 
-    pageWidth() {
-        return this.track ? this.track.clientWidth : 1;
-    }
+    // Read DOM once
+    measure() {
+        if (!this.track) return;
+        const cw = this.track.clientWidth || 1;
+        const sw = this.track.scrollWidth || 1;
 
-    pagesCount() {
-        if (!this.track) return 1;
-        return Math.max(1, Math.ceil((this.track.scrollWidth || 1) / (this.track.clientWidth || 1)));
+        this.cachedPageWidth = cw;
+        this.cachedTotalPages = Math.max(1, Math.ceil(sw / cw));
     }
 
     refresh() {
-        const needPages = this.pagesCount() > 1;
+        this.measure();
+
+        const needPages = this.cachedTotalPages > 1;
         if (!needPages) {
-            this.track.scrollLeft = 0;
+            // Only write if changed (though simple assignment is cheap)
+            if (this.track.scrollLeft !== 0) this.track.scrollLeft = 0;
             this.currentPage = 0;
         }
+
         this.buildDots();
         this.updateDots();
         this.updateArrows();
@@ -89,54 +113,55 @@ class ChHorizontalSlider {
     updateArrows() {
         if (!this.btnPrev || !this.btnNext) return;
 
-        // Desktop check (can be overridden if component is always-arrows)
-        // For now, mirroring the logic: if not desktop, hide arrows? 
-        // Actually, let's make it smarter: check computed style or option?
-        // The original code hid arrows on mobile via media query check.
-        if (!this.mqDesktop.matches) {
-            // logic from original: hidden on mobile/tablet usually
-            // but let's check if the button is actually visible via CSS
-        }
+        // Desktop check
+        // if (!this.mqDesktop.matches) { ... }
 
-        // Rely on CSS to hide if needed, but here we set disabled state
-        const n = this.pagesCount();
-        this.btnPrev.disabled = this.track.scrollLeft <= 10;
-        this.btnNext.disabled = (this.currentPage >= n - 1);
+        const n = this.cachedTotalPages;
 
-        // If logic specific to desktop-only display is required:
-        if (!this.mqDesktop.matches) {
-            this.btnPrev.style.display = 'none';
-            this.btnNext.style.display = 'none';
-        } else {
-            const need = n > 1;
-            this.btnPrev.style.display = need ? 'grid' : 'none';
-            this.btnNext.style.display = need ? 'grid' : 'none';
-        }
+        // Read scrollLeft is a reflow if dirty, but often necessary for arrows.
+        // We can use currentPage as a proxy if we trust it, but scrollLeft is truth.
+        // To minimize, we only check this inside the throttled/RAF loop.
+        const sl = this.track.scrollLeft;
+
+        const isAtStart = sl <= 10;
+        const isAtEnd = this.currentPage >= n - 1; // logical check
+
+        if (this.btnPrev.disabled !== isAtStart) this.btnPrev.disabled = isAtStart;
+        if (this.btnNext.disabled !== isAtEnd) this.btnNext.disabled = isAtEnd;
+
+        // Visibility
+        // Logic: hide if only 1 page
+        const need = n > 1;
+        const display = need ? 'grid' : 'none';
+
+        // Optimization: checking style before setting
+        if (this.btnPrev.style.display !== display) this.btnPrev.style.display = display;
+        if (this.btnNext.style.display !== display) this.btnNext.style.display = display;
     }
 
     scrollToPage(idx) {
-        const total = this.pagesCount();
+        const total = this.cachedTotalPages;
         if (idx < 0) idx = 0;
         if (idx > total - 1) idx = total - 1;
 
-        const left = idx * this.pageWidth();
+        const left = idx * this.cachedPageWidth;
         this.track.scrollTo({ left: left, behavior: 'smooth' });
         this.currentPage = idx;
 
         this.updateDots();
 
-        // Poll for scroll end to update arrows correctly
-        let polled = 0;
-        const poll = () => {
-            this.updateArrows();
-            polled++;
-            if (polled < 20) requestAnimationFrame(poll);
-        };
-        poll();
+        // Arrow update handled by scroll listener
     }
 
     onScroll() {
-        this.updateDots(); // simple update
+        // Recalculate current page based on scroll position
+        if (this.cachedPageWidth > 0) {
+            const page = Math.round(this.track.scrollLeft / this.cachedPageWidth);
+            if (page !== this.currentPage) {
+                this.currentPage = page;
+                this.updateDots();
+            }
+        }
         this.updateArrows();
     }
 
@@ -152,66 +177,88 @@ class ChHorizontalSlider {
 
     buildDots() {
         if (!this.dotsWrap) return;
-        const total = this.pagesCount();
-        this.dotsWrap.innerHTML = '';
+        const total = this.cachedTotalPages;
 
         if (total <= 1) {
             this.dotsWrap.style.display = 'none';
+            this.dotsWrap.innerHTML = ''; // Clear
             return;
         }
         this.dotsWrap.style.display = 'flex';
 
-        // Windowed dots
-        const start = this.windowStartFor(this.currentPage, total);
-        const count = Math.min(total, this.maxDots);
+        // Windowed dots logic...
+        // For performance, doing a full rebuild only if number of dots changes 
+        // or window shifts massively is safer.
+        // But the original logic was simple. Let's stick to simple but use cached total.
 
-        for (let i = 0; i < count; i++) {
-            const real = start + i;
-            const b = document.createElement('button');
-            b.type = 'button';
-            b.className = 'chpc__dot'; // reusing existing class
-            b.dataset.page = String(real);
-            b.ariaLabel = 'Go to page ' + (real + 1);
-            b.addEventListener('click', (e) => {
-                const p = parseInt(e.currentTarget.dataset.page, 10);
-                this.scrollToPage(p);
-            });
-            this.dotsWrap.appendChild(b);
-        }
+        this.renderDots(total);
+    }
+
+    renderDots(total) {
+        // We need to implement the windowing logic here during build? 
+        // Or just build the visible window.
+        // Original code built "count" dots based on window start.
+
+        // Let's rebuild every time the window start changes in updateDots.
+        // So buildDots just clears and calls updateDots essentially if we treat it that way.
+        // But original separate build/update.
+
+        // Let's rely on updateDots to manage the DOM to keep it simple and correct.
+        this.dotsWrap.innerHTML = '';
         this.updateDots();
     }
 
     updateDots() {
         if (!this.dotsWrap) return;
-        const total = this.pagesCount();
+        const total = this.cachedTotalPages;
         if (total <= 1) {
             this.dotsWrap.style.display = 'none';
             return;
         }
 
         const start = this.windowStartFor(this.currentPage, total);
-        const dots = this.dotsWrap.querySelectorAll('.chpc__dot');
+        const count = Math.min(total, this.maxDots);
 
-        // accessing existing dots vs rebuilding if window changed?
-        // Simpler to rebuild if length mismatch, but let's try to update attributes if same window
-        // Actually, "windowing" usually implies rebuilding content if indices shift.
-        // The original code rebuilt if length mismatch. 
-        // Let's just rebuild if the start index implies we need different numbers.
-        // To be efficient: check if first dot's page matches start.
-        if (dots.length > 0) {
-            const firstPage = parseInt(dots[0].dataset.page, 10);
-            if (firstPage !== start || dots.length !== Math.min(total, this.maxDots)) {
-                this.buildDots();
-                return;
-            }
+        // Check if we need to rebuild (if start index changed or count changed)
+        const currentDots = this.dotsWrap.querySelectorAll('.chpc__dot');
+        let needRebuild = false;
+
+        if (currentDots.length !== count) {
+            needRebuild = true;
+        } else if (currentDots.length > 0) {
+            const firstPage = parseInt(currentDots[0].dataset.page, 10);
+            if (firstPage !== start) needRebuild = true;
         } else {
-            this.buildDots();
-            return;
+            needRebuild = true;
         }
 
-        dots.forEach((b, i) => {
-            const real = start + i;
-            b.setAttribute('aria-current', real === this.currentPage ? 'true' : 'false');
+        if (needRebuild) {
+            const frag = document.createDocumentFragment();
+            for (let i = 0; i < count; i++) {
+                const real = start + i;
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'chpc__dot';
+                b.dataset.page = String(real);
+                b.ariaLabel = 'Go to page ' + (real + 1);
+                b.addEventListener('click', (e) => {
+                    const p = parseInt(e.currentTarget.dataset.page, 10);
+                    this.scrollToPage(p);
+                });
+                frag.appendChild(b);
+            }
+            this.dotsWrap.innerHTML = '';
+            this.dotsWrap.appendChild(frag);
+        }
+
+        // Active state
+        const all = this.dotsWrap.querySelectorAll('.chpc__dot');
+        all.forEach(b => {
+            const real = parseInt(b.dataset.page, 10);
+            const isCurrent = real === this.currentPage;
+            if (b.getAttribute('aria-current') !== String(isCurrent)) {
+                b.setAttribute('aria-current', isCurrent ? 'true' : 'false');
+            }
         });
     }
 
@@ -220,17 +267,17 @@ class ChHorizontalSlider {
         this.hasIntro = true;
 
         if (typeof this.onIntro === 'function') {
-            this.onIntro(this); // Allow custom animation logic
+            this.onIntro(this);
         } else {
-            // Default fade-up logic
             this.defaultIntro();
         }
     }
 
     defaultIntro() {
-        // Find tiles
         const tiles = this.root.querySelectorAll('[data-tile], .chpc__slide');
-        const visible = Array.from(tiles).filter(t => !t.hidden && t.offsetParent !== null); // check visibility
+        // Filter visible - this causes reflow (offsetParent).
+        // Since this runs once on intro, it's acceptable.
+        const visible = Array.from(tiles).filter(t => !t.hidden && t.offsetParent !== null);
 
         if (!visible.length) {
             this.root.classList.remove('chb--pre', 'chpc--pre');
@@ -238,7 +285,6 @@ class ChHorizontalSlider {
             return;
         }
 
-        // Reset
         visible.forEach(t => {
             t.classList.remove('chb-tile--intro', 'chpc-slide--intro');
             t.style.animationDelay = '';
@@ -246,17 +292,16 @@ class ChHorizontalSlider {
 
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
+                this.root.classList.add('is-animating'); // Trigger CSS visibility change
                 visible.forEach((t, i) => {
-                    // Mobile check for delay? 
                     const isMobile = this.mqMobile.matches;
                     t.style.animationDelay = isMobile ? '0ms' : (i * 70) + 'ms';
-                    // Assuming unified class or dual classes
-                    t.classList.add(t.hasAttribute('data-tile') ? 'chb-tile--intro' : 'chpc-slide--intro'); // heuristics
+                    t.classList.add(t.hasAttribute('data-tile') ? 'chb-tile--intro' : 'chpc-slide--intro');
                 });
 
                 const last = visible[visible.length - 1];
                 const onDone = () => {
-                    this.root.classList.remove('chb--pre', 'chpc--pre');
+                    this.root.classList.remove('chb--pre', 'chpc--pre', 'is-animating');
                     this.root.classList.add('chb--done', 'chpc--done');
                     visible.forEach(t => {
                         t.classList.remove('chb-tile--intro', 'chpc-slide--intro');
@@ -266,7 +311,7 @@ class ChHorizontalSlider {
 
                 if (last) {
                     last.addEventListener('animationend', onDone, { once: true });
-                    setTimeout(() => onDone(), 1000); // safety
+                    setTimeout(() => onDone(), 1000);
                 } else {
                     onDone();
                 }

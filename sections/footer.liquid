@@ -24,10 +24,12 @@
                 <div class="footer-logo text-{{ block.settings.align }}">
                   <a href="{{ routes.root_url }}" aria-label="{{ shop.name }}">
                     <img
-                      src="{{ 'ch_logo.png' | file_url }}"
+                      src="{{ 'ch_logo.png' | file_img_url: '360x' }}"
+                      srcset="{{ 'ch_logo.png' | file_img_url: '180x' }} 1x, {{ 'ch_logo.png' | file_img_url: '360x' }} 2x"
                       alt="{{ shop.name }} logo"
                       class="footer-logo__img"
-                      loading="lazy">
+                      loading="lazy"
+                      width="180" height="28">
                   </a>
                 </div>
 

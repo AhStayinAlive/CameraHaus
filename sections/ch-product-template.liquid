@@ -215,16 +215,21 @@ Current tweaks:
       {% endif %}
 
       <div class="ch-rating-row{% unless has_reviews %} ch-rating-row--muted{% endunless %}">
-        <span class="ch-stars-outline" aria-hidden="true">
-          <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
-        </span>
-        <span class="ch-rating-text">
-          {% if product.metafields.okendo.review_count > 0 %}
-            {{ product.metafields.okendo.review_count }} reviews
-          {% else %}
-            No reviews yet — be the first
-          {% endif %}
-        </span>
+        {% assign rating_count = product.metafields.reviews.rating_count.value | default: product.metafields.okendo.review_count | default: 0 %}
+        {% assign rating_val_obj = product.metafields.reviews.rating.value %}
+        {% assign rating_val = rating_val_obj.rating | default: rating_val_obj | default: product.metafields.okendo.average_rating | default: 0 %}
+        
+        {% if rating_count > 0 %}
+          <div class="ch-rating-custom" style="display:flex;align-items:center;gap:8px;font-size:14px;color:#111;font-weight:500;">
+            {% render 'ch-stars-5', rating_val: rating_val %}
+            <span class="ch-rating-text" style="line-height:1;">
+              <span class="ch-rating-avg">{{ rating_val | round: 1 }}</span>
+              <span class="ch-rating-count" style="color:#6b7280;font-weight:400;">({{ rating_count }})</span>
+            </span>
+          </div>
+        {% else %}
+           <span class="ch-rating-text" style="font-size:14px;color:#6b7280;">No reviews yet</span>
+        {% endif %}
       </div>
 
       {% form 'product', product, id: "AddToCartForm-{{ section.id }}", class: "ch-product-form" %}
@@ -255,6 +260,9 @@ Current tweaks:
                         data-value="{{ variant.id }}"
                         data-price="{{ variant.price }}"
                         data-compare="{{ variant.compare_at_price }}"
+                        {% if variant.inventory_management == 'shopify' and variant.inventory_policy == 'deny' %}
+                          data-max-qty="{{ variant.inventory_quantity }}"
+                        {% endif %}
                         role="option"
                         {% if variant.id == current_variant.id %}aria-selected="true"{% endif %}>
                       <span class="ch-vp-line">
@@ -288,10 +296,13 @@ Current tweaks:
         <select name="id" id="ProductSelect-{{ section.id }}" class="product-form__variants no-js ch-variant-native">
           {% for variant in product.variants %}
             {% if variant.available %}
-              <option {% if variant == current_variant %}selected="selected"{% endif %}
+                  <option {% if variant == current_variant %}selected="selected"{% endif %}
                       value="{{ variant.id }}"
                       data-price="{{ variant.price }}"
-                      data-compare="{{ variant.compare_at_price }}">
+                      data-compare="{{ variant.compare_at_price }}"
+                      {% if variant.inventory_management and variant.inventory_policy == 'deny' %}
+                        data-inventory-quantity="{{ variant.inventory_quantity }}"
+                      {% endif %}>
                 {{ variant.title }}
               </option>
             {% endif %}
@@ -307,18 +318,21 @@ Current tweaks:
           <div class="ch-qty">
             <button type="button" class="ch-qty__btn" data-act="minus" aria-label="Decrease quantity">−</button>
             <input type="number" id="Quantity" name="quantity" value="1" min="1" class="ch-qty__input" aria-label="Quantity">
-            <button type="button" class="ch-qty__btn" data-act="plus" aria-label="Increase quantity">+</button>
+                  <button type="button" class="ch-qty__btn" data-act="plus" aria-label="Increase quantity">+</button>
           </div>
 
-          <button
-            type="submit"
-            name="add"
-            id="AddToCart-{{ section.id }}"
-            class="ch-atc-btn{% unless current_variant.available %} is-disabled{% endunless %}"
+          <button type="submit" name="add" id="AddToCart-{{ section.id }}" 
+            data-max-qty="{{ product.selected_or_first_available_variant.inventory_quantity }}"
+            class="ch-atc-btn {% unless current_variant.available %}is-disabled{% endunless %}"
             {% unless current_variant.available %}disabled="disabled"{% endunless %}>
-            <span class="ch-atc-label">{{ 'products.product.add_to_cart' | t }}</span>
-            <!-- spinner is always in DOM, only shown while loading -->
-            <span class="ch-atc-spinner" aria-hidden="true"></span>
+            <span class="ch-atc-spinner"></span>
+            <span class="ch-atc-label">
+              {% if current_variant.available %}
+                {{ 'products.product.add_to_cart' | t }}
+              {% else %}
+                {{ 'products.product.sold_out' | t }}
+              {% endif %}
+            </span>
           </button>
         </div>
       {% endform %}
@@ -366,7 +380,7 @@ Current tweaks:
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 21s-6-5.686-6-10a6 6 0 1 1 12 0c0 4.314-6 10-6 10Z"/><circle cx="12" cy="11" r="2.5"/></svg>
               </div>
               <div class="ch-trust__body">
-                <a class="ch-trust__title ch-trust__link" href="/pages/store-locator">Find a Camerahaus near you →</a>
+                <a class="ch-trust__title ch-trust__link" href="/pages/store-branches">Find a Camerahaus near you →</a>
                 <p class="ch-trust__sub">See branches &amp; service</p>
               </div>
             </div>
@@ -386,6 +400,7 @@ Current tweaks:
 </script>
 
 <script>
+window.CH_CART = {{ cart | json }};
 (function(){
   var root = document.getElementById('ProductSection-{{ section.id }}');
   if (!root) return;
@@ -487,21 +502,32 @@ Current tweaks:
   function showCartErrorNotification(message) {
     if (!message) return;
 
+    // Prioritize mini-cart event dispatch
+    var dispatched = false;
+    try {
+      // Check if the drawer exists in DOM
+      var drawer = document.querySelector('.ch-panel[data-ch-panel="cart"]') || 
+                   document.querySelector('#CartDrawer') || 
+                   document.querySelector('.cart-drawer');
+      
+      if (drawer) {
+        document.dispatchEvent(
+          new CustomEvent('cart:inventory-warning', { detail: { message: message } })
+        );
+        dispatched = true;
+      }
+    } catch (e) {}
+
+    // If we dispatched to the drawer, DO NOT show alert() or fallback Notify
+    if (dispatched) return;
+
     if (window.theme && theme.Notify && typeof theme.Notify.open === 'function') {
       theme.Notify.open('error', message, true);
     } else if (window.Notify && typeof window.Notify.open === 'function') {
-      // If your Notify is attached directly to window
       window.Notify.open('error', message, true);
     } else {
       alert(message);
     }
-
-    // Also ping mini-cart listener for yellow bar if present
-    try {
-      document.dispatchEvent(
-        new CustomEvent('cart:inventory-warning', { detail: { message: message } })
-      );
-    } catch (e) {}
   }
 
   function buildInventoryMessage(variant, requestedQty, maxQty, data) {
@@ -681,19 +707,92 @@ Current tweaks:
     }
   }
 
+  /* SHARED: Check Max Limit */
+  function checkGlobalLimit(cart){
+    var btn = root.querySelector('#AddToCart-{{ section.id }}');
+    if(!btn) return;
+    var label = btn.querySelector('.ch-atc-label');
+    
+    // 1. Get current variant ID
+    var fd = new FormData(btn.closest('form'));
+    var raw = fd.get('id') || fd.get('variant_id');
+    var currentId = raw ? parseInt(raw, 10) : null;
+    if(!currentId) return;
+
+    // 2. Get max limit from button dataset (set by updateATCState)
+    var max = parseInt(btn.dataset.maxQty || '0', 10);
+    var limit = (max > 0) ? max : null;
+
+    // 3. Get current cart quantity
+    var inCart = 0;
+    if(cart && cart.items){
+       var line = cart.items.find(function(i){ return i.id === currentId; });
+       if(line) inCart = line.quantity;
+    }
+
+    // 4. Compare
+    if(limit !== null && inCart >= limit){
+       btn.classList.add('is-maxed');
+       btn.disabled = true;
+       if(label) label.textContent = 'Max Limit Reached';
+    } else {
+       btn.classList.remove('is-maxed');
+       // Only re-enable if NOT sold out (checked via is-disabled class managed by updateATCState)
+       if(!btn.classList.contains('is-disabled')){
+          btn.disabled = false;
+          if(label) label.textContent = btn.dataset.originalLabel || '{{ "products.product.add_to_cart" | t }}';
+       }
+    }
+  }
+
   /* ATC STATE */
   function updateATCState(variant){
     var btn = root.querySelector('#AddToCart-{{ section.id }}');
     if (!btn) return;
     var label = btn.querySelector('.ch-atc-label');
+
     if (!variant || !variant.available){
       btn.classList.add('is-disabled');
       btn.setAttribute('disabled','disabled');
+      btn.dataset.maxQty = ''; 
       if (label) label.textContent = '{{ "products.product.sold_out" | t }}';
     } else {
       btn.classList.remove('is-disabled');
       btn.removeAttribute('disabled');
-      if (label) label.textContent = btn.dataset.originalLabel || '{{ "products.product.add_to_cart" | t }}';
+      
+      // Update Max Qty
+      // 1. Try native select
+      var sel = root.querySelector('select[name="id"]');
+      var opt = sel ? sel.querySelector('option[value="'+variant.id+'"]') : null;
+      var max = '';
+      
+      if (opt && opt.hasAttribute('data-inventory-quantity')){
+         max = opt.getAttribute('data-inventory-quantity');
+      }
+      
+      // 2. Try custom option bar (fallback)
+      if (!max) {
+         var customOpt = root.querySelector('.ch-optionbar__item[data-value="'+variant.id+'"]');
+         if (customOpt && customOpt.hasAttribute('data-max-qty')){
+             max = customOpt.getAttribute('data-max-qty');
+         }
+      }
+      
+      btn.dataset.maxQty = max;
+
+      // Restore label if not maxed
+      if(!btn.classList.contains('is-maxed')){
+         if (label) label.textContent = btn.dataset.originalLabel || '{{ "products.product.add_to_cart" | t }}';
+      }
+      
+      // Trigger check immediately
+      if(window.CH_CART) {
+         checkGlobalLimit(window.CH_CART);
+      } else {
+         fetch('/cart.js', {cache: 'no-store'}).then(function(r){ return r.json() }).then(function(c){
+           checkGlobalLimit(c);
+         }).catch(function(){});
+      }
     }
   }
 
@@ -708,7 +807,8 @@ Current tweaks:
     var btn = root.querySelector('#AddToCart-{{ section.id }}');
     if (!btn || btn.dataset.chAtcBound === '1') return;
     btn.dataset.chAtcBound = '1';
-
+    
+    var label = btn.querySelector('.ch-atc-label'); // Moved to outer scope
     var form = btn.closest('form');
     if (!form) return;
 
@@ -720,7 +820,6 @@ Current tweaks:
       form.dataset.busy = '1';
 
       var fd    = new FormData(form);
-      var label = btn.querySelector('.ch-atc-label');
 
       // which variant & qty are we trying to add?
       var variantIdRaw =
@@ -753,15 +852,22 @@ Current tweaks:
             label.textContent = 'Added!';
             setTimeout(function(){
               btn.classList.remove('is-added');
-              label.textContent =
-                btn.dataset.originalLabel || '{{ "products.product.add_to_cart" | t }}';
+              // use shared check
+              if(window.CH_CART) checkGlobalLimit(window.CH_CART);
             }, 1100);
           } else {
-            label.textContent =
-              btn.dataset.originalLabel || '{{ "products.product.add_to_cart" | t }}';
+             // If failed (e.g. 422), check if maxed
+             if(window.CH_CART) checkGlobalLimit(window.CH_CART);
           }
         }, wait);
       }
+      
+      // Listen for cart refresh
+      document.addEventListener('cart:refresh', function(e){
+         if(e.detail) checkGlobalLimit(e.detail);
+      });
+      // Initial check
+      if(window.CH_CART) checkGlobalLimit(window.CH_CART);
 
       var addUrl =
         (window.Shopify && window.Shopify.routes ? window.Shopify.routes.root : '/') + 'cart/add.js';
@@ -800,15 +906,15 @@ Current tweaks:
           var maxQty   = determineMaxAllowedQty(variant, requestedQty, data);
           var message  = buildInventoryMessage(variant, requestedQty, maxQty, data);
 
-          // Reverted to global drawer/notification per user request
           showCartErrorNotification(message);
 
-          // Try to clamp the cart to the max allowed quantity
-          if (variantId && maxQty !== null && maxQty >= 0){
-            clampCartToVariantMax(variantId, maxQty);
-          }
-
-          finish(false);
+          // Force update of max limit state immediately
+          // Update the global cart cache if we can, or just fetch it
+          fetch('/cart.js', {cache: 'no-store'}).then(function(r){ return r.json() }).then(function(c){
+              window.CH_CART = c; // Update global cache if used
+              checkGlobalLimit(c);
+              finish(false);
+          });
           return;
         }
 
@@ -827,7 +933,7 @@ Current tweaks:
         finish(false);
       })
       .finally(function(){
-        btn.disabled = false;
+        // Do NOT blindly re-enable here, let finish() or checkGlobalLimit() handle it
         form.dataset.busy = '0';
       });
     }, true);
@@ -1015,7 +1121,9 @@ Current tweaks:
 }
 .ch-pdp{
   padding-top:1rem;     /* was 1.8rem */
-  padding-bottom:3rem;  /* keep as is, or reduce slightly if you want */
+  padding-top:1rem;
+  padding-bottom:0;
+  margin-bottom:0;
 }
 
 .ch-pdp .ch-pdp-grid{
@@ -1309,6 +1417,21 @@ Current tweaks:
   opacity: 0;
 }
 
+/* 🔒 MAX IN CART STATE */
+.ch-atc-btn.is-maxed {
+    background: #f9fafb !important;
+    border: 1px solid #d1d5db !important;
+    color: #9ca3af !important;
+    cursor: default !important;
+    pointer-events: none !important;
+    box-shadow: none !important;
+}
+.ch-atc-btn.is-maxed:hover,
+.ch-atc-btn.is-maxed:focus {
+    background: #f9fafb !important;
+    transform: none !important;
+}
+
 /* spinner element */
 .ch-atc-spinner{
   position:absolute;
@@ -1422,7 +1545,7 @@ Current tweaks:
 @media (max-width: 991px){
   .ch-media-main{min-height:380px;}
   .ch-pdp .ch-pdp-grid{grid-template-columns:1fr;}
-  .ch-info-col{position:static;}
+  .ch-info-col{position:static; padding-bottom:0 !important;}
 
   .ch-optionbar{display:block;}
   .ch-trust-card{margin-top:.45rem;}
@@ -1506,6 +1629,75 @@ body.template-product #ch-menu-drawer .ch-mdrawer__panel{
 }
 
 </style>
+
+<script>
+// AGGRESSIVE FIX: Forcefully remove padding/margin from mobile menu drawer on PDP
+(function(){
+  function fixMenuDrawer(){
+    const panel = document.querySelector('#ch-menu-drawer .ch-mdrawer__panel');
+    const tabpanes = document.querySelector('#ch-menu-drawer .ch-tabpanes');
+    const topbar = document.querySelector('#ch-menu-drawer .ch-topbar');
+    
+    if(panel){
+      // Force remove padding/margin with inline styles
+      panel.style.paddingTop = '0';
+      panel.style.marginTop = '0';
+      panel.style.setProperty('padding-top', '0', 'important');
+      panel.style.setProperty('margin-top', '0', 'important');
+    }
+    
+    if(tabpanes){
+      // The tabpanes has padding-top: var(--ch-topbar-h) which is 60px!
+      // This is what's causing the white space
+      tabpanes.style.paddingTop = '60px'; // Keep the normal 60px for the topbar height
+      tabpanes.style.setProperty('padding-top', '60px', 'important');
+    }
+    
+    if(topbar){
+      // Ensure topbar is at top:0
+      topbar.style.top = '0';
+      topbar.style.marginTop = '0';
+      topbar.style.setProperty('top', '0', 'important');
+      topbar.style.setProperty('margin-top', '0', 'important');
+    }
+  }
+  
+  // Run immediately
+  fixMenuDrawer();
+  
+  // Run on DOM ready
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', fixMenuDrawer);
+  }
+  
+  // Run on load
+  window.addEventListener('load', fixMenuDrawer);
+  
+  // Watch for menu drawer being added/modified
+  const observer = new MutationObserver(fixMenuDrawer);
+  const target = document.body || document.documentElement;
+  observer.observe(target, { childList: true, subtree: true });
+  
+  // Also fix when drawer opens
+  // Also fix when drawer opens
+  document.addEventListener('click', function(e){
+    if(e.target.closest('[data-open-drawer]')){
+      setTimeout(fixMenuDrawer, 0);
+      setTimeout(fixMenuDrawer, 50);
+      setTimeout(fixMenuDrawer, 100);
+      setTimeout(fixMenuDrawer, 200);
+    }
+  });
+
+  // FAILSAFE: Re-run max check on full load to catch any race conditions
+  window.addEventListener('load', function(){
+    if(window.CH_CART) checkGlobalLimit(window.CH_CART);
+    else {
+        fetch('/cart.js').then(function(r){ return r.json() }).then(checkGlobalLimit).catch(function(){});
+    }
+  });
+})();
+</script>
 
 {% schema %}
 {

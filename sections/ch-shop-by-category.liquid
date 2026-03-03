@@ -188,23 +188,34 @@
     }
   </style>
 
-  {{ 'ch-slider.js' | asset_url | script_tag }}
+
 
   <script>
   (function(){
-    var root = document.getElementById('catc-{{ section.id }}'); if(!root) return;
+    function initCategorySlider(){
+      var root = document.getElementById('catc-{{ section.id }}'); if(!root) return;
 
-    // Use Shared Slider Class
-    // map correct selectors
-    new ChHorizontalSlider(root, {
-      trackSel: '[data-track]',
-      prevSel: '.chpc__arrow--prev',
-      nextSel: '.chpc__arrow--next',
-      dotsSel: null // no dots here
-    });
+      // Use Shared Slider Class
+      if(typeof ChHorizontalSlider === 'undefined'){
+         console.warn("ChHorizontalSlider not loaded yet");
+         return;
+      }
 
-    // Shared animation logic handles chb--pre / chpc--pre automatically
-    
+      new ChHorizontalSlider(root, {
+        trackSel: '[data-track]',
+        prevSel: '.chpc__arrow--prev',
+        nextSel: '.chpc__arrow--next',
+        dotsSel: null // no dots here
+      });
+
+      // Shared animation logic handles chb--pre / chpc--pre automatically
+    }
+
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', initCategorySlider);
+    } else {
+      initCategorySlider();
+    }
   })();
   </script>
 </section>

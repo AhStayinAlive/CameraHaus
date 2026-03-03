@@ -1,10 +1,32 @@
 <!doctype html>
 <html class="no-js" lang="{{ shop.locale }}">
 <head>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..900&display=swap" rel="stylesheet">
-  {{ 'fonts.css' | asset_url | stylesheet_tag }}
+
+  <!-- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..900&display=swap" rel="stylesheet"> REMOVED for Self-Hosting -->
+  <link rel="preload" href="{{ 'Inter-Regular.woff2' | asset_url }}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{{ 'Inter-SemiBold.woff2' | asset_url }}" as="font" type="font/woff2" crossorigin>
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-NR64NFW9');</script>
+<!-- End Google Tag Manager -->
+
+  <style>
+    :root{
+      --font-sans: "Inter","Inter var",ui-sans-serif,system-ui,-apple-system,
+                   "Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",
+                   "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol",sans-serif;
+
+      --font-body-family: var(--font-sans);
+      --font-heading-family: var(--font-sans);
+    }
+
+    html, body, button, input, select, textarea{ font-family:var(--font-sans); }
+    html{ font-synthesis-weight:none; font-synthesis-style:none; }
+  </style>
 
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
@@ -32,8 +54,21 @@
     document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
   </script>
 
-  {{ 'ch-animations.css' | asset_url | stylesheet_tag }}
-  {{ 'theme.scss.css' | asset_url | stylesheet_tag }}
+  {% render 'critical-css' %}
+  
+  <link rel="preload" href="{{ 'ch-animations.css' | asset_url }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>{{ 'ch-animations.css' | asset_url | stylesheet_tag }}</noscript>
+  
+  <link rel="preload" href="{{ 'theme.scss.css' | asset_url }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>{{ 'theme.scss.css' | asset_url | stylesheet_tag }}</noscript>
+
+  <!-- Conditional Card CSS (Async) -->
+  {%- if request.page_type == 'index' or request.page_type == 'collection' or request.page_type == 'product' or request.page_type == 'search' or request.page_type == 'cart' -%}
+    <link rel="stylesheet" href="{{ 'ch-card.css' | asset_url }}" media="print" onload="this.media='all'">
+    <noscript>{{ 'ch-card.css' | asset_url | stylesheet_tag }}</noscript>
+  {%- endif -%}
+
+  <!-- Critical Hotfixes moved to snippets/critical-css.liquid -->
 
   <script>
     window.theme = window.theme || {};
@@ -71,12 +106,74 @@
   {% endif %}
 
   <script src="{{ 'theme.js' | asset_url }}" defer="defer"></script>
+  <script src="{{ 'ch-slider.js' | asset_url }}" defer="defer"></script>
 
   {{ content_for_header }}
+
+<style>
+  :root { --ch-header-h: 132px; }
+  @media (max-width: 991px){
+    :root { --ch-header-h: 104px; }
+  }
+  body { margin: 0; padding-top: var(--ch-header-h); }
+  
+  /* Hide skip-to-content link completely */
+  .skip-link,
+  a.skip-link,
+  .in-page-link {
+    display: none !important;
+    visibility: hidden !important;
+  }
+</style>
+<script>
+  (function () {
+    function setHeaderH(){
+      const h = document.querySelector('#shopify-section-header');
+      if(!h) return;
+      const px = Math.ceil(h.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--ch-header-h', px + 'px');
+    }
+
+    // as early as possible
+    document.addEventListener('DOMContentLoaded', setHeaderH);
+    window.addEventListener('load', setHeaderH);
+    window.addEventListener('resize', setHeaderH);
+
+    // Shopify section lifecycle (helps in editor)
+    document.addEventListener('shopify:section:load', setHeaderH);
+  })();
+</script>
 
 </head>
 
 <body class="template-{{ request.page_type | handle }}" >
+
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NR64NFW9"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+  <!-- Global Page Skeleton Preloader (Except Home) -->
+  {% unless request.page_type == 'index' %}
+  {% render 'ch-page-preloader' %}
+  <script>
+    (function(){
+      // Failsafe: if load takes too long, unblock anyway
+      var t = setTimeout(function(){ document.body.classList.add('site-loaded'); }, 3000);
+      
+      window.addEventListener('load', function(){
+        clearTimeout(t);
+        document.body.classList.add('site-loaded');
+      });
+      
+      // Also check if already loaded
+      if(document.readyState === 'complete'){
+        clearTimeout(t);
+        document.body.classList.add('site-loaded');
+      }
+    })();
+  </script>
+  {% endunless %}
   <script src="{{ 'predictive-search.js' | asset_url }}" defer></script>
 
   <!-- Load Facebook SDK for JavaScript -->
@@ -114,7 +211,7 @@
   {% endunless %}
 
   <div class="page-container page-element is-moved-by-drawer">
-    <main class="main-content" id="MainContent" role="main">
+    <main class="main-content {% unless request.page_type == 'index' %}ch-entry-anim{% endunless %}" id="MainContent" role="main">
       {{ content_for_layout }}
     </main>
 
@@ -351,11 +448,112 @@
 
   {%- capture cart_body -%}{% render 'ch-cart--drawer' %}{%- endcapture -%}
   {% render 'ch-side-panel', id: 'cart', title: 'YOUR CART', aria_label: 'Your cart', body: cart_body %}
-  {{ 'ch-cart-drawer.css' | asset_url | stylesheet_tag }}
+  
+  <link rel="stylesheet" href="{{ 'ch-cart-drawer.css' | asset_url }}" media="print" onload="this.media='all'">
+  <noscript>{{ 'ch-cart-drawer.css' | asset_url | stylesheet_tag }}</noscript>
+
   <script src="{{ 'ch-cart-drawer.js' | asset_url }}" defer="defer"></script>
   <script src="{{ 'ch-quick-view-api.js' | asset_url }}" defer="defer"></script>
-  {{ 'ch-quick-view.css' | asset_url | stylesheet_tag }}
+  
+  <link rel="stylesheet" href="{{ 'ch-quick-view.css' | asset_url }}" media="print" onload="this.media='all'">
+  <noscript>{{ 'ch-quick-view.css' | asset_url | stylesheet_tag }}</noscript>
+
   {% render 'ch-panels-controller' %}
+
+  {%- comment -%}Reserve modal for out-of-stock products{%- endcomment -%}
+  {% render 'ch-reserve-modal' %}
+  <link rel="stylesheet" href="{{ 'ch-reserve-modal.css' | asset_url }}" media="print" onload="this.media='all'">
+  <noscript>{{ 'ch-reserve-modal.css' | asset_url | stylesheet_tag }}</noscript>
+  <script src="{{ 'ch-reserve-modal.js' | asset_url }}" defer="defer"></script>
+
+  <script>
+    (function() {
+      // Option B: Target the wrapper + Body Padding + Robust Scroll Logic
+      var headerWrapper = document.getElementById('shopify-section-header');
+      if(!headerWrapper) return;
+
+      // 1. Calculate height for body padding
+      // 1. Calculate height for body padding (CSS Variable for smoother interaction)
+      // 1. Calculate height (Precise + Tight Fit)
+      function setHeight() {
+        // Use getBoundingClientRect for sub-pixel accuracy
+        var rect = headerWrapper.getBoundingClientRect();
+        // Subtract 1px to ensure overlap/flush fit, preventing hairline gaps
+        var h = rect.height > 0 ? (rect.height - 1) : headerWrapper.offsetHeight; 
+        document.body.style.setProperty('--ch-header-h', h + 'px');
+      }
+      
+      setHeight();
+      window.addEventListener('resize', setHeight);
+      window.addEventListener('scroll', function(){ if(!window.scrollY) setHeight(); }, {once:true, passive:true});
+      
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setHeight);
+      } else {
+        setTimeout(setHeight, 200);
+        setTimeout(setHeight, 1000); // Failsafe for lazy assets
+      }
+
+      var lastScrollY = window.scrollY;
+      var tick = false;
+      var threshold = 40; // Wait until below this point to start hiding
+      var tolerance = 5;  // Minimum scroll distance to trigger change
+
+      function onScroll() {
+        if (!tick) {
+          window.requestAnimationFrame(function() {
+            var currentScrollY = window.scrollY;
+            var diff = currentScrollY - lastScrollY;
+
+            // Only run logic if we are past the static threshold
+            if (currentScrollY > threshold) {
+              
+              // SCROLL DOWN (diff > tolerance)
+              if (diff > tolerance) {
+                headerWrapper.classList.add('is-shy-hidden');
+              } 
+              // SCROLL UP (diff < -tolerance) - Show immediately
+              else if (diff < -tolerance) {
+                headerWrapper.classList.remove('is-shy-hidden');
+              }
+              
+            } else {
+              // We are at the very top: Always show
+              headerWrapper.classList.remove('is-shy-hidden');
+            }
+
+            // Update lastScrollY, preventing negative values (iOS rubber banding)
+            lastScrollY = currentScrollY > 0 ? currentScrollY : 0;
+            tick = false;
+          });
+          tick = true;
+        }
+      }
+
+      window.addEventListener('scroll', onScroll, {passive: true});
+    })();
+
+    // AG Fix: Move drawers to body to solve Z-Index/Transform/Event issues
+    (function(){
+      function moveDrawers(){
+        // Selectors for Menu Drawer, Cart Drawer Panel, and Cart Drawer Wrapper
+        const drawers = document.querySelectorAll('#ch-menu-drawer, .ch-panel[data-ch-panel="cart"], #CartDrawer, .cart-drawer');
+        const header = document.getElementById('shopify-section-header');
+        
+        drawers.forEach(d => {
+          // If the drawer exists and is not a direct child of body, move it.
+          if(d && d.parentElement !== document.body){
+            document.body.appendChild(d);
+          }
+        });
+      }
+      // Run immediately (if DOM ready), on Load, and on DOMContentLoaded
+      moveDrawers();
+      if(document.readyState !== 'loading') moveDrawers();
+      document.addEventListener('DOMContentLoaded', moveDrawers);
+      window.addEventListener('load', moveDrawers);
+    })();
+  </script>
 
 </body>
 </html>

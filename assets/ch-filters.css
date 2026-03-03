@@ -848,3 +848,64 @@
           margin-top: 0 !important;
       }
   }
+  /* --- Slider Styling (Corrected) --- */
+  .ch-range {
+    position: relative;
+    height: 20px;
+    width: 100%;
+    margin: 10px 0;
+  }
+  
+  /* Track Line */
+  .ch-range::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #DA2F2F; /* Red track as requested */
+    transform: translateY(-50%);
+    z-index: 1;
+  }
+  
+  /* Inputs */
+  .ch-range input[type="range"] {
+    position: absolute;
+    pointer-events: none;
+    -webkit-appearance: none;
+    appearance: none;
+    z-index: 2;
+    height: 100%;
+    width: 100%;
+    opacity: 1; /* Make sure it's visible? No, we style thumbs. Track is handled by ::before */
+    background: transparent;
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+
+  /* Thumbs */
+  .ch-range input[type="range"]::-webkit-slider-thumb {
+    pointer-events: auto;
+    -webkit-appearance: none;
+    appearance: none; 
+    width: 4px;
+    height: 20px;
+    background: #DA2F2F;
+    border: none;
+    border-radius: 0;
+    cursor: ew-resize;
+    margin-top: 0; 
+  }
+  
+  .ch-range input[type="range"]::-moz-range-thumb {
+    pointer-events: auto;
+    width: 4px;
+    height: 20px;
+    background: #DA2F2F;
+    border: none;
+    border-radius: 0;
+    cursor: ew-resize;
+  }
+

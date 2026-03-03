@@ -198,6 +198,9 @@
 
       <div class="ch-main">
         <div class="ch-grid-wrap">
+          <div class="ch-grid-skeleton is-loading">
+             {% for i in (1..8) %}<div class="ch-grid-skeleton__card"></div>{% endfor %}
+          </div>
           <div class="ch-grid-overlay" aria-hidden="true">
             <span class="ch-loader" aria-hidden="true"></span>
           </div>

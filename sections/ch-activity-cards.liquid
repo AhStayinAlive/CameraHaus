@@ -27,11 +27,12 @@ Now: 1) one-time keyframe intro, 2) soft transition reveal on later rebuilds, 3)
 
               <span class="guide-photo" aria-hidden="true">
                 {% if t.image != blank %}
+                  {%- comment -%}Activity cards: ~290px mobile, ~320px desktop. Use 480-900px for retina.{%- endcomment -%}
                   {{ t.image
-                    | image_url: width: 2000
+                    | image_url: width: 900
                     | image_tag:
-                        widths: '600,800,1200,1600,2000',
-                        sizes: '(max-width: 739px) 80vw, (max-width: 1099px) 42vw, 22vw',
+                        widths: '480,640,900',
+                        sizes: '(max-width: 739px) 80vw, (max-width: 1099px) 42vw, 320px',
                         loading: 'lazy',
                         decoding: 'async',
                         alt: t.title }}
