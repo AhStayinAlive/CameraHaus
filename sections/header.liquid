@@ -1,146 +1,81 @@
 {% comment %}
-CH Header — Camerahaus branded (fixes: phrase-typing, mini dropdowns, chevrons, dark-red lower band)
+CH Header — (red top bar + centered search button + dark-red nav band)
+- Desktop: predictive search panel + mega menus
+- Mobile: desktop-style search bar (white + red button) that opens existing right-side search panel
+- Mobile top row icons trimmed: remove Search & Wishlist, keep Cart
+- Bottom tab bar (mobile) wired to existing panels
+- Shy header (mobile): shrinks on scroll down, expands on scroll up
+
+NOTE: This file already includes the full desktop predictive search panel
+with working Suggestions and a dynamic “View "<query>” CTA.
 {% endcomment %}
 
 <section id="ch-header-{{ section.id }}" class="ch-header" role="banner">
-  {% assign main_handle = section.settings.menu_main %}
-  {% assign parent_title = section.settings.categories_parent_title | default: 'Category' %}
-  {% assign menu_obj = linklists[main_handle] %}
-  {% assign categories_parent_index = -1 %}
+  {%- assign main_handle = section.settings.menu_main -%}
+  {%- assign parent_title = section.settings.categories_parent_title | default: 'Category' -%}
+  {%- assign stores_parent_title = section.settings.stores_parent_title | default: 'Stores' -%}
+  {%- assign menu_obj = linklists[main_handle] -%}
 
-  {% if menu_obj %}
+
+  {%- assign categories_parent_index = -1 -%}
+  {% if menu_obj and menu_obj.links %}
+    {%- assign p_norm = parent_title | strip | downcase -%}
     {% for l in menu_obj.links %}
-      {% assign t_norm = l.title | strip | downcase %}
-      {% assign p_norm = parent_title | strip | downcase %}
-      {% if t_norm == p_norm %}{% assign categories_parent_index = forloop.index0 %}{% endif %}
+      {%- assign t_norm = l.title | strip | downcase -%}
+      {% if t_norm == p_norm %}{%- assign categories_parent_index = forloop.index0 -%}{% break %}{% endif %}
     {% endfor %}
+    {% if categories_parent_index == -1 %}
+      {% for l in menu_obj.links %}
+        {%- assign t_norm = l.title | strip | downcase -%}
+        {% if t_norm contains 'categor' %}{%- assign categories_parent_index = forloop.index0 -%}{% break %}{% endif %}
+      {% endfor %}
+    {% endif %}
+    {% if categories_parent_index == -1 %}
+      {% for l in menu_obj.links %}
+        {% if l.links and l.links.size > 0 %}{%- assign categories_parent_index = forloop.index0 -%}{% break %}{% endif %}
+      {% endfor %}
+    {% endif %}
   {% endif %}
 
-  {% assign icon_override_lines = section.settings.icon_overrides | default: '' | newline_to_br | split: '<br />' %}
-  {% assign search_prompts = section.settings.search_prompts | default: "Search Canon products\nSearch Nikon products\nSearch Sony E-mount lenses\nSearch gimbals\nSearch 128GB SD cards" | newline_to_br | split: '<br />' %}
+  {%- assign icon_override_lines = section.settings.icon_overrides | default: '' | newline_to_br | split: '<br />' -%}
+  {%- assign search_prompts = section.settings.search_prompts | default: "Search Canon products\nSearch Nikon products\nSearch Sony E-mount lenses\nSearch gimbals\nSearch 128GB SD cards" | newline_to_br | split: '<br />' -%}
+  {% unless brand_rows %}
+  {% assign brand_rows = "
+  AgfaPhoto|agfaphoto-min.png|vendor:AgfaPhoto,
+  AKASO|akaso-min.png|vendor:AKASO,
+  Aputure|aputure-min.png|vendor:Aputure,
+  Benro|benro-min.png|vendor:Benro,
+  BetaFPV|betafpv-min.png|vendor:BetaFPV,
+  Billingham|billingham-min.png|vendor:Billingham,
+  Canon|canon-min.png|vendor:Canon,
+  DJI|dji-min.png|vendor:DJI,
+  Eirmai|eirmai-min.png|vendor:Eirmai,
+  FIMI|fimi-min.png|vendor:FIMI,
+  Fujifilm|fujifilm-min.png|vendor:Fujifilm,
+  GoPro|gopro-min.png|vendor:GoPro,
+  Holga|holga-min.png|vendor:Holga,
+  Hoya|hoya-min.png|vendor:Hoya,
+  Insta360|insta360-min.png|vendor:Insta360,
+  JJC|jjc-min.png|vendor:JJC,
+  K&F Concept|k&f-min.png|vendor:K&F Concept OR vendor:K&F,
+  Kenko|kenko-min.png|vendor:Kenko,
+  LUMIX|lumix-min.png|vendor:LUMIX OR vendor:Panasonic,
+  Manfrotto|manfrotto-min.png|vendor:Manfrotto,
+  Meike|meike-min.png|vendor:Meike,
+  Nikon|nikon-min.png|vendor:Nikon,
+  Sigma|sigma-min.png|vendor:Sigma,
+  Sony|sony-min.png|vendor:Sony,
+  Tamron|tamron-min.png|vendor:Tamron,
+  ZEISS|zeiss-min.png|vendor:ZEISS
+  " %}
+  {% endunless %}
 
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap');
-
-    #ch-header-{{ section.id }}{
-      --brand:#E0302A; --brand-dark:#c3241e; --ink:#161616; --muted:#6f6f6f; --line:#e8e8e8; --bg:#fff; --bg-soft:#F7F7F8;
-      --shadow:0 10px 30px rgba(17,17,17,.10);
-      --max-w:{% case section.settings.container_max_width %}{% when '1600' %}1600px{% when '1440' %}1440px{% when '1320' %}1320px{% else %}1200px{% endcase %};
-      --h-m:64px; --h-d:76px;
-      --qs-gap:18px;
-    }
-    #ch-header-{{ section.id }} *{ box-sizing:border-box; }
-    #ch-header-{{ section.id }} .wrap{ max-width:var(--max-w); margin:0 auto; padding:0 16px; }
-
-    /* ==== TOP BAR ==== */
-    #ch-header-{{ section.id }} .bar{ position:sticky; top:0; z-index:1100; background:var(--brand); color:#fff; border-bottom:0; }
-    #ch-header-{{ section.id }} .row{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; height:var(--h-d); gap:14px; }
-    @media (max-width:991px){ #ch-header-{{ section.id }} .row{ height:var(--h-m); grid-template-columns:44px 1fr auto; } }
-
-    #ch-header-{{ section.id }} .nav, #ch-header-{{ section.id }} .desk-search, #ch-header-{{ section.id }} .m-search{ font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
-    #ch-header-{{ section.id }} .nav a, #ch-header-{{ section.id }} .logo{ font-family: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
-
-    /* icon buttons */
-    #ch-header-{{ section.id }} .btn{ appearance:none; background:transparent; border:0; color:#fff; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; border-radius:10px; cursor:pointer; }
-    #ch-header-{{ section.id }} .btn:hover{ background:rgba(255,255,255,.08); }
-    #ch-header-{{ section.id }} .ico{ width:22px; height:22px; fill:currentColor; display:block; }
-    #ch-header-{{ section.id }} .right{ justify-self:end; display:flex; align-items:center; gap:8px; padding-right:max(8px, env(safe-area-inset-right)); }
-
-    /* tighter desktop icons */
-    @media (min-width:992px){
-      #ch-header-{{ section.id }} .right{ gap:4px; padding-right:8px; }
-      #ch-header-{{ section.id }} .right .btn{ min-width:32px; min-height:32px; padding:0; border-radius:8px; }
-      #ch-header-{{ section.id }} .right .ico{ width:18px; height:18px; }
-      #ch-header-{{ section.id }} [data-cart] .cart-bubble{ top:-5px; right:-5px; min-width:14px; height:14px; line-height:14px; font-size:9px; }
-    }
-
-    /* logo */
-    #ch-header-{{ section.id }} .logo{ display:inline-flex; align-items:center; color:#fff; text-decoration:none; margin-inline:auto; }
-    #ch-header-{{ section.id }} .logo__img{ display:block; height:auto; }
-    @media (max-width:991px){ #ch-header-{{ section.id }} .logo__img{ max-width: {{ section.settings.logo_width_mobile | default: 140 }}px; } }
-    @media (min-width:992px){ #ch-header-{{ section.id }} .logo__img{ max-width: {{ section.settings.logo_width_desktop | default: 200 }}px; } }
-
-    /* cart bubble */
-    #ch-header-{{ section.id }} [data-cart]{ position:relative; font-size:0; }
-    #ch-header-{{ section.id }} .cart-bubble{ position:absolute; top:-6px; right:-8px; min-width:16px; height:16px; padding:0 4px; border-radius:999px; background:#fff; color:#111; font:900 10px/16px Inter,system-ui; text-align:center; box-shadow:0 0 0 2px var(--brand); }
-
-    /* ===== DESKTOP SEARCH ===== */
-    #ch-header-{{ section.id }} .desk-search-wrap{ position:relative; max-width:820px; justify-self:center; width:100%; display:none; }
-    @media (min-width:992px){ #ch-header-{{ section.id }} .desk-search-wrap{ display:block; } }
-    #ch-header-{{ section.id }} .desk-search{ display:grid; grid-template-columns:1fr auto; gap:8px; background:#fff; border:1px solid var(--line); border-radius:999px; padding:0 8px 0 14px; align-items:center; height:44px; transition: box-shadow .18s ease, border-color .18s ease; }
-    #ch-header-{{ section.id }} .desk-search:focus-within{ border-color:#d8d8d8; box-shadow: inset 0 0 0 1px #d8d8d8; }
-    #ch-header-{{ section.id }} .desk-search input[type="search"]{ width:100%; border:0; outline:0; background:transparent; color:var(--ink); font:600 16px/1.25 Inter,system-ui; }
-    /* search button not bold */
-    #ch-header-{{ section.id }} .desk-search .sbtn{ height:36px; padding:0 16px; border-radius:10px; border:0; background:var(--brand); color:#fff; font:600 14px/1 Inter,system-ui; cursor:pointer; }
-
-    /* Predictive panel */
-    #ch-header-{{ section.id }} .ps-panel{ position:absolute; left:0; right:0; top:calc(100% + 10px); background:#fff; border:1px solid var(--line); border-radius:14px; box-shadow:var(--shadow); display:none; z-index:1200; overflow:hidden; }
-    #ch-header-{{ section.id }} .ps-panel[data-open="true"]{ display:block; }
-    #ch-header-{{ section.id }} .ps-inner{ display:grid; grid-template-columns:1fr 340px; }
-    #ch-header-{{ section.id }} .ps-col{ padding:12px; }
-    #ch-header-{{ section.id }} .ps-title{ margin:0 0 8px; font:700 12px/1 Inter,system-ui; color:#666; letter-spacing:.02em; }
-    #ch-header-{{ section.id }} .lst{ list-style:none; margin:0; padding:0; display:grid; gap:10px; }
-
-    .ch-mini{ position:relative; border:1px solid var(--line); border-radius:12px; padding:10px; display:grid; grid-template-columns:48px 1fr auto; gap:10px; align-items:center; }
-    .ch-mini .thumb{ width:48px; height:48px; object-fit:contain; border-radius:8px; background:#f4f4f4; }
-    .ch-mini .mtitle{ font:700 13px/1.3 Inter,system-ui; color:var(--ink); }
-    .ch-mini .price{ font:800 13px/1 Inter,system-ui; color:var(--brand); white-space:nowrap; }
-    .ch-mini .price-was{ color:#8b8b8b; text-decoration:line-through; margin-left:6px; font-weight:700; }
-    .ch-mini .badge{ position:absolute; left:56px; top:8px; background:#FFE8B3; border:1px solid #F5D58B; color:#B22A25; font-weight:900; border-radius:6px; font-size:11px; line-height:1; padding:3px 6px; }
-    .ch-mini .overlay{ position:absolute; inset:0; border-radius:12px; }
-
-    /* ===== LOWER NAV: darker red with white text ===== */
-    #ch-header-{{ section.id }} .nav-band{ background:var(--brand-dark); color:#fff; border-top:0; border-bottom:0; }
-    #ch-header-{{ section.id }} .nav{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:24px; padding:12px 0; }
-    #ch-header-{{ section.id }} .nav .nav-left{ display:flex; gap:18px; align-items:center; flex-wrap:wrap; }
-
-    #ch-header-{{ section.id }} .nav a{
-      position:relative; color:#fff; text-decoration:none; font:600 14px/1 "Space Grotesk",system-ui;
-      padding:8px 2px; border-radius:6px; display:inline-flex; align-items:center; gap:6px;
-    }
-    /* underline: white for contrast on dark-red band */
-    #ch-header-{{ section.id }} .nav a::after{ content:""; position:absolute; left:0; right:0; bottom:2px; height:2px; background:#fff; transform:scaleX(0); transform-origin:left; transition:transform .18s ease; }
-    #ch-header-{{ section.id }} .nav a:hover::after, #ch-header-{{ section.id }} [data-open="true"]>a::after{ transform:scaleX(1); }
-    #ch-header-{{ section.id }} .nav a:focus-visible{ outline:0; box-shadow:none; }
-
-    /* chevron icon (added via JS if missing) */
-    #ch-header-{{ section.id }} .chev{ width:14px; height:14px; display:inline-block; background:currentColor; opacity:.95; transition:transform .18s ease, filter .18s ease;
-      -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M7 10l5 5 5-5z"/></svg>') center/contain no-repeat;
-              mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="black" d="M7 10l5 5 5-5z"/></svg>') center/contain no-repeat;
-    }
-    /* flip chevron on open/hover (invert look) */
-    #ch-header-{{ section.id }} [data-open="true"] > a .chev,
-    #ch-header-{{ section.id }} [data-mini]:hover > a .chev,
-    #ch-header-{{ section.id }} [data-mega]:hover > a .chev{ transform:rotate(180deg); }
-
-    /* mini dropdown */
-    #ch-header-{{ section.id }} .mega.mini{
-      position:absolute; top:100%; left:0; z-index:1250; background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px; min-width:260px;
-      box-shadow:var(--shadow); opacity:0; transform:translateY(8px) scale(.98); pointer-events:none; transition:opacity .16s ease, transform .18s ease;
-    }
-    #ch-header-{{ section.id }} [data-open="true"] > .mega.mini{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
-
-    #ch-header-{{ section.id }} [data-mega], #ch-header-{{ section.id }} [data-mini]{ position:relative; }
-
-    /* Mobile pill search */
-    #ch-header-{{ section.id }} .m-search{ width:100%; height:44px; display:flex; align-items:center; gap:8px; background:#fff; border:1px solid var(--line); border-radius:999px; padding:0 12px; color:var(--muted); }
-    #ch-header-{{ section.id }} .m-search .ico{ width:20px; height:20px; color:var(--muted); }
-    #ch-header-{{ section.id }} .m-search:focus-visible{ outline:0; box-shadow:0 0 0 2px var(--brand); }
-
-    /* Quick search inline with separators */
-    #ch-header-{{ section.id }} .chips{ display:flex; flex-wrap:wrap; gap:var(--qs-gap); }
-    #ch-header-{{ section.id }} .chips.chips-inline a{ background:none; border:0; padding:0; color:#1a1a1a; font-weight:600; text-decoration:none; }
-    #ch-header-{{ section.id }} .chips.chips-inline a:hover{ text-decoration:underline; text-underline-offset:2px; }
-    #ch-header-{{ section.id }} .chips.chips-inline a:not(:last-child)::after{ content:"·"; margin-left:var(--qs-gap); color:#9b9b9b; pointer-events:none; }
-
-    @media (max-width:991px){ #ch-header-{{ section.id }} .only-d{ display:none!important; } }
-    @media (min-width:992px){ #ch-header-{{ section.id }} .only-m{ display:none!important; } }
-  </style>
-
+  
   <div class="bar">
     <div class="wrap row">
+      <!-- Mobile menu button -->
       <button type="button" class="btn only-m" aria-label="Open menu" aria-controls="ch-menu-drawer" aria-expanded="false" data-open-drawer>
-        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z"/></svg>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
       </button>
 
       <!-- Logo -->
@@ -149,326 +84,189 @@ CH Header — Camerahaus branded (fixes: phrase-typing, mini dropdowns, chevrons
           {% assign d_w = section.settings.logo_width_desktop | default: 200 %}
           {% assign m_w = section.settings.logo_width_mobile  | default: 140 %}
           {% assign mobile_logo = section.settings.logo_mobile | default: section.settings.logo %}
+          
+          {%- assign m_w_2x = m_w | times: 2 -%}
+          {%- assign d_w_2x = d_w | times: 2 -%}
+
           <picture>
-            <source media="(max-width: 991px)" srcset="{{ mobile_logo | image_url: width: m_w }}">
-            <img src="{{ section.settings.logo | image_url: width: d_w }}" alt="{{ section.settings.logo.alt | default: shop.name }}" width="{{ d_w }}" height="auto" class="logo__img">
+            <source media="(max-width: 991px)" srcset="{{ mobile_logo | image_url: width: m_w }} 1x, {{ mobile_logo | image_url: width: m_w_2x }} 2x">
+            {%- assign logo_height = d_w | times: section.settings.logo.height | divided_by: section.settings.logo.width | round -%}
+            <img src="{{ section.settings.logo | image_url: width: d_w }}" 
+                 srcset="{{ section.settings.logo | image_url: width: d_w }} 1x, {{ section.settings.logo | image_url: width: d_w_2x }} 2x"
+                 alt="{{ section.settings.logo.alt | default: shop.name }}" 
+                 width="{{ d_w }}" 
+                 height="{{ logo_height }}" 
+                 class="logo__img" 
+                 fetchpriority="high" 
+                 loading="eager">
           </picture>
         {% else %}
-          <span style="font:700 18px/1 'Space Grotesk'; letter-spacing:.2px;">{{ shop.name }}</span>
+          <span style="font-weight:500; font-size:20px; line-height:1; letter-spacing:.2px; color:#fff;">{{ shop.name }}</span>
         {% endif %}
       </a>
 
-      <!-- Desktop search -->
-      <div class="desk-search-wrap only-d" data-ps-wrap>
-        <form action="{{ routes.search_url }}" method="get" class="desk-search" role="search" aria-label="Search site">
-          <input type="search" name="q" placeholder="{{ search_prompts.first | default: 'Search products' }}" aria-label="Search products" autocomplete="off" data-ps-input aria-controls="ps-panel-{{ section.id }}" aria-expanded="false">
+      {%- comment -%} DESKTOP SEARCH + PREDICTIVE PANEL {%- endcomment -%}
+      <div class="desk-search-wrap only-d" data-ps-wrap
+           data-prefill-url="{{ section.settings.default_preview_collection.url | default: '' }}"
+           data-prefill-handle="{{ section.settings.default_preview_collection.handle | default: '' }}"
+           data-limit="{{ section.settings.search_limit_products | default: 6 }}"
+           data-locale="{{ request.locale.iso_code | default: 'en-PH' }}"
+           data-currency="{{ shop.currency | default: 'PHP' }}">
+
+        <form action="{{ routes.search_url }}" method="get" class="desk-search" role="search" aria-label="Search site" novalidate>
+          <input type="search" name="q" placeholder="" aria-label="Search products"
+                 autocomplete="off" data-ps-input aria-controls="ps-panel-{{ section.id }}" aria-expanded="false">
           <button class="sbtn" type="submit">search</button>
         </form>
-
-        <div id="ps-panel-{{ section.id }}" class="ps-panel" role="dialog" aria-modal="false" aria-label="Search suggestions" data-ps-panel>
-          <div class="ps-inner">
-            <div class="ps-col">
-              <p class="ps-title" data-ps-heading>Need some inspiration?</p>
-              <ul class="lst" role="listbox" aria-label="Product results" data-ps-prods>
-                {% for i in (1..6) %}
-                  <li class="ch-mini" aria-hidden="true">
-                    <div class="thumb" style="background:linear-gradient(90deg,#eee,#f7f7f7,#eee);border-radius:8px;"></div>
-                    <div style="height:14px;border-radius:6px;background:linear-gradient(90deg,#eee,#f7f7f7,#eee);"></div>
-                    <div style="width:64px;height:14px;border-radius:6px;background:linear-gradient(90deg,#eee,#f7f7f7,#eee);"></div>
-                  </li>
-                {% endfor %}
-              </ul>
-            </div>
-
-            <div class="ps-col" style="border-left:1px solid var(--line);">
-              <p class="ps-title">Suggestions</p>
-              <div class="sugg" data-ps-sugs></div>
-
-              <p class="ps-title" style="margin-top:10px;">Brands</p>
-              <div class="chips" data-ps-brands></div>
-
-              <p class="ps-title" style="margin-top:10px;">Quick search</p>
-              <div class="chips chips-inline" data-ps-chips></div>
-            </div>
-          </div>
-
-          <div class="ps-foot" style="display:flex;justify-content:center;padding:10px 12px 12px;border-top:1px solid var(--line);background:#fff;">
-            <a class="cta-all" href="/search?q=" data-ps-viewall style="display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:999px;background:#111;color:#fff;text-decoration:none;font-weight:800;">View all results</a>
-          </div>
-
-          <span class="sr-only" aria-live="polite" data-ps-live></span>
-        </div>
+        {% render 'ch-panel-search-mobile', section: section %}
       </div>
 
-      <!-- Right icons -->
+      <!-- Right icons (mobile: Cart only; desktop: Search + Account + Wishlist + Cart) -->
       <div class="right">
-        <button class="btn only-m" aria-label="Search" data-panel-open="search" data-open-search>
-          <svg class="ico" viewBox="0 0 24 24"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8L20 21.5 21.5 20l-6-6zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>
+        <button class="btn only-d" aria-label="Search" data-panel-open="search" data-open-search>
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
         </button>
-        <button class="btn only-m" aria-label="Wishlist" data-panel-open="wishlist">
-          <svg class="ico" viewBox="0 0 24 24"><path d="M12 21s-7-4.35-9.33-8.09A5.66 5.66 0 0 1 12 5.67a5.66 5.66 0 0 1 9.33 7.24C19 16.65 12 21 12 21z"/></svg>
-        </button>
+
         <a href="/account" class="btn only-d" aria-label="Account">
-          <svg class="ico" viewBox="0 0 24 24"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
+          <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>
         </a>
-        <button class="btn only-d" aria-label="Wishlist" data-panel-open="wishlist">
-          <svg class="ico" viewBox="0 0 24 24"><path d="M12 21s-7-4.35-9.33-8.09A5.66 5.66 0 0 1 12 5.67a5.66 5.66 0 0 1 9.33 7.24C19 16.65 12 21 12 21z"/></svg>
-        </button>
-        <a href="{{ routes.cart_url }}" class="btn" aria-label="Cart" data-cart data-panel-open="cart">
-          <svg class="ico" viewBox="0 0 24 24"><path d="M7 18a2 2 0 1 0 2 2 2 2 0 0 0-2-2Zm10 0a2 2 0 1 0 2 2 2 2 0 0 0-2-2ZM7.2 14h9.4c.7 0 1.4-.4 1.7-1l2.4-5H6.2l-1-2H2v2h2l3.6 7.6-.6 1c-.1.3-.2.5-.2.8a1.7 1.7 0 0 0 1.7 1.7H20v-2H8.7l.9-1.5h7c.8 0 1.4-.4 1.8-1L22 9H7.2Z"/></svg>
-          <span class="cart-bubble" data-cart-count>0</span>
-          {% if section.settings.show_cart_badge %}<span class="sr-only" aria-live="polite" data-cart-live></span>{% endif %}
-        </a>
+
+        {% assign cartCount = cart.item_count | default: 0 %}
+<a href="{{ routes.cart_url }}"
+   class="btn"
+   aria-label="Cart"
+   {% unless template.name == 'cart' %}
+     data-cart
+     data-panel-open="cart"
+   {% endunless %}>
+  <span class="cart-ico-wrap">
+    <svg class="ico ico-cart" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 3h2l2 11.5a2 2 0 0 0 2 1.5h8.2a2 2 0 0 0 2-1.5L21 8H6.2"/>
+      <circle cx="9.5" cy="19.5" r="1.6"/>
+      <circle cx="18"   cy="19.5" r="1.6"/>
+    </svg>
+
+    <span class="bubble{% if cartCount == 0 %} is-empty{% endif %}" data-cart-count>
+      {{ cartCount }}
+    </span>
+  </span>
+
+  {% if section.settings.show_cart_badge %}
+    <span class="sr-only" aria-live="polite" data-cart-live></span>
+  {% endif %}
+</a>
+
+
+
       </div>
     </div>
 
-    <!-- Mobile pill search -->
-    <div class="wrap only-m" style="padding:8px 16px 12px;">
-      <button type="button" class="m-search" data-panel-open="search" aria-label="Open search">
-        <svg aria-hidden="true" viewBox="0 0 24 24" class="ico"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8L20 21.5 21.5 20l-6-6z"/></svg>
-        <span data-rotating-mobile>{{ search_prompts.first | default: 'Search products' }}</span>
-      </button>
+    <!-- ===== Mobile search bar (opens existing side panel) ===== -->
+    <div class="wrap only-m">
+      <form class="m-search" role="search" action="{{ routes.search_url }}" onsubmit="return false">
+        <input type="search" aria-label="Search products" placeholder="" readonly data-open-search data-panel-open="search">
+        <button type="button" class="sbtn" data-open-search data-panel-open="search">search</button>
+      </form>
     </div>
 
-    <!-- ===== LOWER NAV ===== -->
-    <nav class="nav-band only-d" role="navigation" aria-label="Main">
-      <div class="wrap nav">
-        <div class="nav-left">
-          <div data-mini><a href="{{ routes.root_url }}">Home</a></div>
-
-          <!-- All Categories (mega) -->
-          <div data-mega="cats" aria-haspopup="true" aria-expanded="false">
-            {% render 'ch-mega',
-              mode: 'cats', menu_obj: menu_obj, categories_parent_index: categories_parent_index,
-              categories_fallback_url: section.settings.categories_fallback_url,
-              default_preview_collection: section.settings.default_preview_collection,
-              icon_override_lines: icon_override_lines, parent_title: parent_title,
-              brands_fallback_url: section.settings.brands_fallback_url, brands_list: section.settings.brands_list %}
-          </div>
-
-          <!-- Brands (mega) -->
-          <div data-mega="brands" aria-haspopup="true" aria-expanded="false">
-            {% render 'ch-mega',
-              mode: 'brands', menu_obj: menu_obj, categories_parent_index: categories_parent_index,
-              categories_fallback_url: section.settings.categories_fallback_url,
-              default_preview_collection: section.settings.default_preview_collection,
-              icon_override_lines: icon_override_lines, parent_title: parent_title,
-              brands_fallback_url: section.settings.brands_fallback_url, brands_list: section.settings.brands_list %}
-          </div>
-
-          <!-- Other items -->
-          {% if menu_obj %}
-            {% for l in menu_obj.links %}
-              {% assign t = l.title | strip | downcase %}
-              {% assign p_norm = parent_title | strip | downcase %}
-              {% if t != 'brands' and t != p_norm and t != 'home' %}
-                <div data-mini>
-                  <a href="{{ l.url }}" aria-haspopup="{% if l.links.size > 0 %}true{% else %}false{% endif %}" data-mini-link data-has-children="{% if l.links.size > 0 %}true{% else %}false{% endif %}">
-                    {{ l.title }}
-                  </a>
-                  {% if l.links.size > 0 %}
-                    <div class="mega mini">
-                      <ul style="list-style:none; margin:0; padding:0;">
-                        {% for s in l.links %}<li><a href="{{ s.url }}">{{ s.title }}</a></li>{% endfor %}
-                      </ul>
-                    </div>
-                  {% endif %}
-                </div>
-              {% endif %}
-            {% endfor %}
-          {% endif %}
-        </div>
-        <div></div>
-      </div>
-    </nav>
+    <!-- ===== LOWER NAV with visible triggers for mega ===== -->
+    <div class="nav-spacer" aria-hidden="true"></div>
   </div>
+<nav class="nav-band only-d" role="navigation" aria-label="Main" style="background-color: #d12f24 !important;">
+  <div class="wrap nav">
+    <div class="nav-left">
 
-  <script>
-  (() => {
-    const root = document.getElementById('ch-header-{{ section.id }}'); if(!root) return;
-    const qs=(s,sc=root)=>sc.querySelector(s); const qsa=(s,sc=root)=>Array.from(sc.querySelectorAll(s));
-    const nf = new Intl.NumberFormat({{ request.locale.iso_code | json }} || 'en-PH', { style:'currency', currency: {{ shop.currency | json }} || 'PHP' });
-    const money=(c)=> nf.format((Number(c)||0)/100);
-    const esc=(s)=> (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
-    const widthSwap=(u,w)=> u&&u.indexOf('{width}')>-1 ? u.replace('{width}', String(w)) : (u||'').replace(/(\.(?:jpe?g|png|webp|gif))(?:\?.*)?$/i, `_${w}x$1`);
-    const srcset=(u)=> `${widthSwap(u,80)} 80w, ${widthSwap(u,160)} 160w, ${widthSwap(u,320)} 320w`;
+      {%- comment -%} Categories mega (single wrap) {%- endcomment -%}
+      <div data-mega="cats" class="mmg-wrap" aria-haspopup="true" aria-expanded="false">
+        <a href="{{ section.settings.categories_fallback_url | default: '/collections/all' }}">
+          All Categories <span class="chev" aria-hidden="true"></span>
+        </a>
+        {%- render 'ch-mega',
+          mode: 'cats',
+          menu_obj: menu_obj,
+          parent_title: section.settings.categories_parent_title,
+          categories_fallback_url: section.settings.categories_fallback_url
+        -%}
+      </div>
 
-    /* ---------- Normalize prompts & phrase-by-phrase typing ---------- */
-    (function rotatingSearch(){
-      const raw = {{ section.settings.search_prompts | json }};
-      let list = Array.isArray(raw) ? raw : [raw];
-      // split any element by actual newline, literal "\n", comma or pipe
-      list = list.flatMap(s => String(s||'').split(/[\r\n]+|\\n|[|,]/)).map(s => s.trim()).filter(Boolean);
-      if(!list.length) list = ['Search products'];
+      {%- comment -%} Brands mega - pulls from brands page section {%- endcomment -%}
+      <div data-mega="brands" class="mmg-wrap" aria-haspopup="true" aria-expanded="false">
+        <a href="{{ section.settings.brands_fallback_url | default: '/pages/brands' }}">
+          Brands <span class="chev" aria-hidden="true"></span>
+        </a>
+        {%- render 'ch-mega',
+          mode: 'brands',
+          brands_fallback_url: section.settings.brands_fallback_url,
+          header_section_blocks: section.blocks
+        -%}
+      </div>
 
-      const input = qs('[data-ps-input]', root);
-      const mobile = qs('[data-rotating-mobile]', root);
+      {%- comment -%} Stores mega (Where to find us — one column) {%- endcomment -%}
+      <div data-mega="stores" class="mmg-wrap" aria-haspopup="true" aria-expanded="false">
+        <a href="{{ section.settings.stores_fallback_url | default: '/pages/store-branches' }}">
+          Where to find us <span class="chev" aria-hidden="true"></span>
+        </a>
+        {%- render 'ch-mega',
+          mode: 'stores',
+          menu_obj: menu_obj,
+          stores_parent_title: section.settings.stores_parent_title | default: 'Stores',
+          stores_fallback_url: section.settings.stores_fallback_url
+        -%}
+      </div>
 
-      const type = (setter) => {
-        let i=0, j=0, del=false;
-        const typeDelay=55, delDelay=26, hold=950, gap=250;
-        const step=()=>{
-          const full=list[i];
-          if(!del){ j++; setter(full.slice(0,j)); if(j>=full.length){ del=true; return setTimeout(step,hold); } }
-          else { j--; setter(full.slice(0,j)); if(j<=0){ del=false; i=(i+1)%list.length; return setTimeout(step,gap); } }
-          setTimeout(step, del?delDelay:typeDelay);
-        };
-        step();
-      };
+      {%- comment -%} Other top-level links (exclude Categories/Brands/Stores to avoid duplicates) {%- endcomment -%}
+      {% if menu_obj %}
+        {% assign p_norm = parent_title | strip | downcase %}
+        {% assign s_norm = stores_parent_title | strip | downcase %}
+        {% for l in menu_obj.links %}
+          {% assign t = l.title | strip | downcase %}
+          {% if t != 'brands' and t != p_norm and t != s_norm %}
+            {% unless t contains 'store' or t contains 'where to find' %}
+              <div data-mini>
+                <a href="{{ l.url }}"
+                   aria-haspopup="{% if l.links.size > 0 %}true{% else %}false{% endif %}"
+                   data-mini-link
+                   data-has-children="{% if l.links.size > 0 %}true{% else %}false{% endif %}">
+                  {{ l.title }}{% if l.links.size > 0 %}<span class="chev" aria-hidden="true"></span>{% endif %}
+                </a>
+                {% if l.links.size > 0 %}
+                  <div class="mega mini">
+                    <ul style="list-style:none; margin:0; padding:0;">
+                      {% for s in l.links %}<li><a href="{{ s.url }}">{{ s.title }}</a></li>{% endfor %}
+                    </ul>
+                  </div>
+                {% endif %}
+              </div>
+            {% endunless %}
+          {% endif %}
+        {% endfor %}
+      {% endif %}
 
-      if(input){
-        input.setAttribute('placeholder', list[0]);
-        type(t => input.setAttribute('placeholder', t));
-      }
-      if(mobile){
-        mobile.textContent = list[0];
-        type(t => mobile.textContent = t);
-      }
-    })();
+    </div>
 
-    /* HoverIntent helper */
-    function bindHoverIntent(container){
-      let t=null;
-      const open=()=>{ clearTimeout(t); container.setAttribute('data-open','true'); container.setAttribute('aria-expanded','true'); }
-      const close=()=>{ container.setAttribute('data-open','false'); container.setAttribute('aria-expanded','false'); }
-      const requestClose=()=>{ clearTimeout(t); t=setTimeout(close, 180); }
-      container.addEventListener('pointerenter', open);
-      container.addEventListener('pointerleave', requestClose);
-      container.addEventListener('focusin', open);
-      container.addEventListener('focusout', e=>{ if(!container.contains(e.relatedTarget)) requestClose(); });
-      const trigger = container.querySelector(':scope > a, :scope > [data-trigger]');
-      trigger && trigger.addEventListener('click', (e)=>{ if(window.matchMedia('(min-width: 992px)').matches){ e.preventDefault(); (container.getAttribute('data-open')==='true'?requestClose:open)(); }});
-      document.addEventListener('keydown', e=>{ if(e.key==='Escape') close(); });
-    }
+    <div>
+      {% if section.settings.support_email %}
+        <a href="mailto:{{ section.settings.support_email }}" class="contact">
+          <svg class="ico" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" ry="2"/><path d="M21 7l-9 6L3 7"/></svg>
+          {{ section.settings.support_email }}
+        </a>
+      {% endif %}
+    </div>
+  </div>
+</nav>
 
-    /* Close predictive when a panel opens */
-    document.addEventListener('ch:panel', (e)=>{
-      const { open } = (e && e.detail) || {};
-      if(open){
-        const panel = qs('[data-ps-panel]', root);
-        const input = qs('[data-ps-input]', root);
-        if(panel && panel.getAttribute('data-open')==='true'){
-          panel.setAttribute('data-open','false');
-          input && input.setAttribute('aria-expanded','false');
-        }
-      }
-    });
+<script type="application/json" data-ps-prompts>
+  {{ search_prompts | json }}
+</script>
 
-    /* Cats + Brands mega */
-    ['cats','brands'].forEach(key=>{
-      const wrap=qs(`[data-mega="${key}"]`); if(!wrap) return;
-      bindHoverIntent(wrap);
-      // ensure a chevron exists on the trigger
-      const a = wrap.querySelector(':scope > a'); if(a && !a.querySelector('.chev')){ const s=document.createElement('span'); s.className='chev'; s.setAttribute('aria-hidden','true'); a.appendChild(s); }
-    });
 
-    /* Enable ALL mini dropdowns (e.g., Stores) + add chevrons when a link has children */
-    qsa('[data-mini]').forEach(wrap=>{
-      const hasMega = wrap.querySelector(':scope > .mega.mini');
-      const a = wrap.querySelector(':scope > a[data-has-children="true"]');
-      if(hasMega || a){ bindHoverIntent(wrap); }
-      if(a && !a.querySelector('.chev')){ const s=document.createElement('span'); s.className='chev'; s.setAttribute('aria-hidden','true'); a.appendChild(s); }
-    });
 
-    /* ======== (rest of predictive search left unchanged except cosmetics) ======== */
-    (function deskPredictive(){
-      const wrap=qs('[data-ps-wrap]'); if(!wrap) return;
-      const input=qs('[data-ps-input]', wrap); const panel=qs('[data-ps-panel]', wrap); const live=qs('[data-ps-live]', wrap);
-      const listP=qs('[data-ps-prods]', wrap); const listS=qs('[data-ps-sugs]', wrap); const chipsR=qs('[data-ps-chips]', wrap); const chipsB=qs('[data-ps-brands]', wrap); const heading=qs('[data-ps-heading]', wrap); const footAll=qs('[data-ps-viewall]', wrap);
-      const RKEY='ch_recent_queries'; let db=null; let ctl=null; const mem=new Map();
-
-      const PREFILL = { enable: true, collHandle: ({{ section.settings.default_preview_collection | json }}||'').split('/collections/')[1]||'', limit: {{ section.settings.search_limit_products | default: 6 }} };
-      async function fetchPrefillProducts(){
-        if(!PREFILL.enable || !PREFILL.collHandle) return [];
-        try{
-          const r = await fetch(`/collections/${PREFILL.collHandle}/products.json?limit=${PREFILL.limit}`, {headers:{'Accept':'application/json'}, cache:'no-store'});
-          const js = await r.json(); const list = Array.isArray(js.products) ? js.products : [];
-          return list.map(p => ({ title: p.title, url: `/products/${p.handle}`, handle: p.handle, vendor: p.vendor,
-            price: (p.variants && p.variants[0] ? Number(p.variants[0].price||0)*100 : 0),
-            compare_at_price: (p.variants && p.variants[0] && p.variants[0].compare_at_price ? Number(p.variants[0].compare_at_price||0)*100 : 0),
-            image: (p.images && p.images[0]) ? (p.images[0].src || p.images[0]) : (p.image && p.image.src) || '' }));
-        }catch(_){ return []; }
-      }
-
-      function paintChips(){
-        if(chipsR){ chipsR.innerHTML=''; }
-        {% if section.settings.show_recent %}
-        try{ (JSON.parse(localStorage.getItem(RKEY)||'[]')||[]).forEach(t=>{ const a=document.createElement('a'); a.href=`/search?q=${encodeURIComponent(t)}`; a.innerHTML='<span>'+esc(t)+'</span>'; chipsR && chipsR.appendChild(a); }); }catch(_){}
-        {% endif %}
-        {% if section.settings.show_trending %}
-        ({{ section.settings.trending_list | default: "Instant\nMirrorless\nFilm\nAction\nLens\nDrones\n360\nGimbals" | json }}||'').split('\n').map(s=>s.trim()).filter(Boolean).slice(0,8).forEach(t=>{ const a=document.createElement('a'); a.href=`/search?q=${encodeURIComponent(t)}`; a.innerHTML='<span>'+esc(t)+'</span>'; chipsR && chipsR.appendChild(a); });
-        {% endif %}
-      }
-      paintChips();
-
-      const open=()=>{ panel.setAttribute('data-open','true'); input.setAttribute('aria-expanded','true'); document.addEventListener('click', onDoc); document.addEventListener('keydown', onEsc); }
-      const close=()=>{ panel.setAttribute('data-open','false'); input.setAttribute('aria-expanded','false'); document.removeEventListener('click', onDoc); document.removeEventListener('keydown', onEsc); }
-      const onDoc=(e)=>{ if(!panel.contains(e.target) && !wrap.contains(e.target)) close(); }
-      const onEsc=(e)=>{ if(e.key==='Escape') close(); }
-
-      function skeleton(){ listP.innerHTML=''; for(let i=0;i<{{ section.settings.search_limit_products | default: 6 }}; i++){ const li=document.createElement('li'); li.className='ch-mini'; li.innerHTML='<div class="thumb" style="background:linear-gradient(90deg,#eee,#f7f7f7,#eee);border-radius:8px;"></div><div style="height:14px;border-radius:6px;background:linear-gradient(90deg,#eee,#f7f7f7,#eee);"></div><div style="width:64px;height:14px;border-radius:6px;background:linear-gradient(90deg,#eee,#f7f7f7,#eee);"></div>'; listP.appendChild(li);} live.textContent='Loading results'; }
-      function fetchSuggest(q){ if(ctl) ctl.abort(); ctl=new AbortController(); return fetch(`/search/suggest.json?q=${encodeURIComponent(q)}&resources[type]=product,query&resources[limit]={{ section.settings.search_limit_products | default: 6 }}`, {signal:ctl.signal, headers:{'Accept':'application/json'}, cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null); }
-
-      function renderProds(prods){
-        listP.innerHTML='';
-        prods.forEach(p=>{
-          const u=(p&&((p.image&&(p.image.url||p.image))||(p.featured_image&&p.featured_image.url)))||'';
-          const now=(p.price||p.price_min||0), was=(p.compare_at_price||0);
-          const li=document.createElement('li'); li.className='ch-mini'; li.innerHTML=`
-            <a class="overlay" href="${p.url||'#'}" aria-label="${esc(p.title||'')}"></a>
-            <img class="thumb" src="${widthSwap(u,160)}" srcset="${srcset(u)}" sizes="48px" alt="${esc(p.title||'')}" width="48" height="48" loading="lazy" decoding="async">
-            <div><div class="mtitle">${esc(p.title||'')}</div><div class="price"><span>${money(now)}</span>${was>now?`<span class="price-was">${money(was)}</span>`:''}</div></div>
-          `;
-          listP.appendChild(li);
-        });
-      }
-
-      function renderSuggestions(sugs, q){
-        const listS = qs('[data-ps-sugs]', wrap); if(!listS) return; listS.innerHTML = '';
-        sugs.slice(0, 6).forEach(s => {
-          const txt = String(s.title || s.text || '');
-          const div = document.createElement('div'); div.className = 'srow';
-          const safeQ = (q || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const marked = q ? esc(txt).replace(new RegExp('(' + safeQ + ')', 'ig'), '<mark>$1</mark>') : esc(txt);
-          div.innerHTML = `<svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8L20 21.5 21.5 20l-6-6zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg><div>${marked}</div>`;
-          div.addEventListener('click', () => { window.location.href = `/search?q=${encodeURIComponent(txt)}`; });
-          listS.appendChild(div);
-        });
-      }
-
-      function renderBrands(prods){
-        if(!chipsB) return; chipsB.innerHTML=''; const seen=new Set();
-        prods.forEach(p=>{ const v=(p.vendor||'').trim(); if(v && !seen.has(v)){ seen.add(v); const a=document.createElement('a'); a.className='chip'; a.href=`/search?q=${encodeURIComponent('vendor:"'+v+'"')}&type=product`; a.innerHTML='<span>'+esc(v)+'</span>'; chipsB.appendChild(a); }});
-      }
-
-      function showPrefill(){
-        if(heading) heading.textContent='Need some inspiration?';
-        if(footAll) footAll.href='/search?q=';
-        fetchPrefillProducts().then(list=>{ renderProds(list); live.textContent = `${list.length} curated picks`; });
-      }
-
-      function render(js,q){
-        const res=js&&js.resources&&js.resources.results?js.resources.results:{}; const prods=Array.isArray(res.products)?res.products:[]; const sugs =Array.isArray(res.queries)?res.queries:[];
-        if(heading) heading.textContent = q && q.length ? 'Results' : 'Need some inspiration?';
-        renderProds(prods); renderSuggestions(sugs, q||''); renderBrands(prods); live.textContent = (prods.length + Math.min(sugs.length,6)) + ' results';
-      }
-
-      input && input.addEventListener('focus', ()=>{ panel && (panel.setAttribute('data-open','true'), input.setAttribute('aria-expanded','true')); if(!input.value.trim()){ showPrefill(); }});
-      input && input.addEventListener('input', ()=>{ const q=input.value.trim(); clearTimeout(db); db=setTimeout(()=>{ if(footAll) footAll.href=`/search?q=${encodeURIComponent(q)}`; if(!q || q.length < {{ section.settings.search_min_chars | default: 2 }}){ showPrefill(); return; } if(mem.has(q)){ const js=mem.get(q)||{}; render(js,q); return; } listP && (listP.innerHTML=''); skeleton(); fetchSuggest(q).then(js=>{ mem.set(q, js||{}); render(js||{}, q); }); }, 180); });
-      document.addEventListener('click', (e)=>{ const wrapEl = wrap; if(!wrapEl.contains(e.target)){ panel && panel.setAttribute('data-open','false'); input && input.setAttribute('aria-expanded','false'); }});
-    })();
-
-  })();
-  </script>
 
   {%- capture search_body -%}{% render 'ch-panel-search-mobile', section: section %}{%- endcapture -%}
   {% render 'ch-side-panel', id: 'search', title: 'SEARCH OUR SITE', aria_label: 'Search our site', body: search_body %}
-  {%- capture cart_body -%}{% render 'ch-panel-cart' %}{%- endcapture -%}
-  {% render 'ch-side-panel', id: 'cart', title: 'YOUR CART', aria_label: 'Your cart', body: cart_body %}
-  {%- capture wl_body -%}{% render 'ch-panel-wishlist' %}{%- endcapture -%}
-  {% render 'ch-side-panel', id: 'wishlist', title: 'YOUR WISHLIST', aria_label: 'Your wishlist', body: wl_body %}
+
   {% render 'ch-menu-drawer-mobile' %}
-  {% render 'ch-panels-controller' %}
+
 </section>
 
 {% schema %}
@@ -477,44 +275,48 @@ CH Header — Camerahaus branded (fixes: phrase-typing, mini dropdowns, chevrons
   "settings": [
     { "type": "image_picker", "id": "logo", "label": "Logo (desktop)" },
     { "type": "image_picker", "id": "logo_mobile", "label": "Logo (mobile)" },
-
     { "type": "range", "id": "logo_width_desktop", "label": "Logo width desktop (px)", "min": 120, "max": 600, "step": 5, "default": 200 },
     { "type": "range", "id": "logo_width_mobile", "label": "Logo width mobile (px)", "min": 88, "max": 200, "step": 4, "default": 140 },
 
-    { "type": "select", "id": "container_max_width", "label": "Container max width", "default": "1440",
-      "options": [
-        { "value": "1200", "label": "1200px" },
-        { "value": "1320", "label": "1320px" },
-        { "value": "1440", "label": "1440px" },
-        { "value": "1600", "label": "1600px" }
-      ]
-    },
-
     { "type": "link_list", "id": "menu_main", "label": "Main menu" },
-    { "type": "text", "id": "categories_parent_title", "label": "Categories parent title", "default": "Category", "info": "Name of the top-level menu item whose children are your categories." },
+    { "type": "text", "id": "categories_parent_title", "label": "Categories parent title", "default": "Category" },
     { "type": "url", "id": "categories_fallback_url", "label": "All Categories link" },
+    { "type": "url", "id": "brands_fallback_url", "label": "Brands link (fallback)" },
 
-    { "type": "collection", "id": "default_preview_collection", "label": "Default preview collection (no hover)", "info": "Shown as inspiration picks before typing." },
+    { "type": "collection", "id": "default_preview_collection", "label": "Search preview collection" },
+    { "type": "range", "id": "search_limit_products", "label": "Search: product limit", "min": 3, "max": 12, "step": 1, "default": 6 },
 
-    { "type": "textarea", "id": "icon_overrides", "label": "Icon overrides (Label|icon_key per line)", "info": "icon_key choices: camera, lens, drone, tripod, flash, storage, microphone, gimbal, binoculars" },
+    { "type": "text", "id": "support_email", "label": "Support email (lower band)", "default": "support@email.ph" },
 
-    { "type": "textarea", "id": "brands_list", "label": "Brands (one per line)", "default": "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" },
-    { "type": "url", "id": "brands_fallback_url", "label": "Brands link" },
-
-    { "type": "range", "id": "search_min_chars", "label": "Predictive min chars", "min": 1, "max": 3, "step": 1, "default": 2 },
-    { "type": "range", "id": "search_limit_products", "label": "Predictive product count", "min": 3, "max": 10, "step": 1, "default": 6 },
-
-    { "type": "checkbox", "id": "show_recent", "label": "Show recent searches", "default": true },
-    { "type": "checkbox", "id": "show_trending", "label": "Show trending chips", "default": true },
-    { "type": "range", "id": "recent_max", "label": "Recent limit", "min": 3, "max": 10, "step": 1, "default": 6 },
-    { "type": "textarea", "id": "trending_list", "label": "Trending list", "default": "Instant\nMirrorless\nFilm\nAction\nLens\nDrones\n360\nGimbals" },
-
-    { "type": "checkbox", "id": "show_cart_badge", "label": "Show cart badge", "default": true },
-
-    { "type": "textarea", "id": "search_prompts", "label": "Search prompts (one per line; '\\n', commas, or pipes also work)", "default": "Search Canon products\nSearch Nikon products\nSearch Sony E-mount lenses\nSearch gimbals\nSearch 128GB SD cards" }
+    { "type": "textarea", "id": "search_prompts", "label": "Rotating search prompts (one per line)", "default": "Search Canon products\nSearch Nikon products\nSearch Sony E-mount lenses\nSearch gimbals\nSearch 128GB SD cards" }
+  ],
+  "blocks": [
+    {
+      "type": "brand",
+      "name": "Brand (Mega Menu)",
+      "limit": 30,
+      "settings": [
+        {
+          "type": "text",
+          "id": "brand_name",
+          "label": "Brand Name",
+          "info": "e.g., Canon, Nikon, Sony"
+        },
+        {
+          "type": "image_picker",
+          "id": "brand_logo",
+          "label": "Brand Logo"
+        },
+        {
+          "type": "url",
+          "id": "brand_url",
+          "label": "Brand Collection URL"
+        }
+      ]
+    }
   ],
   "presets": [
-    { "name": "CH Header (red top band + dark-red nav + chevrons + predictive)" }
+    { "name": "CH Header" }
   ]
 }
 {% endschema %}

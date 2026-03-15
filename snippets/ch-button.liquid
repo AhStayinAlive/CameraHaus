@@ -1,0 +1,96 @@
+{%- comment -%}
+CH Search Button (HAVIT style)
+Drop this into snippets/ch-search-button.liquid and render where needed:
+
+  {% render 'ch-search-button', label: 'search', type: 'submit', size: 'md', icon: true %}
+
+Props (all optional):
+  label        -> text inside button (default: "search")
+  type         -> "button" | "submit" (default: "button")
+  variant      -> "red" | "outline-black" | "ghost" | "primary" | "outline" (default: "red")
+  size         -> "sm" | "md" | "lg" (default: "md")
+  block        -> true to make full width (default: false)
+  icon         -> true/false show magnifier icon (default: true)
+  aria_label   -> override aria-label (defaults to label)
+
+Design tokens (override with CSS anywhere after this snippet loads):
+  .hv-sbtn{ --hv-brand:#e03a2f; --hv-brand-600:#d12f24; --hv-ink:#ffffff; }
+{%- endcomment -%}
+
+{%- assign _label      = label      | default: 'search' -%}
+{%- assign _type       = type       | default: 'button' -%}
+{%- assign _variant    = variant    | default: 'red' -%}
+{%- assign _size       = size       | default: 'md' -%}
+{%- assign _block      = block      | default: false -%}
+{%- assign _icon       = icon       | default: true -%}
+{%- assign _aria       = aria_label | default: _label -%}
+
+<button type="{{ _type }}"
+  class="hv-sbtn hv-sbtn--{{ _variant }} hv-sbtn--{{ _size }}{% if _block %} hv-sbtn--block{% endif %}"
+  aria-label="{{ _aria | escape }}">
+  {% if _icon %}
+    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="20" y1="20" x2="16.65" y2="16.65"/></svg>
+  {% endif %}
+  <span class="label">{{ _label }}</span>
+</button>
+
+<style>
+/* ===== HAVIT-style Search Button ===== */
+.hv-sbtn{
+  --hv-brand:#e03a2f;           /* base red */
+  --hv-brand-600:#d12f24;       /* darker hover red */
+  --hv-ink:#ffffff;             /* text/icon color */
+  --hv-radius:10px;
+  --hv-h:32px;                  /* default height for md */
+  --hv-px:14px;
+  --hv-fz:13px;
+  --hv-fw:700;
+  appearance:none;
+  -webkit-appearance:none;
+  background:var(--hv-brand);
+  color:var(--hv-ink);
+  border:1px solid var(--hv-brand);
+  border-radius:var(--hv-radius);
+  height:var(--hv-h);
+  padding:0 var(--hv-px);
+  font: var(--hv-fw) var(--hv-fz)/1 Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  text-transform:lowercase;
+  letter-spacing:.2px;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  cursor:pointer; user-select:none; text-decoration:none;
+  transition: background .12s ease, border-color .12s ease, box-shadow .12s ease, transform .06s ease;
+}
+.hv-sbtn .ico{ width:16px; height:16px; display:block; color:currentColor; }
+.hv-sbtn .ico circle,
+.hv-sbtn .ico line{ fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+
+.hv-sbtn:hover{ background:var(--hv-brand-600); border-color:var(--hv-brand-600); }
+.hv-sbtn:active{ transform:translateY(1px); }
+.hv-sbtn:focus-visible{ outline:none; box-shadow:0 0 0 2px #fff, 0 0 0 4px rgba(224,58,47,.55); }
+.hv-sbtn[disabled], .hv-sbtn[aria-disabled="true"]{ opacity:.6; cursor:not-allowed; }
+.hv-sbtn--block{ width:100%; }
+
+/* Sizes */
+.hv-sbtn--sm{ --hv-h:30px; --hv-px:12px; --hv-fz:12px; --hv-radius:8px; }
+.hv-sbtn--md{ --hv-h:32px; --hv-px:14px; --hv-fz:13px; --hv-radius:10px; }
+.hv-sbtn--lg{ --hv-h:40px; --hv-px:16px; --hv-fz:14px; --hv-radius:12px; }
+
+/* Variants */
+.hv-sbtn--primary, .hv-sbtn--red{ background:var(--hv-brand); border-color:var(--hv-brand); color:var(--hv-ink); }
+.hv-sbtn--outline{ background:#fff; color:var(--hv-brand); border-color:var(--hv-brand); }
+.hv-sbtn--outline:hover{ background:#fff; filter:brightness(.98); }
+.hv-sbtn--ghost{ background:transparent; border-color:transparent; color:var(--hv-brand); }
+.hv-sbtn--ghost:hover{ background:rgba(224,58,47,.08); }
+
+/* Black outline variant */
+.hv-sbtn--outline-black{ background:transparent; border-color:currentColor; color:#111; }
+.hv-sbtn--outline-black:hover{ background:var(--hv-brand-600); border-color:var(--hv-brand-600); color:#fff; }
+
+/* Loading state: set data-loading="true" on the button */
+.hv-sbtn[data-loading="true"]{ position:relative; pointer-events:none; }
+.hv-sbtn[data-loading="true"] .label{ opacity:0; }
+.hv-sbtn[data-loading="true"]::after{
+  content:""; position:absolute; width:16px; height:16px; border:2px solid currentColor; border-right-color:transparent; border-radius:999px; animation:hvspin .65s linear infinite;
+}
+@keyframes hvspin{ to { transform:rotate(360deg); } }
+</style>

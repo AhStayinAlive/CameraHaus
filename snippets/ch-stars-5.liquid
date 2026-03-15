@@ -1,0 +1,48 @@
+<style>
+  .ch-stars-5 {
+    display: inline-flex;
+    align-items: center;
+    position: relative;
+    font-size: 14px; /* Star size */
+    color: #e5e7eb; /* Background star color (gray-200) */
+    line-height: 1;
+    vertical-align: middle;
+    /* Optical alignment fix */
+    margin-top: -2px; 
+  }
+  .ch-stars-5__bg, .ch-stars-5__fg {
+    display: flex;
+    gap: 1px;
+  }
+  .ch-stars-5__fg {
+    color: #D12F24; /* Foreground star color (Red) */
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+  }
+</style>
+
+{%- comment -%}
+  Renders 5-star rating component.
+  Parameters:
+  - rating_val: (Float) The average rating (0.0 - 5.0)
+{%- endcomment -%}
+
+<div class="ch-stars-5" aria-label="{{ rating_val }} out of 5 stars">
+  <!-- Background (Empty Stars) -->
+  <div class="ch-stars-5__bg" aria-hidden="true">
+    {% for i in (1..5) %}
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    {% endfor %}
+  </div>
+
+  <!-- Foreground (Filled Stars) -->
+  <div class="ch-stars-5__fg" style="width: {{ rating_val | times: 20 }}%;">
+    {% for i in (1..5) %}
+       <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    {% endfor %}
+  </div>
+</div>

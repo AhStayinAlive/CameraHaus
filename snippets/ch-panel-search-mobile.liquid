@@ -1,289 +1,1554 @@
-{%- comment -%}
-snippets/ch-panel-search-mobile.liquid
-Mobile search panel body — self-contained predictive
+{%- comment -%} Floating Search — v15 (spec complete: desktop top anchor, safe-area mobile island, red matches, tab underline, bottom meta, a11y, rAF pinning) {%- endcomment -%}
 
-Changes in this version:
-• Text-only Quick search links (Havit-style) so products sit higher.
-• Enter key submits to /search?q=... and stores recent queries.
-• Safer fetchSuggest() with graceful fallback if endpoint fails.
-• Same scoped styles; no dependencies on global scripts.
+{%- assign _preview = preview_collection
+  | default: section.settings.default_preview_collection
+  | default: settings.search_prefill_collection
+  | default: collections['all']
+  | default: collections.frontpage
+-%}
+{%- if _preview and _preview != blank and _preview.products_count == nil -%}{%- assign _preview = collections[_preview] -%}{%- endif -%}
 
-Usage:
-  {% capture body %}{% render 'ch-panel-search-mobile', section: section %}{% endcapture %}
-  {% render 'ch-side-panel', id: 'search', title: 'SEARCH OUR SITE', body: body %}
-{%- endcomment -%}
+{%- assign _limit = section.settings.search_limit_products | default: 6 -%}
+{%- assign _min_chars = 2 -%}
+{%- assign _locale = request.locale.iso_code | default: 'en' -%}
+{%- assign _currency = shop.currency | default: 'USD' -%}
+{%- assign _meta_limit = _limit | times: 10 -%}
+
+
+{%- capture prefill_json -%}
+[
+  {%- if _preview and _preview.products_count > 0 -%}
+    {%- for p in _preview.products limit: _limit -%}
+    { "title": {{ p.title | json }}, "url": {{ p.url | json }}, "price": {{ p.price | divided_by: 100.0 | json }}, "compare_at_price": {{ p.compare_at_price | divided_by: 100.0 | json }}, "image": {{ p.featured_image | image_url: width: 240 | json }}, "vendor": {{ p.vendor | json }}, "product_type": {{ p.type | json }} }{%- unless forloop.last -%},{%- endunless -%}
+    {%- endfor -%}
+  {%- endif -%}
+]
+{%- endcapture -%}
+
+{%- capture prefill_meta_json -%}
+[
+  {%- if _preview and _preview.products_count > 0 -%}
+    {%- for p in _preview.products limit: _meta_limit -%}
+    { "title": {{ p.title | json }}, "url": {{ p.url | json }}, "price": {{ p.price | divided_by: 100.0 | json }}, "compare_at_price": {{ p.compare_at_price | divided_by: 100.0 | json }}, "image": {{ p.featured_image | image_url: width: 240 | json }}, "vendor": {{ p.vendor | json }}, "product_type": {{ p.type | json }} }{%- unless forloop.last -%},{%- endunless -%}
+    {%- endfor -%}
+  {%- endif -%}
+]
+{%- endcapture -%}
+
+{%- capture vendors_json -%}{{ shop.vendors | json }}{%- endcapture -%}
 
 <style>
-/* ===== Scoped styles (search panel only) ===== */
-.ch-panel[data-ch-panel="search"] .sh-row{ padding:10px 14px; display:grid; gap:10px; }
-.ch-panel[data-ch-panel="search"] .sh-inp{
-  height:46px; background:#fff; border:1px solid var(--line,#e8e8e8); border-radius:12px;
-  display:flex; align-items:center; gap:8px; padding:0 12px;
-  box-shadow: inset 0 0 0 1px transparent;
-}
-.ch-panel[data-ch-panel="search"] .sh-inp:focus-within{ border-color:var(--brand,#E0302A); box-shadow: inset 0 0 0 1px var(--brand,#E0302A); }
-.ch-panel[data-ch-panel="search"] .sh-inp input{
-  width:100%; border:0; outline:0; background:transparent; color:var(--ink,#161616);
-  font:600 16px/1.25 var(--font-body,inherit);
-}
-.ch-panel[data-ch-panel="search"] .sh-inp .btn{ min-width:auto; min-height:auto; background:transparent; border:0; padding:0; color:#6b7280; }
-.ch-panel[data-ch-panel="search"] .ico{ width:20px; height:20px; }
+/* Force-hide conflicting theme search UIs */
+.ch-panel[data-ch-panel="search"], .search-modal, [data-drawer="search"], .js-predictive-search{ display:none!important; }
 
-.ch-panel[data-ch-panel="search"] .sh-live{ position:absolute; left:-9999px; top:auto; width:1px; height:1px; overflow:hidden; }
-.ch-panel[data-ch-panel="search"] .sh-sec{ padding:8px 14px; }
-.ch-panel[data-ch-panel="search"] .sh-sec__title{ margin:0 0 8px; font:800 12px/1 var(--font-body,inherit); color:#666; letter-spacing:.02em; }
-
-/* Text-only quick links */
-.ch-panel[data-ch-panel="search"] .qs-inline{ font:600 14px/1.55 var(--font-body,inherit); color:var(--ink,#161616); }
-.ch-panel[data-ch-panel="search"] .qs-inline a{ color:inherit; text-decoration:none; opacity:.92; }
-.ch-panel[data-ch-panel="search"] .qs-inline a:hover{ color:var(--brand,#E0302A); opacity:1; }
-.ch-panel[data-ch-panel="search"] .qs-inline .sep{ opacity:.35; padding:0 6px; }
-
-.ch-panel[data-ch-panel="search"] .chips{ display:flex; flex-wrap:wrap; gap:8px; }
-.ch-panel[data-ch-panel="search"] .chip{
-  display:inline-flex; align-items:center; height:32px; padding:0 12px; border-radius:999px;
-  border:1px solid var(--chip-bd,#E5E7EB); background:var(--chip-bg,#fff); color:var(--chip-txt,#111);
-  text-decoration:none; font-weight:700; font-size:12px; max-width:100%;
-}
-.ch-panel[data-ch-panel="search"] .chip:hover{ background:var(--chip-bg-hover,#FFF4F3); border-color:var(--brand,#E0302A); }
-
-.ch-panel[data-ch-panel="search"] .lst{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
-.ch-panel[data-ch-panel="search"] .srow{
-  display:grid; grid-template-columns:20px 1fr; align-items:center; gap:8px; padding:10px;
-  border:1px solid var(--line,#e8e8e8); border-radius:12px; background:#fff; cursor:pointer;
-}
-.ch-panel[data-ch-panel="search"] .srow svg{ width:16px; height:16px; color:#6b7280; }
-
-.ch-panel[data-ch-panel="search"] .it{
-  display:grid; grid-template-columns:56px 1fr auto; gap:10px; align-items:center; padding:10px;
-  border-radius:12px; border:1px solid var(--line,#e8e8e8); background:#fff; position:relative;
-}
-.ch-panel[data-ch-panel="search"] .mthumb{ width:56px; height:56px; object-fit:contain; border-radius:8px; background:#f4f4f4; }
-.ch-panel[data-ch-panel="search"] .mtitle{ font:700 13px/1.3 var(--font-body,inherit); color:var(--ink,#161616); }
-.ch-panel[data-ch-panel="search"] .mprice{ font:800 13px/1 var(--font-body,inherit); color:#111; white-space:nowrap; }
-.ch-panel[data-ch-panel="search"] .price-was{ color:#8b8b8b; text-decoration:line-through; margin-left:6px; font-weight:700; }
-
-.ch-panel[data-ch-panel="search"] .sh-ft{ padding:10px 14px 18px; border-top:1px solid var(--line,#e8e8e8); margin-top:auto; text-align:center; }
-.ch-panel[data-ch-panel="search"] .cta-all--mobile{
-  display:inline-flex; align-items:center; gap:8px; height:40px; padding:0 14px; border-radius:999px;
-  background:#111; color:#fff; text-decoration:none; font-weight:800;
+/* Tokens */
+:root{
+  --ink:#1f2937; --muted:#6b7280; --hair:#e5e7eb; --bg:#fff; --hover:#f7f8fa; --hit:#E03A2F;
+  --g-gap:12px; /* mobile island gutters */
 }
 
-/* lightweight skeleton */
-.ch-panel[data-ch-panel="search"] .skeleton{ background:linear-gradient(90deg,#eee,#f7f7f7,#eee); animation:ch-sh 1.2s infinite; }
-@keyframes ch-sh{ 0%{background-position:-120px 0} 100%{background-position:120px 0} }
-/* ===== Havit-style mobile rows ========================================== */
-.ch-panel[data-ch-panel="search"] .it{
-  border:1px solid #E5E7EB; background:#fff; border-radius:12px;
-  grid-template-columns:64px 1fr auto; padding:10px; gap:10px;
+/* Portal overlay */
+.ms-portal{ position:fixed; inset:0; z-index:2147483647; pointer-events:none; }
+.ms-portal::before{ content:""; position:absolute; inset:0; background:rgba(0,0,0,.35); opacity:0; transition:opacity .22s ease; pointer-events:none; }
+.ms-portal[data-open]{ pointer-events:auto; }
+.ms-portal[data-open]::before{ opacity:1; pointer-events:auto; }
+
+/* Thin black typography, inherit theme font */
+.ms-portal, .ms-portal *:not(svg):not(style){
+  font-family: inherit;
+  font-weight:300;
+  color:#111;
+  -webkit-font-smoothing:antialiased;
 }
-.ch-panel[data-ch-panel="search"] .mthumb{
-  width:64px;height:64px;border-radius:10px;background:#fff; border:1px solid #F1F5F9; object-fit:contain;
+
+/* Island */
+.ms-island{
+  position:fixed; left:50%;
+  transform:translateX(-50%) translateY(6px) scale(.995);
+  width:min(96vw,1200px); max-height:calc(100dvh - 24px);
+  background:var(--bg); border:1px solid var(--hair); border-radius:18px;
+  box-shadow:0 24px 72px rgba(17,19,21,.18);
+  display:flex; flex-direction:column; overflow:hidden;
+  opacity:0; transition:opacity .18s ease, transform .18s ease, box-shadow .18s ease;
 }
-.ch-panel[data-ch-panel="search"] .mtitle{ font:600 13px/1.35 var(--font-body); color:#111; }
-.ch-panel[data-ch-panel="search"] .mprice{ font:800 13px/1 var(--font-body); color:var(--brand); }
-.ch-panel[data-ch-panel="search"] .price-was{ color:#6B7280; text-decoration:line-through; margin-left:6px; }
+.ms-portal[data-open] .ms-island{ opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
+
+/* Desktop top placement (JS computes precise top) */
+@media(min-width:1024px){ .ms-island{ top:80px; } }
+
+/* Mobile island gutters (Moment-style) */
+@media(max-width:1023px){
+  .ms-island{
+    left: calc(env(safe-area-inset-left) + var(--g-gap));
+    right: calc(env(safe-area-inset-right) + var(--g-gap));
+    top:  calc(env(safe-area-inset-top) + var(--g-gap));
+    bottom: calc(env(safe-area-inset-bottom) + var(--g-gap));
+    width:auto; max-height:none; border-radius:16px;
+  }
+}
+
+/* Reduced motion respect */
+@media (prefers-reduced-motion: reduce){
+  .ms-portal *{ transition:none!important; animation:none!important; }
+}
+
+/* Header row */
+.ms-row{ padding:14px 16px 0; display:grid; gap:10px; }
+@media(min-width:1024px){ .ms-row{ padding:18px 20px 0; } }
+
+.ms-input-wrap{ display:flex; align-items:center; gap:10px; padding:12px 12px 14px; border-bottom:1px solid var(--hair); background:#fff; }
+.ms-search-hero{ width:20px; height:20px; color:#a0a7af; }
+.ms-input-wrap input{ width:100%; border:0; background:transparent; outline:0; font-size:17px; color:#111; }
+.ms-input-wrap input::placeholder{ color:#a0a7af; }
+.ms-esc-hint{ margin-left:auto; font-size:12px; color:#a0a7af; display:none; }
+@media(min-width:1024px){ .ms-esc-hint{ display:block; } }
+[data-ms-close]{ position:absolute; top:10px; right:10px; width:32px; height:32px; display:grid; place-items:center; background:#fff; border:1px solid var(--hair); border-radius:999px; color:#111; }
+@media(min-width:1024px){ [data-ms-close]{ display:none; } }
+
+/* Tabs (mobile) */
+.ms-tabs{ display:grid; grid-template-columns:repeat(3,1fr); background:#fff; border-bottom:1px solid var(--hair); }
+@media(min-width:1024px){ .ms-tabs{ display:none; } }
+.ms-tab{
+  position:relative; appearance:none; background:#fff; border:0; border-radius:0;
+  padding:12px 10px; font-size:13px; cursor:pointer; color:#111;
+  transition:color .18s ease, background-color .18s ease;
+}
+.ms-tab::after{
+  content:""; position:absolute; left:0; right:0; bottom:-1px; height:3px;
+  background:transparent; transform:scaleX(0); transform-origin:center;
+  transition:transform .14s ease, background-color .14s ease; border-radius:2px;
+}
+.ms-tab[aria-selected="true"]{ background:#f3f4f6; }
+.ms-tab[aria-selected="true"]::after{ background:var(--hit); transform:scaleX(1); }
+.ms-tab:hover{ color:var(--hit); }
+
+/* Body */
+.ms-scroll{ flex:1; overflow:auto; padding:12px 16px 12px; background:#fff; }
+@media(min-width:1024px){ .ms-scroll{ padding:16px 20px; } }
+
+.ms-desk-grid{ display:block; }
+@media(min-width:1024px){
+  .ms-desk-grid{ display:grid; grid-template-columns:360px 1fr; gap:24px; }
+  .ms-left{ display:flex; flex-direction:column; gap:16px; border-right:1px solid var(--hair); padding-right:16px; }
+  .ms-right{ position:relative; }
+  .ms-toplink{ position:absolute; right:0; top:-2px; font-size:13px; color:#1d4ed8; text-decoration:none; }
+  .ms-toplink:hover{ color:var(--hit); }
+}
+@media(max-width:1023px){ .ms-left,.ms-toplink{ display:none; } }
+
+/* Titles */
+.ms-sec-title{ margin:6px 2px 10px; font-size:12px; font-weight:600; letter-spacing:0; text-transform:none; color:#111; }
+
+/* Side lists */
+.ms-side-list{ list-style:none; margin:0; padding:0; border:1px solid var(--hair); border-radius:12px; background:#fff; }
+.ms-side-item a{ display:flex; align-items:center; gap:10px; padding:10px 12px; color:#374151; text-decoration:none; transition:background .15s ease, color .15s ease; }
+.ms-side-item + .ms-side-item{ border-top:1px solid var(--hair); }
+.ms-side-item a:hover{ background:var(--hover); color:var(--hit); }
+.ms-side-icon{ width:18px; height:18px; color:#a7adb3; }
+.ms-side-label{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* Results list */
+.ms-list{ list-style:none; margin:0; padding:6px; background:#fff; border:1px solid var(--hair); border-radius:14px; display:grid; gap:0; }
+.ms-item{ position:relative; display:grid; grid-template-columns:60px minmax(0,1fr) auto; gap:12px; align-items:center; padding:12px 14px; border-radius:12px; transition:background-color .14s ease, color .14s ease; }
+.ms-item + .ms-item{ border-top:1px solid var(--hair); }
+.ms-item:hover, .ms-item.is-active{ background:var(--hover); }
+.ms-item>a{ position:absolute; inset:0; border-radius:12px; }
+
+/* Product cell */
+.ms-thumb{ width:56px; height:56px; object-fit:contain; border-radius:12px; background:#fff; box-shadow:inset 0 0 0 1px var(--hair); }
+.ms-title{ font-size:15px; color:#111; line-height:1.35; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; transition:color .15s ease; }
+.ms-item:hover .ms-title{ color:var(--hit); }
+
+/* vendor • category (faint) */
+.ms-sub{ font-size:13px; color:#9aa0a6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ms-item:hover .ms-sub{ color:var(--hit); } /* hover turns red as requested */
+
+/* prices */
+.ms-price{ display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+.ms-price-old{ font-size:12px; color:#c2c7cf; text-decoration:line-through; font-weight:300; }
+.ms-price-now{ font-size:15px; font-weight:300; color:var(--hit); }
+
+/* ensure matched highlight stays red even on hover/focus */
+.ms-hilite{ color:var(--hit) !important; }
+
+/* Link rows (mobile brands/categories) */
+.ms-link{ position:relative; display:flex; align-items:center; gap:10px; padding:12px 14px; border-radius:12px; transition:background .14s ease, color .14s ease; }
+.ms-link + .ms-link{ border-top:1px solid var(--hair); }
+.ms-link a{ position:absolute; inset:0; border-radius:12px; }
+.ms-link .label{ flex:1 1 auto; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ms-link .chev{ color:#9aa0a6; }
+.ms-link:hover{ background:var(--hover); }
+.ms-link:hover .label{ color:var(--hit); }
+
+/* Bottom meta */
+.ms-bottom-meta{ padding:8px 16px 0; }
+@media(min-width:1024px){ .ms-bottom-meta{ padding:10px 20px 0; } }
+.ms-bottom-meta .ms-sec-title{ margin:0 0 6px; }
+.ms-bottom-meta .ms-count{ font-size:14px; }
+.ms-bottom-meta .ms-count b{ color:var(--hit); font-weight:600; }
+
+/* Footer + View all */
+.ms-footer{ border-top:1px solid var(--hair); background:#fff; padding:12px 16px calc(18px + env(safe-area-inset-bottom)); display:flex; justify-content:center; }
+.ms-view-all{
+  display:inline-flex; align-items:center; height:36px; padding:0 16px; border-radius:10px;
+  background:#fff; color:#111; border:1px solid #111; text-decoration:none; font-size:14px; font-weight:500;
+  transition:background .18s ease, color .18s ease, border-color .18s ease;
+}
+@media(max-width:1023px){ .ms-view-all{ background:var(--hit); border-color:var(--hit); color:#fff; } } /* mobile: always red */
+.ms-view-all:hover, .ms-view-all:focus-visible{ background:var(--hit); border-color:var(--hit); color:#fff; } /* desktop: outline → red on hover */
+/* 1) Vendor • Category chips under product cards → faint gray (stay gray on hover) */
+.ms-item .ms-sub{
+  color:#9aa0a6 !important;
+  font-weight:300 !important;
+}
+.ms-item:hover .ms-sub{ color:#9aa0a6 !important; }
+
+/* 2) Original price (compare_at) → faint gray + strikethrough */
+.ms-item .ms-price-old{
+  color:#c2c7cf !important;
+  text-decoration:line-through !important;
+  font-weight:300 !important;
+}
+
+/* 3) Actual price → red */
+.ms-item .ms-price-now{
+  color:#E03A2F !important;
+  font-weight:300 !important;
+}
+
+/* 4) Headers (“Suggested brands”, “Products”, “Suggested categories”) 
+      → Title Case + +100 weight (600 → 700) */
+.ms-sec-title{
+  text-transform:capitalize !important;
+  font-weight:700 !important;
+}
+
+/* 5) Remove the bottom “suggested categories / N products found” block */
+.ms-bottom-meta{ display:none !important; }
+
+/* 6) Make the TOP “products found” count red (adjust selector if yours differs) */
+.ms-row .ms-count,
+.ms-right .ms-count-top,
+.ms-right .ms-sec-count{
+  color:#E03A2F !important;
+  font-weight:600 !important;
+}
+.ms-row .ms-count b,
+.ms-right .ms-count-top b,
+.ms-right .ms-sec-count b{
+  color:#E03A2F !important;
+}
+
+/* 7) Mobile island must be centered with safe-area gaps (not stuck to the side) */
+@media(max-width:1023px){
+  .ms-island{
+    left: calc(env(safe-area-inset-left) + 12px) !important;
+    right: calc(env(safe-area-inset-right) + 12px) !important;
+    top: calc(env(safe-area-inset-top) + 12px) !important;
+    bottom: calc(env(safe-area-inset-bottom) + 12px) !important;
+    width:auto !important;
+    max-height:none !important;
+    transform:none !important;
+  }
+}
+
+/* 8) “View all results” CTA: on mobile keep white text (also on hover) */
+@media(max-width:1023px){
+  .ms-view-all{
+    background:#E03A2F !important;
+    border-color:#E03A2F !important;
+    color:#fff !important;
+  }
+  .ms-view-all:hover,
+  .ms-view-all:focus{
+    background:#E03A2F !important;
+    border-color:#E03A2F !important;
+    color:#fff !important;
+  }
+}
+/* place the count near the Products header on desktop & mobile */
+.ms-right{ position:relative; }
+.ms-count-top{
+  position:absolute; right:0; top:-26px;
+  font-size:12px; font-weight:600; color:#E03A2F;
+}
+.ms-count-top b{ color:#E03A2F; }
+
+/* hide the old bottom meta block since we moved the count */
+.ms-bottom-meta{ display:none !important; }
+
+/* also make sure the top-link is gone even if markup lingers */
+.ms-toplink{ display:none !important; }
+/* subtle highlight: keep text color, add soft blue background */
+.ms-item .ms-title .ms-hilite,
+.ms-side-label .ms-hilite,
+.ms-link .label .ms-hilite{
+  color:inherit !important;
+  background:rgba(29, 78, 216, .14) !important; /* soft blue */
+  border-radius:3px; padding:0 .08em;
+}
+/* on hover, leave highlight color alone (titles/labels may turn red overall) */
+.ms-item:hover .ms-title .ms-hilite,
+.ms-side-item a:hover .ms-side-label .ms-hilite,
+.ms-link:hover .label .ms-hilite{
+  color:inherit !important;
+}
+/* Substring highlight → light red pill (keeps text color neutral) */
+.ms-item .ms-title .ms-hilite,
+.ms-side-label .ms-hilite,
+.ms-link .label .ms-hilite,
+.ms-hilite{
+  color:inherit !important;
+  background:rgba(224, 58, 47, .12) !important; /* #E03A2F @ 12% */
+  border-radius:4px;
+  padding:0 .12em;
+  box-shadow:inset 0 0 0 1px rgba(224, 58, 47, .18);
+}
+
+/* Don’t change on hover/active */
+.ms-item:hover .ms-title .ms-hilite,
+.ms-side-item a:hover .ms-side-label .ms-hilite,
+.ms-link:hover .label .ms-hilite{
+  color:inherit !important;
+  background:rgba(224, 58, 47, .12) !important;
+  box-shadow:inset 0 0 0 1px rgba(224, 58, 47, .18);
+}
+/* Kill the live hint (“Type more to search”) completely */
+[data-ms-live], .sr-only{ 
+  position:absolute !important; 
+  width:1px; height:1px; 
+  overflow:hidden; clip:rect(0 0 0 0);
+  white-space:nowrap; border:0; margin:-1px; 
+}
+
+/* Remove any counts wherever they might appear */
+.ms-count-top,
+[data-ms-count],
+.ms-bottom-meta{ display:none !important; }
+/* slightly darker hairlines + subtle hovers */
+:root{
+  --hair:#d1d5db !important;          /* was #e5e7eb */
+  --hover:#f2f4f7 !important;         /* a touch darker than before */
+}
+
+/* ensure all borders pick up the darker tone */
+.ms-input-wrap{ border-bottom-color:var(--hair) !important; }
+.ms-side-list, .ms-list{ border-color:var(--hair) !important; }
+.ms-item + .ms-item{ border-top-color:var(--hair) !important; }
+.ms-side-item + .ms-side-item{ border-top-color:var(--hair) !important; }
+.ms-thumb{ box-shadow:inset 0 0 0 1px var(--hair) !important; }
+.ms-footer{ border-top-color:var(--hair) !important; }
+
+/* faint text a bit darker */
+.ms-sub{ color:#7e8792 !important; }                  /* was #9aa0a6 */
+.ms-side-icon{ color:#8a919a !important; }
+.ms-input-wrap input::placeholder{ color:#8a919a !important; }
+
+/* old-price a hair darker too */
+.ms-price-old{ color:#b8c0c8 !important; }
+
+/* light-red highlight pill stays, unchanged */
+/* === Compact, clean search layout (desktop + mobile) === */
+
+/* 3.1 Left side: simple text lists, no boxes */
+.ms-left {
+  border-right: 1px solid var(--hair);  /* keeps the single vertical divider like pic #6 */
+  padding-right: 20px;
+  gap: 20px;
+}
+
+.ms-left .ms-sec-title {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* remove “card” boxes around brands & categories */
+.ms-side-list {
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0;
+}
+
+.ms-side-item + .ms-side-item {
+  border-top: 0 !important;
+}
+
+.ms-side-item a {
+  padding: 4px 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.ms-side-item a:hover {
+  background: transparent;
+  color: var(--hit);
+}
+
+/* 3.2 Product list: havit-style rows (no outer box, no inner lines) */
+.ms-list {
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ms-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 10px 16px;
+  border-radius: 0;              /* flat rows like havit */
+  border: 0 !important;
+  box-shadow: none;              /* no card shadow */
+  background: #fff;
+}
+
+.ms-item + .ms-item {
+  border-top: 0 !important;      /* remove dividers between rows */
+}
+
+/* product image: no border/line, just the pic */
+.ms-thumb {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  background: transparent !important;
+  box-shadow: none !important;   /* removes the inner line around the image */
+  border-radius: 8px;
+}
+
+/* 3.3 Text hierarchy: Name + gray old price + red new price */
+.ms-title {
+  font-size: 14px;
+  font-weight: 400;
+  margin-bottom: 4px;
+  color: #111;
+}
+
+/* hide vendor/category line if you want pure name + prices like havit */
+.ms-sub {
+  display: none;
+}
+
+/* old price: faint gray + strikethrough */
+.ms-price-old {
+  font-size: 12px;
+  color: #c2c7cf !important;
+  text-decoration: line-through !important;
+  font-weight: 300 !important;
+}
+
+/* new price: red */
+.ms-price-now {
+  font-size: 15px;
+  font-weight: 400;
+  color: #E03A2F !important;
+}
+
+/* keep hover only as a soft background tint, no lines */
+.ms-item:hover,
+.ms-item.is-active {
+  background: var(--hover);
+}
+
+/* 3.4 Narrower layout on desktop */
+@media (min-width: 1024px) {
+  .ms-island {
+    max-width: 1040px; /* matches DESKTOP_MIN_WIDTH above */
+  }
+
+  .ms-desk-grid {
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+/* === Product row layout: name, vendor/category, then prices below === */
+
+.ms-item {
+  /* 2-column grid: image + text, 2 rows so price sits below text */
+  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "thumb info"
+    "thumb price";
+  align-items: flex-start;
+}
+
+/* map children into those areas */
+.ms-thumb { grid-area: thumb; }
+
+.ms-info {
+  grid-area: info;
+}
+
+.ms-price {
+  grid-area: price;
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  justify-content: flex-start;  /* prices under the text, left-aligned */
+  text-align: left;
+  margin-top: 2px;
+}
+
+/* title on top */
+.ms-title {
+  font-size: 14px;
+  font-weight: 400;
+  margin-bottom: 2px;
+}
+
+/* show vendor + category again, above price */
+.ms-sub {
+  display: block !important;
+  font-size: 12px;
+  color: #7e8792 !important;
+  margin-bottom: 2px;
+}
+
+/* keep old/new price styling */
+.ms-price-old {
+  font-size: 12px;
+  color: #c2c7cf !important;
+  text-decoration: line-through !important;
+  font-weight: 300 !important;
+}
+
+.ms-price-now {
+  font-size: 15px;
+  font-weight: 400;
+  color: #E03A2F !important;
+}
+@media (min-width: 1024px) {
+  .ms-island {
+    max-width: 960px;  /* match DESKTOP_MIN_WIDTH above */
+  }
+}
+/* === Left column: clean Apple-like list, red on hover === */
+
+.ms-left {
+  border-right: 1px solid var(--hair);
+  padding: 20px 24px 20px 0;
+  gap: 24px;
+}
+
+/* subtle section labels */
+.ms-left .ms-sec-title {
+  margin: 0 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* no box around the whole list */
+.ms-side-list {
+  border: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  padding: 0;
+}
+
+/* each row = soft pill */
+.ms-side-item a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: transparent;
+  transition:
+    background 0.16s ease,
+    color 0.16s ease,
+    transform 0.12s ease;
+}
+
+/* icon */
+.ms-side-icon {
+  width: 16px;
+  height: 16px;
+  color: #9aa0a6;
+}
+
+/* label text */
+.ms-side-label {
+  font-size: 13px;
+  color: #374151;
+}
+
+/* hover: soft red tint + red text/icon, slight slide */
+.ms-side-item a:hover {
+  background: rgba(224, 58, 47, 0.06);
+  color: #E03A2F;
+  transform: translateX(2px);
+}
+
+.ms-side-item a:hover .ms-side-icon {
+  color: #E03A2F;
+}
+
+.ms-side-item a:hover .ms-side-label {
+  color: #E03A2F;
+}
+
+/* no dividers between items */
+.ms-side-item + .ms-side-item {
+  border-top: 0 !important;
+}
+/* === FORCE layout: image left, name + vendor/category, then price BELOW === */
+
+.ms-item {
+  /* 2 columns only: image + text */
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) !important;
+  grid-auto-rows: auto;
+  column-gap: 14px;
+  align-items: flex-start;
+}
+
+/* image stays in first column, spans both rows */
+.ms-thumb {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+/* name + vendor/category on first row, second column */
+.ms-info {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+/* price block on second row, second column (directly under text) */
+.ms-price {
+  grid-column: 2;
+  grid-row: 2;
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  justify-content: flex-start; /* left-align like havit */
+  text-align: left;
+  margin-top: 2px;
+}
+
+/* title on top */
+.ms-title {
+  font-size: 14px;
+  font-weight: 400;
+  margin-bottom: 2px;
+}
+
+/* vendor • category line (just above price) */
+.ms-sub {
+  display: block !important;
+  font-size: 12px;
+  color: #7e8792 !important;
+  margin-bottom: 2px;
+}
+
+/* old price – faint gray with slash */
+.ms-price-old {
+  font-size: 12px;
+  color: #c2c7cf !important;
+  text-decoration: line-through !important;
+  font-weight: 300 !important;
+}
+
+/* actual price – red */
+.ms-price-now {
+  font-size: 15px;
+  font-weight: 400;
+  color: #E03A2F !important;
+}
+/* === FINAL OVERRIDE: force havit-style layout === */
+/* image left, then:
+   line 1: name
+   line 2: vendor • category
+   line 3: prices
+*/
+
+.ms-item {
+  position: relative;
+  display: grid !important;
+  grid-template-columns: 72px minmax(0, 1fr) !important; /* only 2 columns */
+  grid-auto-rows: auto;
+  column-gap: 14px;
+  align-items: flex-start !important;
+}
+
+/* image = first column, spans both rows */
+.ms-item > .ms-thumb {
+  grid-column: 1 !important;
+  grid-row: 1 / span 2 !important;
+}
+
+/* name + vendor/category = row 1, col 2 */
+.ms-item > .ms-info {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+}
+
+/* prices = row 2, col 2 (directly under text) */
+.ms-item > .ms-price {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  justify-self: flex-start !important;
+  text-align: left !important;
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+  align-items: flex-end;
+  margin-top: 2px;
+}
+
+/* title */
+.ms-title {
+  font-size: 14px;
+  font-weight: 400;
+  margin-bottom: 2px;
+}
+
+/* vendor • category just above price */
+.ms-sub {
+  display: block !important;
+  font-size: 12px;
+  color: #7e8792 !important;
+  margin-bottom: 2px;
+}
+
+/* prices (same styling as before) */
+.ms-price-old {
+  font-size: 12px;
+  color: #c2c7cf !important;
+  text-decoration: line-through !important;
+  font-weight: 300 !important;
+}
+.ms-price-now {
+  font-size: 15px;
+  font-weight: 400;
+  color: #E03A2F !important;
+}
+/* 1) Reduce space between vendor/category and price */
+.ms-sub {
+  margin-bottom: 0 !important;  /* tighter gap */
+}
+
+.ms-item > .ms-price {
+  margin-top: 0 !important;     /* sits closer to the brand/category line */
+}
+
+/* 2) Reflect “no lines” on mobile as well */
+@media (max-width: 1023px) {
+  /* remove dividers between mobile list rows (brands / categories) */
+  .ms-link + .ms-link {
+    border-top: 0 !important;
+  }
+
+  /* keep mobile items clean, no card edges */
+  .ms-link {
+    border-radius: 0;
+    background: transparent;
+  }
+}
+
+  .ms-link .label {
+    font-size: 14px !important;  /* same size as product name */
+    font-weight: 400;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ms-link .chev {
+    font-size: 14px;
+    color: #9aa0a6;
+  }
+
+  /* hover / tap-state: light red tint + red text, Apple-ish */
+  .ms-link:hover {
+    border-color: var(--hit);
+    background: rgba(224, 58, 47, 0.04);
+    transform: translateX(1px);
+  }
+  .ms-link:hover::before {
+    border-color: var(--hit);
+    background: #fff5f4;
+  }
+  .ms-link:hover .label,
+  .ms-link:hover .chev {
+    color: var(--hit);
+  }
+
+  /* Slightly tighter gap between vendor/category and price */
+  .ms-sub {
+    margin-bottom: 0 !important;
+  }
+  .ms-price {
+    margin-top: 1px !important;
+  }
+}
+/* Put actual price first, original price to its right */
+.ms-price {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+
+/* Order inside the row: now → old */
+.ms-price-now {
+  order: 1;
+}
+
+.ms-price-old {
+  order: 2;
+}
+/* === Close "X": bigger, no circle, red glow on hover (mobile + desktop) === */
+[data-ms-close]{
+  position:absolute; top:12px; right:12px;
+  width:44px; height:44px;
+  display:grid; place-items:center;
+  background:transparent !important;
+  border:none !important; border-radius:0 !important;
+  color:#111; cursor:pointer;
+  transition: filter .18s ease, transform .12s ease;
+}
+@media (min-width:1024px){
+  [data-ms-close]{ width:56px; height:56px; top:12px; right:12px; display:grid !important; }
+}
+
+/* Bigger X icon */
+[data-ms-close] svg{
+  width:28px; height:28px;
+  stroke-width:2.2;
+}
+@media (min-width:1024px){
+  [data-ms-close] svg{ width:32px; height:32px; }
+}
+
+/* Red glow on hover/focus */
+[data-ms-close]:hover svg,
+[data-ms-close]:focus-visible svg{
+  stroke:#E03A2F;
+  filter: drop-shadow(0 0 6px rgba(224,58,47,.6));
+}
+[data-ms-close]:active{ transform:scale(.96); }
+
+/* Remove the "ESC to close" hint */
+.ms-esc-hint{ display:none !important; }
+/* Close X: light by default, turns red on hover/focus */
+[data-ms-close]{
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer;
+}
+
+/* use currentColor so we can drive it with color */
+[data-ms-close] svg { width: 28px; height: 28px; }
+@media (min-width:1024px){ [data-ms-close] svg { width: 32px; height: 32px; } }
+
+[data-ms-close] svg,
+[data-ms-close] svg *{
+  color: #c9cfd6;               /* light, subtle X */
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.1;
+  transition: color .18s ease, stroke-width .18s ease, transform .12s ease;
+  filter: none !important;      /* ensure no glow/halo */
+}
+
+/* hover/focus → X turns red (and very slightly thicker for feedback) */
+[data-ms-close]:hover svg,
+[data-ms-close]:focus-visible svg,
+[data-ms-close]:hover svg *,
+[data-ms-close]:focus-visible svg *{
+  color: #E03A2F;               /* brand red on the X itself */
+  stroke-width: 2.3;
+}
+
+/* optional click feedback */
+[data-ms-close]:active { transform: scale(.96); }
+
+/* keep the ESC hint hidden if it still exists */
+.ms-esc-hint{ display:none !important; }
 
 </style>
 
-<div class="sh-row">
-  <div class="sh-inp">
-    <input type="search" placeholder="Search products & brands" autocomplete="off"
-           aria-controls="m-list-{{ section.id }}" aria-expanded="false" data-ms-input>
-    <button class="btn" type="button" aria-label="Clear" data-ms-clear style="display:none;">
-      <svg class="ico" viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3L16.9 4.3z"/></svg>
-    </button>
-    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8L20 21.5 21.5 20l-6-6zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>
+<div class="ms-island ms-island--root" data-ms-island role="dialog" aria-modal="true" aria-label="Search" aria-hidden="true">
+  <button type="button" data-ms-close aria-label="Close search">
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/></svg>
+  </button>
+
+  <div class="ms-row">
+    <!-- top count removed per spec -->
+    <div class="ms-input-wrap">
+      <svg class="ms-search-hero" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6" fill="none"></circle><path d="M20 20l-4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"></path></svg>
+      <input type="search" placeholder="Search our store" autocomplete="off" data-ms-input aria-controls="ms-listbox" aria-activedescendant="">
+    </div>
+
+    <!-- Mobile tabs -->
+    <div class="ms-tabs" role="tablist" aria-label="Search tabs">
+      <button class="ms-tab" role="tab" aria-selected="true"  data-tab="products"   id="tab-products">Products</button>
+      <button class="ms-tab" role="tab" aria-selected="false" data-tab="categories" id="tab-categories">Categories</button>
+      <button class="ms-tab" role="tab" aria-selected="false" data-tab="brands"     id="tab-brands">Brands</button>
+    </div>
+
+    <span class="sr-only" data-ms-live aria-live="polite"></span>
   </div>
-  <span class="sh-live" aria-live="polite" data-ms-live></span>
-</div>
 
-<!-- Text-only Quick search -->
-<div class="sh-sec">
-  <p class="sh-sec__title">Quick search</p>
-  <div class="qs-inline">
-    <a href="/search?q=Instant">Instant</a><span class="sep">·</span>
-    <a href="/search?q=Mirrorless">Mirrorless</a><span class="sep">·</span>
-    <a href="/search?q=Film">Film</a><span class="sep">·</span>
-    <a href="/search?q=Action">Action</a><span class="sep">·</span>
-    <a href="/search?q=Lens">Lens</a><span class="sep">·</span>
-    <a href="/search?q=Drones">Drones</a><span class="sep">·</span>
-    <a href="/search?q=360">360</a><span class="sep">·</span>
-    <a href="/search?q=Gimbals">Gimbals</a>
+  <div class="ms-scroll">
+    <div class="ms-desk-grid">
+      <!-- Desktop left: suggestions -->
+      <aside class="ms-left" aria-label="Suggestions">
+        <div>
+          <p class="ms-sec-title">suggested brands</p>
+          <ul class="ms-side-list" data-desk-brands></ul>
+        </div>
+        <div>
+          <p class="ms-sec-title">suggested categories</p>
+          <ul class="ms-side-list" data-desk-cats></ul>
+        </div>
+      </aside>
+
+      <!-- Right/results -->
+      <section class="ms-right">
+        <a class="ms-toplink" data-ms-viewall-top href="/search?q=&sort_by=best-selling">View all results →</a>
+        <p class="ms-sec-title" data-ms-section-title>products</p>
+        <ul class="ms-list ms-list--results" id="ms-listbox" data-ms-list role="listbox" aria-label="Search results"></ul>
+      </section>
+    </div>
   </div>
-</div>
 
-<div class="sh-sec">
-  <p class="sh-sec__title">Brands</p>
-  <div class="chips" data-ms-brands></div>
-</div>
+  <!-- Bottom meta -->
+  <div class="ms-bottom-meta">
+    <p class="ms-sec-title" data-ms-bottom-title>suggested categories</p>
+    <div class="ms-count" data-ms-count></div>
+  </div>
 
-<div class="sh-sec">
-  <p class="sh-sec__title">Suggestions</p>
-  <ul id="m-list-{{ section.id }}" class="lst" role="listbox" aria-label="Search results" data-ms-list></ul>
-</div>
-
-<div class="sh-ft">
-  <a class="cta-all--mobile" href="/search?q=" data-ms-viewall>View all results</a>
+  <div class="ms-footer">
+    <a href="/search?q=&sort_by=best-selling" class="ms-view-all ms-view-all--cta" data-ms-viewall>View all results</a>
+  </div>
 </div>
 
 <script>
-/* ===== Scoped controller (search panel only) ===== */
 (() => {
-  const shell = document.querySelector('.ch-panel[data-ch-panel="search"]');
-  if (!shell) return;
+  "use strict";
+  if (window.__msSearchInstalled) return;
 
-  const input   = shell.querySelector('[data-ms-input]');
-  const list    = shell.querySelector('[data-ms-list]');
-  const chipsB  = shell.querySelector('[data-ms-brands]');
-  const live    = shell.querySelector('[data-ms-live]');
-  const clear   = shell.querySelector('[data-ms-clear]');
-  const viewAll = shell.querySelector('[data-ms-viewall]');
+  /* =========================
+   * CONFIG (tweak freely)
+   * ========================= */
+  const DESKTOP_MIN_WIDTH = 900;          // width = min(1200px, 96vw)
+  const DESKTOP_OFFSET    = -32;           // negative = higher; positive = lower
+  const DESKTOP_BP        = 1024;          // desktop breakpoint (px)
 
-  let ctl = null, debounce = null;
+  /* =========================
+   * Portal mounting
+   * ========================= */
+  let portal = document.querySelector('.ms-portal');
+  if (!portal) {
+    portal = document.createElement('div');
+    portal.className = 'ms-portal';
+    document.body.appendChild(portal);
+  }
+  const island = document.querySelector('[data-ms-island]');
+  if (!island) return;
+  portal.replaceChildren(island);
 
-  /* helpers */
-  const nf = new Intl.NumberFormat({{ request.locale.iso_code | json }} || 'en-PH',
-    { style:'currency', currency: {{ shop.currency | json }} || 'PHP' });
-  const money = c => nf.format((Number(c)||0)/100);
-  const esc   = s => (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const widthSwap = (u,w)=> u&&u.indexOf('{width}')>-1 ? u.replace('{width}', String(w))
-                       : (u||'').replace(/(\.(?:jpe?g|png|webp|gif))(?:\?.*)?$/i, `_${w}x$1`);
-  const srcset = (u)=> `${widthSwap(u,112)} 112w, ${widthSwap(u,224)} 224w, ${widthSwap(u,336)} 336w`;
+  /* =========================
+   * Refs
+   * ========================= */
+  const input        = island.querySelector('[data-ms-input]');
+  const list         = island.querySelector('[data-ms-list]');
+  const live         = island.querySelector('[data-ms-live]');
+  const viewAll      = island.querySelector('[data-ms-viewall]');
+  const sectionTitle = island.querySelector('[data-ms-section-title]');
+  const deskBrands   = island.querySelector('[data-desk-brands]');
+  const deskCats     = island.querySelector('[data-desk-cats]');
+  const tabs         = Array.from(island.querySelectorAll('.ms-tab'));
+  const countEl      = island.querySelector('[data-ms-count]');
+  const bottomTitle  = island.querySelector('[data-ms-bottom-title]');
 
-  /* Brands chips from settings */
-  function paintBrands(){
-    if (!chipsB) return; chipsB.innerHTML='';
-    ({{ section.settings.brands_list | default: "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" | json }}||'')
-      .split('\n').map(s=>s.trim()).filter(Boolean).slice(0,10)
-      .forEach(b => {
-        const a = document.createElement('a');
-        a.className = 'chip';
-        a.href = `/search?type=product&q=${encodeURIComponent('vendor:"'+b+'"')}`;
-        a.innerHTML = `<span>${esc(b)}</span>`;
-        chipsB.appendChild(a);
+  // Remove any lingering top link if present (design choice)
+  const topLink = island.querySelector('.ms-toplink'); if (topLink) topLink.remove();
+
+  /* =========================
+   * Liquid data (still used)
+   * ========================= */
+  const prefill     = {{ prefill_json | strip | replace: "\n", "" }};
+  const prefillMeta = {{ prefill_meta_json | strip | replace: "\n", "" }};
+  const vendorPool  = {{ vendors_json | strip | default: '[]' }};
+  const defaultCollectionUrl = {{ _preview.url | default: '/search?q=&sort_by=best-selling' | json }};
+  const localeCode  = {{ _locale | json }};
+  const shopCurrency= {{ _currency | json }};
+  const MIN_CHARS   = {{ _min_chars | json }};
+  const PREFILL_LIMIT = {{ _limit | json }};
+  const LIST_CAP = 8;
+  const DESK_SIDE_MAX = 7;
+
+  /* =========================
+   * Helpers & State
+   * ========================= */
+  const isDesktop  = () => matchMedia(`(min-width:${DESKTOP_BP}px)`).matches;
+  let activeTab = 'products';
+  let debounce = null, ctl = null;
+  let activeIndex = -1;
+  let lastRegex = null;
+
+  const nf = new Intl.NumberFormat(localeCode || 'en', { style:'currency', currency:shopCurrency || 'USD' });
+  const money = c => nf.format(Number(c) || 0);
+  const esc = s => (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+  const uniq = arr => Array.from(new Set((arr||[]).map(s => (s||'').trim()).filter(Boolean)));
+  const byFreq = arr => { const m=new Map(); (arr||[]).forEach(v=>{ if(!v)return; const k=v.trim(); m.set(k,(m.get(k)||0)+1); }); return Array.from(m.entries()).sort((a,b)=>b[1]-a[1]).map(x=>x[0]); };
+  const sized = (u,w)=>{ if(!u) return ''; if(u.indexOf('{width}')>-1) return u.replace('{width}', String(w)); return u.replace(/(\.(?:jpe?g|png|webp|gif))(?:\?.*)?$/i,`_${w}x$1`) };
+  const qFilter = (field, value) => `${encodeURIComponent(field)}%3A%22${encodeURIComponent(value)}%22`;
+  const shuffle = a => { const x=a.slice(); for(let i=x.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [x[i],x[j]]=[x[j],x[i]]; } return x; };
+
+  const deriveBrands = (prods) => uniq((prods||[]).map(p => (p.vendor||'').trim()));
+  const deriveTypes  = (prods) => uniq((prods||[]).map(p => (p.product_type||p.type||'').trim()));
+  const baseTypes    = byFreq(deriveTypes(prefillMeta.length ? prefillMeta : prefill));
+  const baseBrands   = byFreq(uniq(vendorPool.length ? vendorPool : deriveBrands(prefillMeta.length ? prefillMeta : prefill)));
+
+    // --- Aperture helpers: make f1.8, f/1.8, f 1.8 all behave the same ---
+// Build extra query variants for things like "f1.8", "f/1.8", etc.
+function apertureVariants(q) {
+  const variants = [q]; // always include original
+
+  // 1. Tag Bypass: Check for explicit "f/1.8" or "f1.8" patterns
+  // If we see "f/1.8", we also search for "tag:f1.8" and "tag:f/1.8"
+  // This allows the user to manually tag products as "f1.8" to force a match.
+  const tagRe = /\bf\s*\/?\s*([0-9]+(?:\.[0-9]+)?)/gi;
+  let tagM;
+  while ((tagM = tagRe.exec(q)) !== null) {
+      const num = tagM[1];
+      variants.push(`tag:f${num}`); // e.g. tag:f1.8
+      variants.push(`tag:${num}`);  // e.g. tag:1.8
+  }
+
+  // 2. Text Variants
+  const re = /\bf\s*\/?\s*([0-9]+(?:\.[0-9]+)?)/gi;
+  let m;
+
+  while ((m = re.exec(q)) !== null) {
+    const full = m[0];   // e.g. "f/1.8"
+    const num  = m[1];   // e.g. "1.8"
+
+    const candidates = [
+        `f${num}`,       // f1.8
+        `F${num}`,       // F1.8
+        `f/${num}`,      // f/1.8
+        `F/${num}`,      // F/1.8
+        num,             // 1.8 (strict)
+        `${num}*`,       // 1.8* (wildcard for 1.8mm, 1.8x, etc - broad but catches things)
+        `${num}g`,       // 1.8g
+        `${num}G`,       // 1.8G
+        `${num} g`,      // 1.8 g (space)
+        `${num} G`       // 1.8 G (space)
+    ];
+
+    candidates.forEach(rep => {
+      // Create a new variant string by replacing the aperture part
+      // e.g. "nikkor f/1.8" -> "nikkor 1.8G"
+      const v = q.replace(full, rep);
+      if (!variants.includes(v)) variants.push(v);
+    });
+  }
+
+  return variants;
+}
+
+  // Normalize query for Shopify: "f/1.8", "f1.8", "f 1.8" => "1.8"
+  // and keep the rest of the search words intact.
+  function normalizeApertureQuery(raw) {
+    if (!raw) return '';
+    // replace any "f something" aperture token with just the numeric part
+    // e.g. "sigma 35mm f1.8 lens" -> "sigma 35mm 1.8 lens"
+    return raw.replace(/\bf\s*\/?\s*(\d+(\.\d+)?)/gi, '$1');
+  }
+
+  // Build a regex that matches both "f/1.8" style and plain "1.8"
+  // so we can highlight nicely in result titles.
+  function buildHighlightRegex(raw) {
+    if (!raw) return null;
+
+    const tokens = raw
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(tok => {
+        const m = tok.match(/^f\/?(\d+(\.\d+)?)/i);
+        if (m) {
+          const num = m[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          // matches: f1.8, f/1.8, f 1.8, 1.8
+          return `f\\s*\\/?\\s*${num}|${num}`;
+        }
+        // normal word: escape for regex
+        return tok.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       });
-  }
-  paintBrands();
 
-  /* skeleton rows while fetching */
-  function skeleton(){
-    if (!list) return;
-    list.innerHTML = '';
-    for (let i=0;i<{{ section.settings.search_limit_products | default: 6 }}; i++){
-      const li = document.createElement('li');
-      li.className = 'it';
-      li.innerHTML = `
-        <div class="mthumb skeleton" style="width:56px;height:56px;border-radius:8px;"></div>
-        <div>
-          <div class="skeleton" style="height:14px;border-radius:6px;margin-bottom:6px;"></div>
-          <div class="skeleton" style="width:64px;height:12px;border-radius:6px;"></div>
+    return tokens.length ? new RegExp(tokens.join('|'), 'ig') : null;
+  }
+
+  const highlight = (label) => {
+    if(!lastRegex) return esc(label);
+    const s=String(label); let out=[], last=0;
+    s.replace(lastRegex,(m,idx)=>{ out.push(esc(s.slice(last,idx)),'<span class="ms-hilite">',esc(m),'</span>'); last=idx+m.length; return m; });
+    out.push(esc(s.slice(last))); return out.join('');
+  };
+
+  /* =========================
+   * Renderers
+   * ========================= */
+  function setActive(idx){
+    const items = list.querySelectorAll('.ms-item[role="option"], .ms-link');
+    items.forEach(el => el.classList.remove('is-active'));
+    activeIndex = Math.max(-1, Math.min(idx, items.length-1));
+    if (activeIndex >= 0){
+      const el = items[activeIndex]; el.classList.add('is-active');
+      const c = list, eb = el.getBoundingClientRect(), cb = c.getBoundingClientRect();
+      if (eb.bottom > cb.bottom) c.scrollTop += (eb.bottom - cb.bottom);
+      if (eb.top < cb.top)       c.scrollTop -= (cb.top - eb.top);
+      input.setAttribute('aria-activedescendant', el.id||'');
+    } else input.setAttribute('aria-activedescendant','');
+  }
+  function clearList(){ list.replaceChildren(); setActive(-1); }
+
+  function renderProducts(items){
+    const frag=document.createDocumentFragment();
+    (items||[]).forEach((p,i)=>{
+      const li=document.createElement('li');
+      li.className='ms-item'; li.setAttribute('data-kind','product'); li.setAttribute('role','option'); li.id=`ms-opt-${i}`;
+      li.dataset.url=p.url||'#';
+      const img=p.image||(p.featured_image && (p.featured_image.url||p.featured_image))||'';
+      const now=p.price||p.price_min||0; const was=p.compare_at_price||0;
+      const vendor=p.vendor||''; const cat=p.product_type||p.type||'';
+      li.innerHTML=`
+        <a href="${p.url||'#'}" aria-label="${esc(p.title||'')}"></a>
+        <img class="ms-thumb" src="${sized(img,100)}" alt="" loading="lazy" decoding="async">
+        <div class="ms-info">
+          <div class="ms-title" title="${esc(p.title||'')}">${highlight(p.title||'')}</div>
+          <div class="ms-sub">${esc(vendor)}${vendor && cat ? ' • ' : ''}${esc(cat)}</div>
         </div>
-        <div class="skeleton" style="width:64px;height:14px;border-radius:6px;"></div>`;
-      list.appendChild(li);
-    }
-    live && (live.textContent = 'Loading…');
-  }
-
-  /* Safer fetch with fallback */
-  function fetchSuggest(q){
-    if (ctl) ctl.abort();
-    ctl = new AbortController();
-    return fetch(
-      `/search/suggest.json?q=${encodeURIComponent(q)}&resources[type]=product,query&resources[limit]={{ section.settings.search_limit_products | default: 6 }}`,
-      { signal: ctl.signal, headers:{'Accept':'application/json'}, cache:'no-store' }
-    ).then(r => r.ok ? r.json() : null)
-     .catch(()=>null)
-     .then(js => js || { resources: { results: { products: [], queries: [] } } });
-  }
-
-  function render(js, q){
-    if (!list) return;
-    list.innerHTML = '';
-    const res   = js && js.resources && js.resources.results ? js.resources.results : {};
-    const prods = Array.isArray(res.products) ? res.products : [];
-    const sugs  = Array.isArray(res.queries)  ? res.queries  : [];
-
-    /* text suggestions first */
-    sugs.slice(0,6).forEach(s => {
-      const t = String(s.title || s.text || '');
-      const li = document.createElement('li');
-      li.className = 'srow';
-      const safeQ = (q||'').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const marked = q ? esc(t).replace(new RegExp('(' + safeQ + ')','ig'), '<mark>$1</mark>') : esc(t);
-      li.innerHTML = `<svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8L20 21.5 21.5 20l-6-6zM9.5 14A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg><div>${marked}</div>`;
-      li.addEventListener('click', () => { window.location.href = `/search?q=${encodeURIComponent(t)}`; });
-      list.appendChild(li);
+        <div class="ms-price">
+          ${was>now?`<span class="ms-price-old">${money(was)}</span>`:''}
+          <span class="ms-price-now">${money(now||was)}</span>
+        </div>`;
+      frag.appendChild(li);
     });
-
-    /* product rows */
-    prods.forEach(p => {
-      const u   = (p && ((p.image&&(p.image.url||p.image))||(p.featured_image&&p.featured_image.url))) || '';
-      const now = (p.price||p.price_min||0), was=(p.compare_at_price||0);
-      const li  = document.createElement('li');
-      li.className = 'it';
-      li.innerHTML = `
-        <a href="${p.url||'#'}" aria-label="${esc(p.title||'')}"
-           style="position:absolute;inset:0;border-radius:12px;"></a>
-        <img class="mthumb" src="${widthSwap(u,168)}" srcset="${srcset(u)}" sizes="56px"
-             alt="${esc(p.title||'')}" width="56" height="56" loading="lazy" decoding="async">
-        <div><div class="mtitle">${esc(p.title||'')}</div></div>
-        <div class="mprice">${money(now)}${was>now?` <span class="price-was">${money(was)}</span>`:''}</div>`;
-      list.appendChild(li);
-    });
-
-    live && (live.textContent = (sugs.length + prods.length) + ' results');
+    list.replaceChildren(frag);
   }
 
+  function renderSide(listEl, items, type){
+    if (!listEl) return;
+    const frag=document.createDocumentFragment();
+    (items||[]).forEach(title=>{
+      const href = type==='brand'
+        ? `/search?type=product&q=${qFilter('vendor', title)}&sort_by=best-selling`
+        : `/search?type=product&q=${qFilter('product_type', title)}&sort_by=best-selling`;
+      const li=document.createElement('li'); li.className='ms-side-item';
+      li.innerHTML = `<a href="${href}">
+        <span class="ms-side-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"></path></svg>
+        </span>
+        <span class="ms-side-label">${highlight(title)}</span>
+      </a>`;
+      frag.appendChild(li);
+    });
+    listEl.replaceChildren(frag);
+  }
+
+  function renderLinksMobile(rows){
+    const frag=document.createDocumentFragment();
+    rows.slice(0, LIST_CAP).forEach((r,i)=>{
+      const div=document.createElement('div');
+      div.className='ms-link'; div.id=`ms-opt-${i}`; div.setAttribute('role','option'); div.dataset.url=r.href;
+      div.innerHTML=`<a href="${r.href}" aria-label="${esc(r.label)}"></a>
+        <span class="ms-side-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.6" fill="none"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round"></path></svg>
+        </span>
+        <span class="label">${highlight(r.label)}</span>
+        <span class="chev" aria-hidden="true">›</span>`;
+      frag.appendChild(div);
+    });
+    list.replaceChildren(frag);
+  }
+
+  function updateViewAll(q){
+    const val=(q||'').trim();
+    const href = val ? `/search?q=${encodeURIComponent(val)}&sort_by=best-selling` : (defaultCollectionUrl || '/search?q=&sort_by=best-selling');
+    if (viewAll) viewAll.href = href, viewAll.textContent = val ? `View all results for “${val}”` : 'View all results';
+  }
+
+  function setBottomCount(n){
+    if(!countEl) return;
+    if (typeof n === 'number') countEl.innerHTML = `<b>${n}</b> products found`;
+    else countEl.textContent = '';
+  }
+
+  function setBottomTitleForTab(tab){
+    if (!bottomTitle) return;
+    bottomTitle.textContent = tab === 'brands' ? 'suggested brands' : 'suggested categories';
+  }
+
+  /* =========================
+   * Prefill & Fetch
+   * ========================= */
   function showPrefill(){
-    if (list) list.innerHTML = '';
-    live && (live.textContent = '');
+    lastRegex=null; updateViewAll('');
+    const shown = Math.min((prefill||[]).length, PREFILL_LIMIT);
+    setBottomCount(shown);
+    setBottomTitleForTab(activeTab);
+
+    if (isDesktop()){
+      renderProducts((prefill||[]).slice(0, PREFILL_LIMIT));
+      renderSide(deskBrands, (shuffle(baseBrands)).slice(0, DESK_SIDE_MAX), 'brand');
+      renderSide(deskCats,   (shuffle(baseTypes)).slice(0, DESK_SIDE_MAX),  'cat');
+      if (live) live.textContent = `${shown} products`;
+    } else {
+      if (activeTab==='products'){
+        renderProducts((prefill||[]).slice(0, PREFILL_LIMIT));
+        if (live) live.textContent = `${shown} products`;
+      } else if (activeTab==='brands'){
+        const rows = (shuffle(baseBrands)).slice(0, LIST_CAP)
+          .map(t => ({label:t, href:`/search?type=product&q=${qFilter('vendor', t)}&sort_by=best-selling`}));
+        renderLinksMobile(rows);
+      } else {
+        const rows = (shuffle(baseTypes)).slice(0, LIST_CAP)
+          .map(t => ({label:t, href:`/search?type=product&q=${qFilter('product_type', t)}&sort_by=best-selling`}));
+        renderLinksMobile(rows);
+      }
+    }
   }
 
-  /* wire input */
-  input && input.addEventListener('focus', () => {
-    if (!input.value.trim()) showPrefill();
-  });
+  // =========================
+  // Prefill & Fetch
+  // =========================
+function fetchSuggest(q){
+  if (ctl) ctl.abort();
+  ctl = new AbortController();
 
-  input && input.addEventListener('input', () => {
-    const q = input.value.trim();
-    clear && (clear.style.display = q ? 'inline-flex' : 'none');
-    viewAll && (viewAll.href = `/search?q=${encodeURIComponent(q)}`);
+  const raw = q.trim();
+  const variants = apertureVariants(raw);
+  
+  // 1) Predictive suggest (keep as-is for speed/suggestions)
+  // We use the raw query here (or the simplest variant)
+  const urlSuggest = `/search/suggest.json?q=${encodeURIComponent(raw)}` +
+    `&resources[type]=product` +
+    `&resources[limit]=${PREFILL_LIMIT}` +
+    `&resources[options][fields]=title,product_type,vendor,tag`;
+
+  // 2) Full Search with OR-joined variants
+  // e.g. "nikkor f/1.8" -> "nikkor f/1.8 OR nikkor 1.8G OR tag:f1.8"
+  // Increased limit to 20 to ensure relevant items aren't pushed out by "1.8m" tripods
+  const combined = variants.join(' OR ');
+  const urlSearch = `/search.json?q=${encodeURIComponent(combined)}&type=product&options[prefix]=last`; // removed limit, let it be default (usually 10) or set explicitly. 
+  // Actually default 10 might be too low. Let's explicitly ask for more.
+  // We can't easily change page size in standard search.json via `limit` param (it ignores it often), 
+  // but `view` param can be used if we had a template. Standard JSON API usually page_size is fixed or 10.
+  // Wait, standard global search limit is 10. 
+  // We can't easily boost it without a custom view.
+  // BUT we can try `&type=product` which we have.
+  // Let's rely on the more specific variants (like 1.8G) to float to the top.
+  // And the TAG search is very specific, so it should rank #1.
+
+
+  const fetchJson = (url) =>
+    fetch(url, {
+      headers: { 'Accept':'application/json' },
+      signal: ctl.signal,
+      cache: 'no-store'
+    }).then(r => r.ok ? r.json() : null)
+      .catch(() => null);
+
+  return Promise.all([
+    fetchJson(urlSuggest),
+    fetchJson(urlSearch)
+  ]).then(([jsSuggest, jsSearch]) => {
+    const seen   = new Set();
+    const merged = [];
+
+    const add = (p) => {
+      if (!p) return;
+      // Normalization for ID ensuring dedupe across endpoints
+      const key = p.id || (p.url ? p.url.split('?')[0] : p.handle);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      merged.push(p);
+    };
+
+    // 1. Suggest results first (usually most relevant textually)
+    if (jsSuggest &&
+        jsSuggest.resources &&
+        jsSuggest.resources.results &&
+        Array.isArray(jsSuggest.resources.results.products)) {
+      jsSuggest.resources.results.products.forEach(add);
+    }
+
+    // 2. Search results second (catches the aperture cases)
+    if (jsSearch) {
+      const rawProducts = Array.isArray(jsSearch.products)
+        ? jsSearch.products
+        : Array.isArray(jsSearch.results)
+          ? jsSearch.results
+          : [];
+
+      rawProducts.forEach(p => {
+        // Normalize search.json shape to match suggest.json shape
+        const normalized = {
+          id: p.id,
+          handle: p.handle,
+          title: p.title,
+          url: p.url || (p.handle ? `/products/${p.handle}` : '#'),
+          price: p.price || p.price_min || 0,
+          compare_at_price: p.compare_at_price || p.compare_at_price_max || 0,
+          image: (p.featured_image && (p.featured_image.url || p.featured_image.src)) ||
+                 (p.image && (p.image.url || p.image.src || p.image)) || '',
+          vendor: p.vendor || '',
+          product_type: p.product_type || p.type || '',
+        };
+        add(normalized);
+      });
+    }
+
+    return {
+      resources: {
+        results: {
+          products: merged
+        }
+      }
+    };
+  });
+}
+
+
+  /* =========================
+   * Input + debounce
+   * ========================= */
+  function handleInput() {
+    const raw = input.value.trim();           // what the user typed
+    // pass RAW query to fetchSuggest, let it handle variants/OR-logic
+    const q   = raw;
+
+    // CTA text ("View all results for …") should show the raw query
+    updateViewAll(raw);
+
+    // build highlight regex from the raw query (so f/1.8 still highlights)
+    if (q && q.length >= MIN_CHARS) {
+      lastRegex = buildHighlightRegex(raw);
+    } else {
+      lastRegex = null;
+    }
+
     clearTimeout(debounce);
     debounce = setTimeout(() => {
-      if (!q || q.length < {{ section.settings.search_min_chars | default: 2 }}) { showPrefill(); return; }
-      skeleton();
-      fetchSuggest(q).then(js => render(js, q));
-    }, 180);
-  });
+      if (!q) {          // if normalized query is empty, show prefill
+        showPrefill();
+        return;
+      }
 
-  /* Enter submits to /search and saves recent query */
-  input && input.addEventListener('keydown', (e)=>{
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const q = (input.value || '').trim();
-      if (!q) return;
-      try{
-        const key = 'ch_recent_queries';
-        const cap = {{ section.settings.recent_max | default: 6 }};
-        const arr = (JSON.parse(localStorage.getItem(key) || '[]') || []).filter(x=>x!==q);
-        arr.unshift(q);
-        localStorage.setItem(key, JSON.stringify(arr.slice(0, cap)));
-      }catch(_){}
-      window.location.href = `/search?q=${encodeURIComponent(q)}`;
+      // PRODUCTS tab (desktop OR mobile)
+      if (isDesktop() || activeTab === 'products') {
+        if (q.length < MIN_CHARS) {
+          clearList();
+          setBottomCount(null);
+          if (live) live.textContent = 'Type more to search';
+          return;
+        }
+
+        // skeleton loader (unchanged)
+        const frag = document.createDocumentFragment();
+        for (let i = 0; i < PREFILL_LIMIT; i++) {
+          const li = document.createElement('li');
+          li.className = 'ms-item';
+          li.innerHTML = `
+            <div class="ms-thumb" style="background:#eef1f4"></div>
+            <div class="ms-info">
+              <div style="height:14px;width:70%;background:#eef1f4;border-radius:6px;margin-bottom:6px;"></div>
+              <div style="height:12px;width:50%;background:#eef1f4;border-radius:6px;"></div>
+            </div>
+            <div class="ms-price">
+              <div style="height:12px;width:80px;background:#eef1f4;border-radius:6px;margin-left:auto;"></div>
+            </div>`;
+          frag.appendChild(li);
+        }
+        list.replaceChildren(frag);
+        if (live) live.textContent = 'Loading…';
+
+        // IMPORTANT: we now call fetchSuggest with the *normalized* query
+        fetchSuggest(q).then(js => {
+          const prods = js && js.resources && Array.isArray(js.resources.results.products)
+            ? js.resources.results.products
+            : [];
+
+          renderProducts(prods);
+          setBottomCount(prods.length);
+
+          if (isDesktop()) {
+            const qLower = raw.toLowerCase();
+            const b = baseBrands.filter(v => v.toLowerCase().includes(qLower)).slice(0, DESK_SIDE_MAX);
+            const c = baseTypes.filter(t => t.toLowerCase().includes(qLower)).slice(0, DESK_SIDE_MAX);
+            renderSide(deskBrands, (b.length ? b : baseBrands).slice(0, DESK_SIDE_MAX), 'brand');
+            renderSide(deskCats,   (c.length ? c : baseTypes).slice(0, DESK_SIDE_MAX),  'cat');
+          }
+
+          if (live) {
+            live.textContent = prods.length ? `${prods.length} products` : 'No products';
+          }
+          setActive(-1);
+        });
+
+      // BRANDS tab (mobile)
+      } else if (activeTab === 'brands') {
+        const qLower = raw.toLowerCase();
+        const filtered = baseBrands.filter(v => v.toLowerCase().includes(qLower));
+        const rows = (filtered.length ? filtered : baseBrands).slice(0, LIST_CAP)
+          .map(t => ({
+            label: t,
+            href: `/search?type=product&q=${qFilter('vendor', t)}&sort_by=best-selling`
+          }));
+        renderLinksMobile(rows);
+
+      // CATEGORIES tab (mobile)
+      } else {
+        const qLower = raw.toLowerCase();
+        const filtered = baseTypes.filter(v => v.toLowerCase().includes(qLower));
+        const rows = (filtered.length ? filtered : baseTypes).slice(0, LIST_CAP)
+          .map(t => ({
+            label: t,
+            href: `/search?type=product&q=${qFilter('product_type', t)}&sort_by=best-selling`
+          }));
+        renderLinksMobile(rows);
+      }
+    }, 150);
+  }
+
+
+  /* =========================
+   * Tabs (mobile)
+   * ========================= */
+  function setTab(tab){
+    activeTab = tab;
+    tabs.forEach(btn => btn.setAttribute('aria-selected', btn.dataset.tab === tab ? 'true' : 'false'));
+    sectionTitle.textContent = tab==='products' ? 'products' : (tab==='brands' ? 'suggested brands' : 'suggested categories');
+    setBottomTitleForTab(tab);
+    handleInput();
+  }
+  tabs.forEach(btn => btn.addEventListener('click', ()=>setTab(btn.dataset.tab)));
+
+  /* =========================
+   * DESKTOP POSITION — anchor to header TOP (covers search)
+   * ========================= */
+  const headerEl = () =>
+    document.querySelector('[data-ch-header]') ||
+    document.getElementById('ch-header-{{ section.id }}') ||
+    document.querySelector('#shopify-section-header') ||
+    document.querySelector('header[role="banner"], header.site-header, .site-header, header');
+
+  function positionDesktop(){
+    const h = headerEl();
+    // Fallback to viewport top if header is missing
+    const topBase = (() => {
+      if (!h) return 8;
+      const r = h.getBoundingClientRect();
+      return Math.round(r.top) + 8; // anchor near header TOP
+    })();
+    return Math.max(8, topBase + DESKTOP_OFFSET);
+  }
+
+  let posReq=null;
+  function schedulePos(){
+    if(!portal.hasAttribute('data-open') || !isDesktop()) return;
+    if(posReq) return;
+    posReq=requestAnimationFrame(()=>{ island.style.top = positionDesktop() + 'px'; posReq=null; });
+  }
+
+  /* =========================
+   * Open / Close
+   * ========================= */
+  function openIsland(val = ''){
+    portal.setAttribute('data-open','true');
+    island.setAttribute('aria-hidden','false');
+    document.documentElement.style.overflow='hidden';
+    input.value = val || '';
+
+    if (isDesktop()){
+      const maxW = Math.min(DESKTOP_MIN_WIDTH, Math.floor(window.innerWidth * 0.96));
+      island.style.width = maxW + 'px';
+      island.style.left = '50%';
+      island.style.transform = 'translateX(-50%)';
+      island.style.top = positionDesktop() + 'px'; // always compute from header TOP (ignore trigger rect)
+    } else {
+      island.style.left = island.style.right = island.style.top = island.style.bottom = island.style.width = island.style.transform = '';
+    }
+
+    const hasQ = input.value.trim().length > 0;
+    setTimeout(()=>{ try{ input.focus(); }catch(e){} hasQ ? handleInput() : showPrefill(); }, 24);
+  }
+
+  function closeIsland(){
+    portal.removeAttribute('data-open');
+    island.setAttribute('aria-hidden','true');
+    document.documentElement.style.overflow='';
+    setActive(-1);
+  }
+
+  /* =========================
+   * Events
+   * ========================= */
+  // Click backdrop to close
+  portal.addEventListener('click', (ev)=>{ if(!portal.hasAttribute('data-open')) return; if(ev.target.closest('[data-ms-island]')) return; closeIsland(); });
+  island.addEventListener('click', (ev)=>{ if(ev.target.closest('[data-ms-close]')) closeIsland(); });
+
+  // Input + keyboard
+  input.addEventListener('input', handleInput);
+  island.addEventListener('keydown', (e)=>{
+    const items = list.querySelectorAll('.ms-item[role="option"], .ms-link');
+    if (e.key==='Escape'){ e.preventDefault(); closeIsland(); return; }
+    if (e.key==='ArrowDown'){ e.preventDefault(); if(!items.length) return; setActive(activeIndex+1); return; }
+    if (e.key==='ArrowUp'){ e.preventDefault(); if(!items.length) return; setActive(activeIndex-1); return; }
+    if (e.key==='Enter'){
+      const q = input.value.trim();
+      if (activeIndex>=0 && items[activeIndex]){ const url = items[activeIndex].dataset.url || '#'; window.location.href = url; }
+      else { window.location.href = q ? `/search?q=${encodeURIComponent(q)}&sort_by=best-selling` : (defaultCollectionUrl || '/search?q=&sort_by=best-selling'); }
     }
   });
 
-  clear && clear.addEventListener('click', () => {
-    input.value=''; input.focus(); clear.style.display='none'; showPrefill();
-  });
+  // Openers (capture + prevent default)
+  document.addEventListener('click', (ev)=>{
+    const t = ev.target.closest('[data-ms-open="search"], [data-panel-open="search"], .site-header__search-toggle, .search__button, a[href="#search"], input[type="search"][name="q"], input[name="q"][type="search"]');
+    if(!t) return;
+    ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation();
+    const val  = t.tagName==='INPUT' ? (t.value||'') : ((t.closest('form')?.querySelector('input[type="search"], input[name="q"]')?.value) || '');
+    openIsland(val); // NOTE: we ignore rect to always cover the header search
+  }, true);
 
-  /* focus input when panel opens */
-  document.addEventListener('ch:panel', (e)=>{
-    const d = e && e.detail;
-    if (d && d.name === 'search' && d.open) {
-      setTimeout(()=> input && input.focus(), 50);
-    }
-  });
+  // Keep pinned on scroll/resize
+  window.addEventListener('scroll', schedulePos, { passive:true });
+  window.addEventListener('resize', schedulePos, { passive:true });
+
+  /* =========================
+   * Export a small API
+   * ========================= */
+  window.__msSearchInstalled = true;
+  window.openIsland = openIsland;
+  window.closeIsland = closeIsland;
+  window.handleInput = handleInput;
+  window.fetchSuggest = fetchSuggest;
+  window.setTab = setTab;
+  window.positionDesktop = positionDesktop;
+  window.schedulePos = schedulePos;
+
+  /* =========================
+   * Init
+   * ========================= */
+  showPrefill();
 })();
 </script>

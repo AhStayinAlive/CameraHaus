@@ -16,7 +16,7 @@ theme.Sections = function Sections() {
 };
 
 theme.Sections.prototype = _.assignIn({}, theme.Sections.prototype, {
-  _createInstance: function(container, constructor) {
+  _createInstance: function (container, constructor) {
     var $container = $(container);
     var id = $container.attr('data-section-id');
     var type = $container.attr('data-section-type');
@@ -36,15 +36,15 @@ theme.Sections.prototype = _.assignIn({}, theme.Sections.prototype, {
     this.instances.push(instance);
   },
 
-  _onSectionLoad: function(evt) {
+  _onSectionLoad: function (evt) {
     var container = $('[data-section-id]', evt.target)[0];
     if (container) {
       this._createInstance(container);
     }
   },
 
-  _onSectionUnload: function(evt) {
-    this.instances = _.filter(this.instances, function(instance) {
+  _onSectionUnload: function (evt) {
+    this.instances = _.filter(this.instances, function (instance) {
       var isEventInstance = instance.id === evt.detail.sectionId;
 
       if (isEventInstance) {
@@ -57,9 +57,9 @@ theme.Sections.prototype = _.assignIn({}, theme.Sections.prototype, {
     });
   },
 
-  _onSelect: function(evt) {
+  _onSelect: function (evt) {
     // eslint-disable-next-line no-shadow
-    var instance = _.find(this.instances, function(instance) {
+    var instance = _.find(this.instances, function (instance) {
       return instance.id === evt.detail.sectionId;
     });
 
@@ -68,9 +68,9 @@ theme.Sections.prototype = _.assignIn({}, theme.Sections.prototype, {
     }
   },
 
-  _onDeselect: function(evt) {
+  _onDeselect: function (evt) {
     // eslint-disable-next-line no-shadow
-    var instance = _.find(this.instances, function(instance) {
+    var instance = _.find(this.instances, function (instance) {
       return instance.id === evt.detail.sectionId;
     });
 
@@ -79,9 +79,9 @@ theme.Sections.prototype = _.assignIn({}, theme.Sections.prototype, {
     }
   },
 
-  _onBlockSelect: function(evt) {
+  _onBlockSelect: function (evt) {
     // eslint-disable-next-line no-shadow
-    var instance = _.find(this.instances, function(instance) {
+    var instance = _.find(this.instances, function (instance) {
       return instance.id === evt.detail.sectionId;
     });
 
@@ -90,9 +90,9 @@ theme.Sections.prototype = _.assignIn({}, theme.Sections.prototype, {
     }
   },
 
-  _onBlockDeselect: function(evt) {
+  _onBlockDeselect: function (evt) {
     // eslint-disable-next-line no-shadow
-    var instance = _.find(this.instances, function(instance) {
+    var instance = _.find(this.instances, function (instance) {
       return instance.id === evt.detail.sectionId;
     });
 
@@ -101,11 +101,11 @@ theme.Sections.prototype = _.assignIn({}, theme.Sections.prototype, {
     }
   },
 
-  register: function(type, constructor) {
+  register: function (type, constructor) {
     this.constructors[type] = constructor;
 
     $('[data-section-type=' + type + ']').each(
-      function(index, container) {
+      function (index, container) {
         this._createInstance(container, constructor);
       }.bind(this)
     );
@@ -123,22 +123,22 @@ window.slate = window.slate || {};
  */
 
 slate.rte = {
-  wrapTable: function() {
+  wrapTable: function () {
     $('.rte table').wrap('<div class="rte__table-wrapper"></div>');
   },
 
-  iframeReset: function() {
+  iframeReset: function () {
     var $iframeVideo = $(
       '.rte iframe[src*="youtube.com/embed"], .rte iframe[src*="player.vimeo"]'
     );
     var $iframeReset = $iframeVideo.add('.rte iframe#admin_bar_iframe');
 
-    $iframeVideo.each(function() {
+    $iframeVideo.each(function () {
       // Add wrapper to make video responsive
       $(this).wrap('<div class="video-wrapper"></div>');
     });
 
-    $iframeReset.each(function() {
+    $iframeReset.each(function () {
       // Re-set the src attribute on each iframe after page load
       // for Chrome's "incorrect iFrame content on 'back'" bug.
       // https://code.google.com/p/chromium/issues/detail?id=395791
@@ -168,7 +168,7 @@ slate.a11y = {
    *
    * @param {JQuery} $element - The element to be acted upon
    */
-  pageLinkFocus: function($element) {
+  pageLinkFocus: function ($element) {
     var focusClass = 'js-focus-hidden';
 
     $element
@@ -189,7 +189,7 @@ slate.a11y = {
   /**
    * If there's a hash in the url, focus the appropriate element
    */
-  focusHash: function() {
+  focusHash: function () {
     var hash = window.location.hash;
 
     // is there a hash in the url? is it an element on the page?
@@ -201,10 +201,10 @@ slate.a11y = {
   /**
    * When an in-page (url w/hash) link is clicked, focus the appropriate element
    */
-  bindInPageLinks: function() {
+  bindInPageLinks: function () {
     $('a[href*=#]').on(
       'click',
-      function(evt) {
+      function (evt) {
         this.pageLinkFocus($(evt.currentTarget.hash));
       }.bind(this)
     );
@@ -218,7 +218,7 @@ slate.a11y = {
    * @param {jQuery} options.$elementToFocus - Element to be focused when focus leaves container
    * @param {string} options.namespace - Namespace used for new focus event handler
    */
-  trapFocus: function(options) {
+  trapFocus: function (options) {
     var eventName = options.namespace
       ? 'focusin.' + options.namespace
       : 'focusin';
@@ -230,7 +230,7 @@ slate.a11y = {
     options.$container.attr('tabindex', '-1');
     options.$elementToFocus.focus();
 
-    $(document).on(eventName, function(evt) {
+    $(document).on(eventName, function (evt) {
       if (
         options.$container[0] !== evt.target &&
         !options.$container.has(evt.target).length
@@ -247,7 +247,7 @@ slate.a11y = {
    * @param {jQuery} options.$container - Container to trap focus within
    * @param {string} options.namespace - Namespace used for new focus event handler
    */
-  removeTrapFocus: function(options) {
+  removeTrapFocus: function (options) {
     var eventName = options.namespace
       ? 'focusin.' + options.namespace
       : 'focusin';
@@ -273,7 +273,7 @@ slate.a11y = {
  *
  */
 
-theme.Currency = (function() {
+theme.Currency = (function () {
   var moneyFormat = '${{amount}}'; // eslint-disable-line camelcase
 
   function formatMoney(cents, format) {
@@ -340,7 +340,7 @@ theme.Currency = (function() {
  *
  */
 
-theme.Images = (function() {
+theme.Images = (function () {
   /**
    * Preloads an image in memory and uses the browsers cache to store it until needed.
    *
@@ -461,7 +461,7 @@ theme.Images = (function() {
  * @namespace variants
  */
 
-slate.Variants = (function() {
+slate.Variants = (function () {
   /**
    * Variant constructor
    *
@@ -490,10 +490,10 @@ slate.Variants = (function() {
      *
      * @return {array} options - Values of currently selected variants
      */
-    _getCurrentOptions: function() {
+    _getCurrentOptions: function () {
       var currentOptions = _.map(
         $(this.singleOptionSelector, this.$container),
-        function(element) {
+        function (element) {
           var $element = $(element);
           var type = $element.attr('type');
           var currentOption = {};
@@ -528,12 +528,12 @@ slate.Variants = (function() {
      * @param  {array} selectedValues - Values of variant inputs
      * @return {object || undefined} found - Variant object from product.variants
      */
-    _getVariantFromOptions: function() {
+    _getVariantFromOptions: function () {
       var selectedValues = this._getCurrentOptions();
       var variants = this.product.variants;
 
-      var found = _.find(variants, function(variant) {
-        return selectedValues.every(function(values) {
+      var found = _.find(variants, function (variant) {
+        return selectedValues.every(function (values) {
           return _.isEqual(variant[values.index], values.value);
         });
       });
@@ -544,7 +544,7 @@ slate.Variants = (function() {
     /**
      * Event handler for when a variant input changes.
      */
-    _onSelectChange: function() {
+    _onSelectChange: function () {
       var variant = this._getVariantFromOptions();
 
       this.$container.trigger({
@@ -558,9 +558,9 @@ slate.Variants = (function() {
 
       this._updateMasterSelect(variant);
       this._updateImages(variant);
-      
+
       this._filterThumbnails(variant);
-      
+
       this._updatePrice(variant);
       this._updateSKU(variant);
       this.currentVariant = variant;
@@ -576,20 +576,20 @@ slate.Variants = (function() {
      * @param  {object} variant - Currently selected variant
      * @return {event}  variantImageChange
      */
-    
-    _filterThumbnails: function(variant){
-      if (variant.featured_image != null && variant.featured_image.alt != null){
+
+    _filterThumbnails: function (variant) {
+      if (variant.featured_image != null && variant.featured_image.alt != null) {
         $('[data-thumbnail-color]').hide;
         var selected_color = variant.featured_image.alt;
         var thumbnail_selector = '[data-thumbnail-color="' + selected_color + '"]';
         $(thumbnail_selector).show();
       }
-      else{
+      else {
         $('[data-thumbnail-color]').show;
       }
     },
-    
-    _updateImages: function(variant) {
+
+    _updateImages: function (variant) {
       var variantImage = variant.featured_image || {};
       var currentVariantImage = this.currentVariant.featured_image || {};
 
@@ -612,7 +612,7 @@ slate.Variants = (function() {
      * @param  {object} variant - Currently selected variant
      * @return {event} variantPriceChange
      */
-    _updatePrice: function(variant) {
+    _updatePrice: function (variant) {
       if (
         variant.price === this.currentVariant.price &&
         variant.compare_at_price === this.currentVariant.compare_at_price
@@ -632,7 +632,7 @@ slate.Variants = (function() {
      * @param  {object} variant - Currently selected variant
      * @return {event} variantSKUChange
      */
-    _updateSKU: function(variant) {
+    _updateSKU: function (variant) {
       if (variant.sku === this.currentVariant.sku) {
         return;
       }
@@ -649,7 +649,7 @@ slate.Variants = (function() {
      * @param  {variant} variant - Currently selected variant
      * @return {k}         [description]
      */
-    _updateHistoryState: function(variant) {
+    _updateHistoryState: function (variant) {
       if (!history.replaceState || !variant) {
         return;
       }
@@ -669,7 +669,7 @@ slate.Variants = (function() {
      *
      * @param  {variant} variant - Currently selected variant
      */
-    _updateMasterSelect: function(variant) {
+    _updateMasterSelect: function (variant) {
       $(this.originalSelectorId, this.$container).val(variant.id);
     }
   });
@@ -679,8 +679,8 @@ slate.Variants = (function() {
 
 
 /*================ MODULES ================*/
-window.Drawers = (function() {
-  var Drawer = function(id, position, options) {
+window.Drawers = (function () {
+  var Drawer = function (id, position, options) {
     var defaults = {
       close: '.js-drawer-close',
       open: '.js-drawer-open-' + position,
@@ -708,13 +708,13 @@ window.Drawers = (function() {
     this.init();
   };
 
-  Drawer.prototype.init = function() {
+  Drawer.prototype.init = function () {
     this.$open.attr('aria-expanded', 'false');
     this.$open.on('click', $.proxy(this.open, this));
     this.$drawer.find(this.config.close).on('click', $.proxy(this.close, this));
   };
 
-  Drawer.prototype.open = function(evt) {
+  Drawer.prototype.open = function (evt) {
     // Keep track if drawer was opened from a click, or called by another function
     var externalCall = false;
 
@@ -777,7 +777,7 @@ window.Drawers = (function() {
     this.bindEvents();
   };
 
-  Drawer.prototype.close = function() {
+  Drawer.prototype.close = function () {
     // don't close a closed drawer
     if (!this.drawerIsOpen) {
       return;
@@ -811,16 +811,16 @@ window.Drawers = (function() {
     this.unbindEvents();
   };
 
-  Drawer.prototype.bindEvents = function() {
+  Drawer.prototype.bindEvents = function () {
     // Lock scrolling on mobile
-    this.nodes.$page.on('touchmove.drawer', function() {
+    this.nodes.$page.on('touchmove.drawer', function () {
       return false;
     });
 
     // Clicking out of drawer closes it
     this.nodes.$page.on(
       'click.drawer',
-      $.proxy(function() {
+      $.proxy(function () {
         this.close();
         return false;
       }, this)
@@ -829,7 +829,7 @@ window.Drawers = (function() {
     // Pressing escape closes drawer
     this.nodes.$parent.on(
       'keyup.drawer',
-      $.proxy(function(evt) {
+      $.proxy(function (evt) {
         if (evt.keyCode === 27) {
           this.close();
         }
@@ -837,7 +837,7 @@ window.Drawers = (function() {
     );
   };
 
-  Drawer.prototype.unbindEvents = function() {
+  Drawer.prototype.unbindEvents = function () {
     this.nodes.$page.off('.drawer');
     this.nodes.$parent.off('.drawer');
   };
@@ -845,7 +845,7 @@ window.Drawers = (function() {
   return Drawer;
 })();
 
-theme.Hero = (function() {
+theme.Hero = (function () {
   var selectors = {
     hero: '.hero',
     heroWrapper: '.hero-wrapper',
@@ -912,12 +912,12 @@ theme.Hero = (function() {
   }
 
   Hero.prototype = _.assignIn({}, Hero.prototype, {
-    _setSlideshowHeight: function() {
+    _setSlideshowHeight: function () {
       var minAspectRatio = this.$hero.data('min-aspect-ratio');
       this.$hero.height(this.$heroAdapt.width() / minAspectRatio);
     },
 
-    _countSlide: function(event, slick, currentSlide) {
+    _countSlide: function (event, slick, currentSlide) {
       // currentSlide is undefined on init,
       // set it to 0 in this case (currentSlide is 0 based)
       var activeSlide = (currentSlide ? currentSlide : 0) + 1;
@@ -934,7 +934,7 @@ theme.Hero = (function() {
       }
     },
 
-    _showActiveContent: function(event, slick, currentSlide) {
+    _showActiveContent: function (event, slick, currentSlide) {
       // currentSlide is undefined on init,
       // set it to 0 in this case (currentSlide is 0 based)
       // eslint-disable-next-line
@@ -944,8 +944,8 @@ theme.Hero = (function() {
 
       if (slick.slideCount > 1) {
         var $currentTitle = $heroTitle.filter(
-            '[data-slide-id="' + (currentSlide + 1) + '"]'
-          ),
+          '[data-slide-id="' + (currentSlide + 1) + '"]'
+        ),
           $currentLink = $heroControlsText.filter(
             '[data-slide-id="' + (currentSlide + 1) + '"]'
           );
@@ -957,15 +957,15 @@ theme.Hero = (function() {
       }
     },
 
-    _hideContent: function() {
+    _hideContent: function () {
       this.$heroContent.removeClass(classes.heroContentActive);
     },
 
-    _showContent: function() {
+    _showContent: function () {
       this.$heroContent.addClass(classes.heroContentActive);
     },
 
-    _togglePause: function() {
+    _togglePause: function () {
       if (this.$heroPause.hasClass(classes.isPaused)) {
         var labelPause = this.$heroPause.data('label-pause');
         this.$heroPause.removeClass(classes.isPaused).attr({
@@ -983,7 +983,7 @@ theme.Hero = (function() {
       }
     },
 
-    _a11y: function(event, obj) {
+    _a11y: function (event, obj) {
       var $list = obj.$list;
       var $heroWrapper = $(event.currentTarget).parents(selectors.heroWrapper);
       var autoplay = this.$hero.data('autoplay');
@@ -997,7 +997,7 @@ theme.Hero = (function() {
       $heroWrapper
         .on(
           'focusin' + this.namespace,
-          function(evt) {
+          function (evt) {
             if (!$heroWrapper.has(evt.target).length) {
               return;
             }
@@ -1011,7 +1011,7 @@ theme.Hero = (function() {
         .on(
           // Resume autoplay
           'focusout' + this.namespace,
-          function(evt) {
+          function (evt) {
             if ($heroWrapper.has(evt.relatedTarget).length) {
               return;
             }
@@ -1028,7 +1028,7 @@ theme.Hero = (function() {
         .on('keyup', this._keyboardNavigation.bind(this));
     },
 
-    _arrowsInit: function(event, obj) {
+    _arrowsInit: function (event, obj) {
       // Slider is initialized. Setup custom arrows
       var count = obj.slideCount;
       var $slider = obj.$slider;
@@ -1037,7 +1037,7 @@ theme.Hero = (function() {
       if ($arrows.length && count > 1) {
         $arrows.on(
           'click' + this.namespace,
-          function(evt) {
+          function (evt) {
             evt.preventDefault();
             var $arrowButton = $(evt.currentTarget).find('button');
             var arrowButtonControl = $arrowButton.data('control');
@@ -1054,7 +1054,7 @@ theme.Hero = (function() {
       }
     },
 
-    _scrollTop: function() {
+    _scrollTop: function () {
       var currentScroll = $(document).scrollTop();
       var heroOffset = this.$hero.offset().top;
 
@@ -1070,7 +1070,7 @@ theme.Hero = (function() {
       }
     },
 
-    _keyboardNavigation: function(event) {
+    _keyboardNavigation: function (event) {
       if (event.keyCode === 37) {
         this.$hero.slick('slickPrev');
       }
@@ -1079,21 +1079,21 @@ theme.Hero = (function() {
       }
     },
 
-    goToSlide: function(slideIndex) {
+    goToSlide: function (slideIndex) {
       this.$hero.slick('slickGoTo', slideIndex);
     },
 
-    pause: function() {
+    pause: function () {
       if (!this.$hero.data('autoplay')) return;
       this.$hero.slick('slickPause');
     },
 
-    play: function() {
+    play: function () {
       if (!this.$hero.data('autoplay')) return;
       this.$hero.slick('slickPlay');
     },
 
-    destroy: function() {
+    destroy: function () {
       this.$hero.off(this.namespace);
       this.$heroContent.off(this.namespace);
       this.$heroPause.off(this.namespace);
@@ -1108,8 +1108,8 @@ theme.Hero = (function() {
   return Hero;
 })();
 
-window.Modals = (function() {
-  var Modal = function(id, name, options) {
+window.Modals = (function () {
+  var Modal = function (id, name, options) {
     var defaults = {
       close: '.js-modal-close',
       open: '.js-modal-open-' + name,
@@ -1135,7 +1135,7 @@ window.Modals = (function() {
     this.init();
   };
 
-  Modal.prototype.init = function() {
+  Modal.prototype.init = function () {
     var $openBtn = $(this.config.open);
 
     // Add aria controls
@@ -1145,7 +1145,7 @@ window.Modals = (function() {
     this.$modal.find(this.config.close).on('click', $.proxy(this.close, this));
   };
 
-  Modal.prototype.open = function(evt) {
+  Modal.prototype.open = function (evt) {
     // Keep track if modal was opened from a click, or called by another function
     var externalCall = false;
 
@@ -1192,7 +1192,7 @@ window.Modals = (function() {
     this.bindEvents();
   };
 
-  Modal.prototype.close = function() {
+  Modal.prototype.close = function () {
     // don't close a closed modal
     if (!this.modalIsOpen) {
       return;
@@ -1219,11 +1219,11 @@ window.Modals = (function() {
     this.unbindEvents();
   };
 
-  Modal.prototype.bindEvents = function() {
+  Modal.prototype.bindEvents = function () {
     // Pressing escape closes modal
     this.nodes.$body.on(
       'keyup.modal',
-      $.proxy(function(evt) {
+      $.proxy(function (evt) {
         if (evt.keyCode === 27) {
           this.close();
         }
@@ -1231,15 +1231,15 @@ window.Modals = (function() {
     );
   };
 
-  Modal.prototype.unbindEvents = function() {
+  Modal.prototype.unbindEvents = function () {
     this.nodes.$body.off('.modal');
   };
 
   return Modal;
 })();
 
-window.Meganav = (function() {
-  var Meganav = function(options) {
+window.Meganav = (function () {
+  var Meganav = function (options) {
     this.cache = {
       $document: $(document),
       $page: $('.page-element')
@@ -1275,7 +1275,7 @@ window.Meganav = (function() {
     this.init();
   };
 
-  Meganav.prototype.init = function() {
+  Meganav.prototype.init = function () {
     var $openBtn = this.config.$meganavToggle;
 
     $openBtn.on('click', $.proxy(this.requestMeganav, this));
@@ -1288,7 +1288,7 @@ window.Meganav = (function() {
     }
   };
 
-  Meganav.prototype.requestMeganav = function(evt) {
+  Meganav.prototype.requestMeganav = function (evt) {
     var $targetedMeganav;
 
     // Prevent following href if link is clicked
@@ -1356,7 +1356,7 @@ window.Meganav = (function() {
     }
   };
 
-  Meganav.prototype.updateThirdLevelContainerWidth = function($el, $dropdown) {
+  Meganav.prototype.updateThirdLevelContainerWidth = function ($el, $dropdown) {
     var $thirdLevel = $dropdown.find(this.config.$meganavDropdownThirdLevel);
 
     if (!$thirdLevel.length) {
@@ -1365,7 +1365,7 @@ window.Meganav = (function() {
 
     $.each(
       $thirdLevel,
-      function(key, container) {
+      function (key, container) {
         var $container = $(container);
         var $lastChild = $container.find('li:last-child');
 
@@ -1374,7 +1374,7 @@ window.Meganav = (function() {
     );
   };
 
-  Meganav.prototype.updateContainerWidth = function(container, element) {
+  Meganav.prototype.updateContainerWidth = function (container, element) {
     var containerRect = container[0].getBoundingClientRect();
     var elementRect = element[0].getBoundingClientRect();
 
@@ -1394,7 +1394,7 @@ window.Meganav = (function() {
       .css('width', 100 / numberOfColumns + '%');
   };
 
-  Meganav.prototype.open = function($el, $target, noAnimation) {
+  Meganav.prototype.open = function ($el, $target, noAnimation) {
     var isThirdLevelBtn = $el.hasClass(this.config.thirdLevelClass);
 
     $target.addClass(this.config.activeClass);
@@ -1409,7 +1409,7 @@ window.Meganav = (function() {
     }
   };
 
-  Meganav.prototype.toggleSubNav = function($el) {
+  Meganav.prototype.toggleSubNav = function ($el) {
     this.removeMenuActiveState();
 
     $el
@@ -1421,7 +1421,7 @@ window.Meganav = (function() {
     $el.parent().addClass(this.config.activeClass);
   };
 
-  Meganav.prototype.close = function(evt, $target) {
+  Meganav.prototype.close = function (evt, $target) {
     if (this.config.preventDuplicates) {
       // Close all meganavs
       this.config.$meganavs.removeClass(
@@ -1450,7 +1450,7 @@ window.Meganav = (function() {
     this.config.isOpen = false;
   };
 
-  Meganav.prototype.closeThirdLevelMenu = function(evt) {
+  Meganav.prototype.closeThirdLevelMenu = function (evt) {
     var $el = $(evt.currentTarget);
     var $parent = $el.parent();
 
@@ -1460,13 +1460,13 @@ window.Meganav = (function() {
 
     this.config.$meganavLinkSecondLevel.one(
       'focus.meganav',
-      $.proxy(function() {
+      $.proxy(function () {
         this.removeMenuActiveState();
       }, this)
     );
   };
 
-  Meganav.prototype.removeMenuActiveState = function() {
+  Meganav.prototype.removeMenuActiveState = function () {
     var activeClasses = [this.config.activeClass, this.config.noAnimationClass];
 
     this.config.$meganavToggleThirdLevel
@@ -1477,7 +1477,7 @@ window.Meganav = (function() {
     this.config.$meganavDropdownContainers.removeClass(this.config.activeClass);
   };
 
-  Meganav.prototype.bindEvents = function() {
+  Meganav.prototype.bindEvents = function () {
     if (!this.config.closeOnPageClick) {
       return;
     }
@@ -1488,7 +1488,7 @@ window.Meganav = (function() {
     // Exception to above: clicking anywhere on the meganav will NOT close it
     this.config.$meganavs.on(
       'click.meganav',
-      function(evt) {
+      function (evt) {
         // 3rd level container
         var is3rdLevelMenuTarget =
           $(evt.currentTarget).hasClass(this.config.activeClass) &&
@@ -1511,7 +1511,7 @@ window.Meganav = (function() {
     // Pressing escape closes meganav and focuses the target parent link
     this.cache.$document.on(
       'keyup.meganav',
-      $.proxy(function(evt) {
+      $.proxy(function (evt) {
         if (evt.keyCode !== 27) return;
 
         this.config.$meganavToggle
@@ -1522,7 +1522,7 @@ window.Meganav = (function() {
     );
   };
 
-  Meganav.prototype.unbindEvents = function() {
+  Meganav.prototype.unbindEvents = function () {
     if (!this.config.closeOnPageClick) {
       return;
     }
@@ -1537,8 +1537,8 @@ window.Meganav = (function() {
   return Meganav;
 })();
 
-window.QtySelector = (function() {
-  var QtySelector = function($el) {
+window.QtySelector = (function () {
+  var QtySelector = function ($el) {
     this.cache = {
       $body: $('body'),
       $subtotal: $('#CartSubtotal'),
@@ -1562,7 +1562,7 @@ window.QtySelector = (function() {
     this.bindEvents();
   };
 
-  QtySelector.prototype.createInputs = function() {
+  QtySelector.prototype.createInputs = function () {
     var $el = this.$el;
 
     var data = {
@@ -1580,7 +1580,7 @@ window.QtySelector = (function() {
     $el.remove();
   };
 
-  QtySelector.prototype.validateAvailability = function(line, quantity) {
+  QtySelector.prototype.validateAvailability = function (line, quantity) {
     var product = theme.cartObject.items[line - 1]; // 0-based index in API
     var handle = product.handle; // needed for the ajax request
     var id = product.id; // needed to find right variant from ajax results
@@ -1589,7 +1589,7 @@ window.QtySelector = (function() {
       type: 'GET',
       url: '/products/' + handle + '.js',
       dataType: 'json',
-      success: $.proxy(function(cartProduct) {
+      success: $.proxy(function (cartProduct) {
         this.validateAvailabilityCallback(line, quantity, id, cartProduct);
       }, this)
     };
@@ -1597,7 +1597,7 @@ window.QtySelector = (function() {
     $.ajax(params);
   };
 
-  QtySelector.prototype.validateAvailabilityCallback = function(
+  QtySelector.prototype.validateAvailabilityCallback = function (
     line,
     quantity,
     id,
@@ -1637,7 +1637,7 @@ window.QtySelector = (function() {
     }
   };
 
-  QtySelector.prototype.validateQty = function(qty) {
+  QtySelector.prototype.validateQty = function (qty) {
     if (parseFloat(qty) === parseInt(qty, 10) && !isNaN(qty)) {
       // We have a valid number!
     } else {
@@ -1647,7 +1647,7 @@ window.QtySelector = (function() {
     return parseInt(qty, 10);
   };
 
-  QtySelector.prototype.adjustQty = function(evt) {
+  QtySelector.prototype.adjustQty = function (evt) {
     var $el = $(evt.currentTarget);
     var $input = $el.siblings('.js-qty__input');
     var qty = this.validateQty($input.val());
@@ -1670,13 +1670,13 @@ window.QtySelector = (function() {
     }
   };
 
-  QtySelector.prototype.bindEvents = function() {
+  QtySelector.prototype.bindEvents = function () {
     this.$wrapper
       .find('.js-qty__adjust')
       .on('click', $.proxy(this.adjustQty, this));
 
     // Select input text on click
-    this.$wrapper.on('click', '.js-qty__input', function() {
+    this.$wrapper.on('click', '.js-qty__input', function () {
       this.setSelectionRange(0, this.value.length);
     });
 
@@ -1685,7 +1685,7 @@ window.QtySelector = (function() {
       this.$wrapper.on(
         'change',
         '.js-qty__input',
-        $.proxy(function(evt) {
+        $.proxy(function (evt) {
           var $input = $(evt.currentTarget);
           var line = $input.attr('data-line');
           var qty = this.validateQty($input.val());
@@ -1696,24 +1696,24 @@ window.QtySelector = (function() {
     }
   };
 
-  QtySelector.prototype.updateCartItemPrice = function(line, qty) {
+  QtySelector.prototype.updateCartItemPrice = function (line, qty) {
     // Update cart after short timeout so user doesn't create simultaneous ajax calls
     clearTimeout(this.qtyUpdateTimeout);
     this.qtyUpdateTimeout = setTimeout(
-      $.proxy(function() {
+      $.proxy(function () {
         this.validateAvailability(line, qty);
       }, this),
       200
     );
   };
 
-  QtySelector.prototype.updateItemQuantity = function(line, quantity) {
+  QtySelector.prototype.updateItemQuantity = function (line, quantity) {
     var params = {
       type: 'POST',
       url: '/cart/change.js',
       data: 'quantity=' + quantity + '&line=' + line,
       dataType: 'json',
-      success: $.proxy(function(cart) {
+      success: $.proxy(function (cart) {
         this.updateCartItemCallback(cart);
       }, this)
     };
@@ -1721,7 +1721,7 @@ window.QtySelector = (function() {
     $.ajax(params);
   };
 
-  QtySelector.prototype.updateCartItemCallback = function(cart) {
+  QtySelector.prototype.updateCartItemCallback = function (cart) {
     // Reload the page to show the empty cart if no items
     if (cart.item_count === 0) {
       location.reload();
@@ -1740,7 +1740,7 @@ window.QtySelector = (function() {
     var prodImg;
 
     // Add each item to our handlebars.js data
-    $.each(cart.items, function(index, cartItem) {
+    $.each(cart.items, function (index, cartItem) {
       /* Hack to get product image thumbnail
        *   - If image is not null
        *     - Remove file extension, add 240x240, and re-add extension
@@ -1758,7 +1758,7 @@ window.QtySelector = (function() {
       }
 
       if (cartItem.properties !== null) {
-        $.each(cartItem.properties, function(key, value) {
+        $.each(cartItem.properties, function (key, value) {
           if (key.charAt(0) === '_' || !value) {
             delete cartItem.properties[key];
           }
@@ -1831,7 +1831,7 @@ window.QtySelector = (function() {
     this.updateCartFooter(cart);
 
     // Create new quantity selectors
-    this.cache.$cartTable.find('input[type="number"]').each(function(i, el) {
+    this.cache.$cartTable.find('input[type="number"]').each(function (i, el) {
       new QtySelector($(el));
     });
 
@@ -1839,7 +1839,7 @@ window.QtySelector = (function() {
     slate.a11y.pageLinkFocus(this.cache.$cartTable);
   };
 
-  QtySelector.prototype.updateCartFooter = function(cart) {
+  QtySelector.prototype.updateCartFooter = function (cart) {
     if (cart.cart_level_discount_applications.length !== 0) {
       for (var cartDiscount in cart.cart_level_discount_applications) {
         var cartAmount =
@@ -1877,8 +1877,8 @@ window.QtySelector = (function() {
   Allow product to be added to cart via ajax with
   custom success and error responses.
 */
-window.AjaxCart = (function() {
-  var cart = function($form) {
+window.AjaxCart = (function () {
+  var cart = function ($form) {
     this.cache = {
       $cartIconIndicator: $('.site-header__cart-indicator')
     };
@@ -1887,13 +1887,13 @@ window.AjaxCart = (function() {
     this.eventListeners();
   };
 
-  cart.prototype.eventListeners = function() {
+  cart.prototype.eventListeners = function () {
     if (this.$form.length) {
       this.$form.on('submit', $.proxy(this.addItemFromForm, this));
     }
   };
 
-  cart.prototype.addItemFromForm = function(evt) {
+  cart.prototype.addItemFromForm = function (evt) {
     evt.preventDefault();
 
     var params = {
@@ -1901,10 +1901,10 @@ window.AjaxCart = (function() {
       url: '/cart/add.js',
       data: this.$form.serialize(),
       dataType: 'json',
-      success: $.proxy(function(lineItem) {
+      success: $.proxy(function (lineItem) {
         this.success(lineItem);
       }, this),
-      error: $.proxy(function(XMLHttpRequest, textStatus) {
+      error: $.proxy(function (XMLHttpRequest, textStatus) {
         this.error(XMLHttpRequest, textStatus);
       }, this)
     };
@@ -1912,7 +1912,7 @@ window.AjaxCart = (function() {
     $.ajax(params);
   };
 
-  cart.prototype.success = function() {
+  cart.prototype.success = function () {
     theme.Notify.open('success', false, true);
 
     // Update cart notification bubble's state
@@ -1920,7 +1920,7 @@ window.AjaxCart = (function() {
   };
 
   // Error handling reference from Shopify.onError in api.jquery.js
-  cart.prototype.error = function(XMLHttpRequest) {
+  cart.prototype.error = function (XMLHttpRequest) {
     var data = JSON.parse(XMLHttpRequest.responseText);
 
     if (data.message) {
@@ -1931,8 +1931,8 @@ window.AjaxCart = (function() {
   return cart;
 })();
 
-window.Notify = (function() {
-  var notify = function() {
+window.Notify = (function () {
+  var notify = function () {
     this.cache = {
       $scrollParent: $('html').add('body'),
       $notificationSuccess: $('#NotificationSuccess'),
@@ -1976,7 +1976,7 @@ window.Notify = (function() {
     }
   }
 
-  notify.prototype.open = function(state, message, autoclose) {
+  notify.prototype.open = function (state, message, autoclose) {
     this.close();
 
     if (state === 'success') {
@@ -1991,7 +1991,7 @@ window.Notify = (function() {
       // Set focus on link to cart after transition
       this.cache.$notificationSuccess.one(
         'TransitionEnd webkitTransitionEnd transitionend oTransitionEnd',
-        $.proxy(function() {
+        $.proxy(function () {
           slate.a11y.pageLinkFocus(this.cache.$notificationSuccessLink);
         }, this)
       );
@@ -2017,7 +2017,7 @@ window.Notify = (function() {
     }
   };
 
-  notify.prototype.close = function(evt) {
+  notify.prototype.close = function (evt) {
     if (evt && $(evt.currentTarget).attr('id') === 'NotificationPromoClose') {
       if (this.isLocalStorageSupported) {
         localStorage.setItem(this.settings.promoKeyName, 'hidden');
@@ -2048,7 +2048,7 @@ window.Notify = (function() {
     this.$lastFocusedElement = null;
   };
 
-  notify.prototype.showPromo = function(SFEevent) {
+  notify.prototype.showPromo = function (SFEevent) {
     // If reloaded in the storefront editor, update selectors/settings
     if (SFEevent) {
       this.initCache();
@@ -2066,7 +2066,7 @@ window.Notify = (function() {
       .addClass(this.settings.notifyActiveClass);
   };
 
-  notify.prototype.adaptNotification = function() {
+  notify.prototype.adaptNotification = function () {
     var adaptHeight = $('.hero').data('adapt-height'),
       $notification = $('#NotificationPromo'),
       $notificationInner = $notification.children('.notification__inner');
@@ -2085,7 +2085,7 @@ window.Notify = (function() {
   return notify;
 })();
 
-theme.Maps = (function() {
+theme.Maps = (function () {
   var config = {
     zoom: 14,
     styles: [
@@ -2174,7 +2174,7 @@ theme.Maps = (function() {
       if ($script.length === 0) {
         $.getScript(
           'https://maps.googleapis.com/maps/api/js?key=' + key
-        ).then(function() {
+        ).then(function () {
           apiStatus = 'loaded';
           self.createMap();
         });
@@ -2189,7 +2189,7 @@ theme.Maps = (function() {
         if (typeof window.google === 'undefined') {
           $.getScript(
             'https://maps.googleapis.com/maps/api/js?key=' + key
-          ).then(function() {
+          ).then(function () {
             apiStatus = 'loaded';
             initAllMaps();
           });
@@ -2200,7 +2200,7 @@ theme.Maps = (function() {
 
   function initAllMaps() {
     // API has loaded, load all Map instances in queue
-    $.each(mapsToLoad, function(index, instance) {
+    $.each(mapsToLoad, function (index, instance) {
       instance.createMap();
     });
   }
@@ -2210,7 +2210,7 @@ theme.Maps = (function() {
     var geocoder = new google.maps.Geocoder();
     var address = $map.data('address-setting');
 
-    geocoder.geocode({ address: address }, function(results, status) {
+    geocoder.geocode({ address: address }, function (results, status) {
       if (status !== google.maps.GeocoderStatus.OK) {
         deferred.reject(status);
       }
@@ -2222,12 +2222,12 @@ theme.Maps = (function() {
   }
 
   Map.prototype = _.assignIn({}, Map.prototype, {
-    createMap: function() {
+    createMap: function () {
       var $map = this.$container.find('.map-section__container');
 
       return geolocate($map)
         .then(
-          function(results) {
+          function (results) {
             var mapOptions = {
               zoom: config.zoom,
               styles: config.styles,
@@ -2265,14 +2265,14 @@ theme.Maps = (function() {
             google.maps.event.addDomListener(
               window,
               'resize',
-              $.debounce(250, function() {
+              $.debounce(250, function () {
                 google.maps.event.trigger(map, 'resize');
                 map.setCenter(center);
               })
             );
           }.bind(this)
         )
-        .fail(function() {
+        .fail(function () {
           var errorMessage;
 
           switch (status) {
@@ -2297,14 +2297,14 @@ theme.Maps = (function() {
               .find('.map-section__wrapper')
               .html(
                 '<div class="errors text-center" style="width: 100%;">' +
-                  errorMessage +
-                  '</div>'
+                errorMessage +
+                '</div>'
               );
           }
         });
     },
 
-    onUnload: function() {
+    onUnload: function () {
       if (typeof window.google !== 'undefined') {
         google.maps.event.clearListeners(this.map, 'resize');
       }
@@ -2326,12 +2326,12 @@ function gm_authFailure() {
     .find('.map-section__wrapper')
     .html(
       '<div class="errors text-center" style="width: 100%;">' +
-        theme.strings.authError +
-        '</div>'
+      theme.strings.authError +
+      '</div>'
     );
 }
 
-theme.stickyHeader = (function() {
+theme.stickyHeader = (function () {
   var selectors = {
     searchCartWrapper: '#SiteNavSearchCart',
     stickyNavSearchCart: '#StickyNavSearchCart',
@@ -2401,7 +2401,7 @@ theme.stickyHeader = (function() {
 
     // Add open transition class after element is set to fixed
     // so CSS animation is applied correctly
-    setTimeout(function() {
+    setTimeout(function () {
       cache.$stickyBar.addClass(config.openTransitionClass);
     }, 0);
   }
@@ -2428,7 +2428,7 @@ theme.stickyHeader = (function() {
   };
 })();
 
-theme.headerNav = (function() {
+theme.headerNav = (function () {
   var selectors = {
     siteNav: '#SiteNav',
     siteNavCompressed: '#SiteNavCompressed',
@@ -2474,7 +2474,7 @@ theme.headerNav = (function() {
     // Calculate the width of each nav item
     // after forcing them to be visible for the calculations
     $(selectors.siteNav).removeClass(hideClass);
-    $(selectors.siteNavItem).each(function(i, el) {
+    $(selectors.siteNavItem).each(function (i, el) {
       navWidth += $(el).width();
     });
 
@@ -2513,16 +2513,16 @@ theme.headerNav = (function() {
     // two search fields to be aware of at this point.
     var $searchForm = $('.site-header__search');
 
-    $searchForm.each(function(i, el) {
+    $searchForm.each(function (i, el) {
       var $form = $(el);
       var $input = $form.find('.' + config.searchInputClass);
       var $submit = $form.find('.' + config.searchSubmitClass);
 
-      $input.add($submit).on('focus blur', function() {
+      $input.add($submit).on('focus blur', function () {
         $form.toggleClass('active-form');
       });
 
-      $submit.on('mousedown', function() {
+      $submit.on('mousedown', function () {
         if ($form.hasClass('active-form')) {
           $form.submit();
         }
@@ -2542,16 +2542,16 @@ theme.headerNav = (function() {
 
 
 /*================ TEMPLATES ================*/
-theme.customerTemplates = (function() {
+theme.customerTemplates = (function () {
   function initEventListeners() {
     // Show reset password form
-    $('#RecoverPassword').on('click', function(evt) {
+    $('#RecoverPassword').on('click', function (evt) {
       evt.preventDefault();
       toggleRecoverPasswordForm();
     });
 
     // Hide reset password form
-    $('#HideRecoverPasswordLink').on('click', function(evt) {
+    $('#HideRecoverPasswordLink').on('click', function (evt) {
       evt.preventDefault();
       toggleRecoverPasswordForm();
     });
@@ -2607,7 +2607,7 @@ theme.customerTemplates = (function() {
     }
 
     // Initialize each edit form's country/province selector
-    $('.address-country-option').each(function() {
+    $('.address-country-option').each(function () {
       var formId = $(this).data('form-id');
       var countrySelector = 'AddressCountry_' + formId;
       var provinceSelector = 'AddressProvince_' + formId;
@@ -2620,16 +2620,16 @@ theme.customerTemplates = (function() {
     });
 
     // Toggle new/edit address forms
-    $('.address-new-toggle').on('click', function() {
+    $('.address-new-toggle').on('click', function () {
       $newAddressForm.toggleClass('hide');
     });
 
-    $('.address-edit-toggle').on('click', function() {
+    $('.address-edit-toggle').on('click', function () {
       var formId = $(this).data('form-id');
       $('#EditAddress_' + formId).toggleClass('hide');
     });
 
-    $('.address-delete').on('click', function() {
+    $('.address-delete').on('click', function () {
       var $el = $(this);
       var addressUrl = $el.data('address-url');
       var confirmMessage = $el.data('confirm-message');
@@ -2662,7 +2662,7 @@ theme.customerTemplates = (function() {
   }
 
   return {
-    init: function() {
+    init: function () {
       checkUrlHash();
       initEventListeners();
       resetPasswordSuccess();
@@ -2673,7 +2673,7 @@ theme.customerTemplates = (function() {
 
 
 /*================ SECTIONS ================*/
-theme.HeaderSection = (function() {
+theme.HeaderSection = (function () {
   function Header() {
     theme.stickyHeader.init();
     theme.headerNav.init();
@@ -2686,7 +2686,7 @@ theme.HeaderSection = (function() {
     var $drawerSearch = $('.drawer__search-input');
     var $drawerSearchSubmit = $('.drawer__search-submit');
 
-    $drawerSearchSubmit.on('click', function(evt) {
+    $drawerSearchSubmit.on('click', function (evt) {
       if ($drawerSearch.val().length !== 0) {
         return;
       }
@@ -2697,10 +2697,10 @@ theme.HeaderSection = (function() {
   }
 
   Header.prototype = _.assignIn({}, Header.prototype, {
-    onSelect: function() {
+    onSelect: function () {
       theme.Notify.adaptNotification();
     },
-    onUnload: function() {
+    onUnload: function () {
       theme.stickyHeader.unload();
       theme.headerNav.unload();
     }
@@ -2709,7 +2709,7 @@ theme.HeaderSection = (function() {
   return Header;
 })();
 
-theme.Filters = (function() {
+theme.Filters = (function () {
   var selectors = {
     filterSelection: '#SortTags',
     sortSelection: '#SortBy'
@@ -2724,11 +2724,11 @@ theme.Filters = (function() {
   }
 
   Filters.prototype = _.assignIn({}, Filters.prototype, {
-    _onFilterChange: function() {
+    _onFilterChange: function () {
       location.href = this.$filterSelect.val();
     },
 
-    _onSortChange: function() {
+    _onSortChange: function () {
       Shopify.queryParams.sort_by = this.$sortSelect.val();
       if (Shopify.queryParams.page) {
         delete Shopify.queryParams.page;
@@ -2736,7 +2736,7 @@ theme.Filters = (function() {
       location.search = decodeURIComponent($.param(Shopify.queryParams));
     },
 
-    onUnload: function() {
+    onUnload: function () {
       this.$filterSelect.off('change', this._onFilterChange);
       this.$sortSelect.off('change', this._onSortChange);
     }
@@ -2745,7 +2745,7 @@ theme.Filters = (function() {
   return Filters;
 })();
 
-theme.Product = (function() {
+theme.Product = (function () {
   var defaults = {
     smallBreakpoint: 750, // copied from variables.scss
     productThumbIndex: 0,
@@ -2803,7 +2803,7 @@ theme.Product = (function() {
   }
 
   Product.prototype = _.assignIn({}, Product.prototype, {
-    init: function() {
+    init: function () {
       this._stringOverrides();
       this._initVariants();
       this._productZoomImage();
@@ -2818,12 +2818,12 @@ theme.Product = (function() {
       }
     },
 
-    _stringOverrides: function() {
+    _stringOverrides: function () {
       window.productStrings = window.productStrings || {};
       $.extend(theme.strings, window.productStrings);
     },
 
-    addVariantInfo: function() {
+    addVariantInfo: function () {
       if (!this.productSingleObject || !this.settings.stockSetting) {
         return;
       }
@@ -2837,7 +2837,7 @@ theme.Product = (function() {
       }
     },
 
-    _initVariants: function() {
+    _initVariants: function () {
       var options = {
         $container: this.$container,
         enableHistoryState: this.settings.enableHistoryState,
@@ -2867,7 +2867,7 @@ theme.Product = (function() {
       );
     },
 
-    _updateStock: function(variant) {
+    _updateStock: function (variant) {
       if (!this.settings.stockSetting) return;
 
       var $stock = $(this.selectors.productStock);
@@ -2906,7 +2906,7 @@ theme.Product = (function() {
       $stock.addClass('hide');
     },
 
-    _updateIncomingInfo: function(variant) {
+    _updateIncomingInfo: function (variant) {
       if (!this.settings.stockSetting) return;
 
       var $stock = $(this.selectors.productStock);
@@ -2927,7 +2927,7 @@ theme.Product = (function() {
       $stock.addClass('hide');
     },
 
-    _updateVariantChange: function(evt) {
+    _updateVariantChange: function (evt) {
       var variant = evt.variant;
 
       var cache = {
@@ -2980,7 +2980,7 @@ theme.Product = (function() {
       }
     },
 
-    _updatePrice: function(evt) {
+    _updatePrice: function (evt) {
       var variant = evt.variant;
 
       if (variant) {
@@ -3008,14 +3008,14 @@ theme.Product = (function() {
       }
     },
 
-    _getBaseUnit: function(variant) {
+    _getBaseUnit: function (variant) {
       return variant.unit_price_measurement.reference_value === 1
         ? variant.unit_price_measurement.reference_unit
         : variant.unit_price_measurement.reference_value +
-            variant.unit_price_measurement.reference_unit;
+        variant.unit_price_measurement.reference_unit;
     },
 
-    _updateSKU: function(evt) {
+    _updateSKU: function (evt) {
       var variant = evt.variant;
 
       if (variant) {
@@ -3023,7 +3023,7 @@ theme.Product = (function() {
       }
     },
 
-    _updateImages: function(evt) {
+    _updateImages: function (evt) {
       var variant = evt.variant;
 
       if (variant && variant.featured_image) {
@@ -3033,38 +3033,38 @@ theme.Product = (function() {
       }
     },
 
-    switchProductImage: function(imageId) {
+    switchProductImage: function (imageId) {
       var $imageToShow = $(
         this.selectors.productImageContainers +
-          "[data-image-id='" +
-          imageId +
-          "']",
+        "[data-image-id='" +
+        imageId +
+        "']",
         this.$container
       );
       var $imagesToHide = $(
         this.selectors.productImageContainers +
-          ":not([data-image-id='" +
-          imageId +
-          "'])",
+        ":not([data-image-id='" +
+        imageId +
+        "'])",
         this.$container
       );
       $imagesToHide.addClass('hide');
       $imageToShow.removeClass('hide');
     },
 
-    setActiveThumbnail: function(imageId) {
+    setActiveThumbnail: function (imageId) {
       var $thumbnailToShow = $(
         this.selectors.productThumbContainers +
-          "[data-image-id='" +
-          imageId +
-          "']",
+        "[data-image-id='" +
+        imageId +
+        "']",
         this.$container
       );
       var $thumbnailsToHide = $(
         this.selectors.productThumbContainers +
-          ":not([data-image-id='" +
-          imageId +
-          "'])",
+        ":not([data-image-id='" +
+        imageId +
+        "'])",
         this.$container
       );
       $thumbnailsToHide.removeClass('is-active');
@@ -3085,7 +3085,7 @@ theme.Product = (function() {
       }
     },
 
-    _productZoomImage: function() {
+    _productZoomImage: function () {
       // The zoom image is only used on the product template, so return early
       // even if a featured product section is present.
       if (
@@ -3098,7 +3098,7 @@ theme.Product = (function() {
 
       $(this.selectors.productImageWrappers).on(
         'click' + this.settings.namespace,
-        function(evt) {
+        function (evt) {
           evt.preventDefault();
           // Empty src before loadig new image to avoid awkward image swap
           $(self.selectors.productZoomImage)
@@ -3113,7 +3113,7 @@ theme.Product = (function() {
       );
 
       // Close modal if clicked, but not if the image is clicked
-      this.ProductModal.$modal.on('click' + this.settings.namespace, function(
+      this.ProductModal.$modal.on('click' + this.settings.namespace, function (
         evt
       ) {
         if (evt.target.nodeName !== 'IMG') {
@@ -3122,7 +3122,7 @@ theme.Product = (function() {
       });
     },
 
-    _productThumbSwitch: function() {
+    _productThumbSwitch: function () {
       if (!$(this.selectors.productThumbs).length) {
         return;
       }
@@ -3131,7 +3131,7 @@ theme.Product = (function() {
 
       $(this.selectors.productThumbs).on(
         'click' + this.settings.namespace,
-        function(evt) {
+        function (evt) {
           evt.preventDefault();
           var imageId = $(this)
             .parent()
@@ -3145,7 +3145,7 @@ theme.Product = (function() {
     /*
       Thumbnail slider
      */
-    _productThumbnailSlider: function() {
+    _productThumbnailSlider: function () {
       var $productThumbsWrapper = $(this.selectors.productThumbsWrapper);
       var $productThumbs = $(this.selectors.productThumbs);
       if (!$productThumbs.length) {
@@ -3211,7 +3211,7 @@ theme.Product = (function() {
       }
     },
 
-    _productSwipeInit: function(evt, obj) {
+    _productSwipeInit: function (evt, obj) {
       // Slider is initialized. Setup custom swipe events
       this.settings.productThumbIndex = obj.currentSlide;
       this.settings.productThumbMax = obj.slideCount - 1; // we need the 0-based index
@@ -3220,7 +3220,7 @@ theme.Product = (function() {
 
       $(this.selectors.productImageWrappers).on(
         'swipeleft swiperight',
-        function(event) {
+        function (event) {
           if (event.type === 'swipeleft') {
             self._goToNextThumbnail();
           }
@@ -3232,8 +3232,8 @@ theme.Product = (function() {
           // Trigger click on newly requested thumbnail
           $(
             '.product-single__thumbnail-item[data-slick-index="' +
-              self.settings.productThumbIndex +
-              '"]'
+            self.settings.productThumbIndex +
+            '"]'
           )
             .find('.product-single__thumbnail')
             .trigger('click');
@@ -3241,7 +3241,7 @@ theme.Product = (function() {
       );
     },
 
-    _goToNextThumbnail: function() {
+    _goToNextThumbnail: function () {
       this.settings.productThumbIndex++;
 
       if (this.settings.productThumbIndex > this.settings.productThumbMax) {
@@ -3255,7 +3255,7 @@ theme.Product = (function() {
       );
     },
 
-    _goToPrevThumbnail: function() {
+    _goToPrevThumbnail: function () {
       this.settings.productThumbIndex--;
 
       if (this.settings.productThumbIndex < 0) {
@@ -3269,14 +3269,14 @@ theme.Product = (function() {
       );
     },
 
-    _initQtySelector: function() {
-      this.$container.find('.product-form__quantity').each(function(i, el) {
+    _initQtySelector: function () {
+      this.$container.find('.product-form__quantity').each(function (i, el) {
         // eslint-disable-next-line no-new
         new QtySelector($(el));
       });
     },
 
-    onUnload: function() {
+    onUnload: function () {
       $(this.selectors.productImageWrappers).off(this.settings.namespace);
       $(this.selectors.productThumbs).off(this.settings.namespace);
       $(this.selectors.productThumbs).slick('unslick');
@@ -3291,7 +3291,7 @@ theme.Product = (function() {
 
 theme.slideshows = {};
 
-theme.Slideshow = (function() {
+theme.Slideshow = (function () {
   function Slideshow(container) {
     this.$container = $(container);
     var sectionId = this.$container.attr('data-section-id');
@@ -3301,20 +3301,20 @@ theme.Slideshow = (function() {
   }
 
   Slideshow.prototype = _.assignIn({}, Slideshow.prototype, {
-    onUnload: function() {
+    onUnload: function () {
       theme.slideshows[this.slideshow].destroy();
     },
 
-    onSelect: function() {
+    onSelect: function () {
       theme.slideshows[this.slideshow].pause();
       theme.Notify.adaptNotification();
     },
 
-    onDeselect: function() {
+    onDeselect: function () {
       theme.slideshows[this.slideshow].play();
     },
 
-    onBlockSelect: function(evt) {
+    onBlockSelect: function (evt) {
       var $slide = $(
         '.hero__slide--' + evt.detail.blockId + ':not(.slick-cloned)'
       );
@@ -3324,7 +3324,7 @@ theme.Slideshow = (function() {
       theme.slideshows[this.slideshow].goToSlide(slideIndex);
     },
 
-    onBlockDeselect: function() {
+    onBlockDeselect: function () {
       theme.slideshows[this.slideshow].play();
     }
   });
@@ -3332,7 +3332,7 @@ theme.Slideshow = (function() {
   return Slideshow;
 })();
 
-theme.Cart = (function() {
+theme.Cart = (function () {
   var selectors = {
     cartNote: '#CartSpecialInstructions',
     cartQtyInput: '.cart__quantity',
@@ -3349,7 +3349,7 @@ theme.Cart = (function() {
   }
 
   Cart.prototype = _.assignIn({}, Cart.prototype, {
-    init: function($container) {
+    init: function ($container) {
       this._initQtySelector();
       this._initCartNote();
 
@@ -3358,14 +3358,14 @@ theme.Cart = (function() {
       }
     },
 
-    _initQtySelector: function() {
-      $(selectors.cartQtyInput).each(function(i, el) {
+    _initQtySelector: function () {
+      $(selectors.cartQtyInput).each(function (i, el) {
         // eslint-disable-next-line no-new
         new QtySelector($(el));
       });
     },
 
-    _initCartNote: function() {
+    _initCartNote: function () {
       if (!$(selectors.cartNote).length) {
         return;
       }
@@ -3376,7 +3376,7 @@ theme.Cart = (function() {
       var noteOffset = $el[0].offsetHeight - $el[0].clientHeight;
 
       // Auto grow the cart note if text fills it up
-      $el.on('keyup input', function() {
+      $el.on('keyup input', function () {
         $(this)
           .css('height', 'auto')
           .css('height', $el[0].scrollHeight + noteOffset);
@@ -3386,7 +3386,7 @@ theme.Cart = (function() {
       // a user decides to leave the page before clicking 'Update Cart'
       $el.on(
         'change',
-        $.proxy(function() {
+        $.proxy(function () {
           noteText = $el.val();
           params = {
             type: 'POST',
@@ -3399,7 +3399,7 @@ theme.Cart = (function() {
       );
     },
 
-    _attributeToString: function(attr) {
+    _attributeToString: function (attr) {
       if (typeof attr !== 'string') {
         attr = String(attr);
         if (attr === 'undefined') {
@@ -3409,7 +3409,7 @@ theme.Cart = (function() {
       return $.trim(attr);
     },
 
-    _cookiesEnabled: function() {
+    _cookiesEnabled: function () {
       var cookieEnabled = navigator.cookieEnabled;
 
       if (!cookieEnabled) {
@@ -3423,7 +3423,7 @@ theme.Cart = (function() {
   return Cart;
 })();
 
-theme.Quotes = (function() {
+theme.Quotes = (function () {
   function Quotes(container) {
     this.$container = $(container).on('init', this._a11y.bind(this));
 
@@ -3437,7 +3437,7 @@ theme.Quotes = (function() {
   }
 
   Quotes.prototype = _.assignIn({}, Quotes.prototype, {
-    _a11y: function(event, obj) {
+    _a11y: function (event, obj) {
       var $list = obj.$list;
       var $wrapper = this.$container.parent();
 
@@ -3445,29 +3445,29 @@ theme.Quotes = (function() {
       $list.removeAttr('aria-live');
 
       // When an element in the slider is focused set aria-live
-      $wrapper.on('focusin', function(evt) {
+      $wrapper.on('focusin', function (evt) {
         if ($wrapper.has(evt.target).length) {
           $list.attr('aria-live', 'polite');
         }
       });
 
       // Remove aria-live
-      $wrapper.on('focusout', function(evt) {
+      $wrapper.on('focusout', function (evt) {
         if ($wrapper.has(evt.target).length) {
           $list.removeAttr('aria-live');
         }
       });
     },
 
-    _goToSlide: function(slideIndex) {
+    _goToSlide: function (slideIndex) {
       this.$container.slick('slickGoTo', slideIndex);
     },
 
-    onUnload: function() {
+    onUnload: function () {
       delete this.$container;
     },
 
-    onBlockSelect: function(evt) {
+    onBlockSelect: function (evt) {
       // Ignore the cloned version
       var $slide = $(
         '.quote__slide-wrapper--' + evt.detail.blockId + ':not(.slick-cloned)'
@@ -3482,12 +3482,12 @@ theme.Quotes = (function() {
   return Quotes;
 })();
 
-theme.Video = (function() {
+theme.Video = (function () {
   var promiseYoutubeAPI;
   var promiseVimeoAPI;
 
   var youtube = {
-    promiseAPI: function() {
+    promiseAPI: function () {
       if (!promiseYoutubeAPI) {
         var tag = document.createElement('script');
 
@@ -3495,10 +3495,10 @@ theme.Video = (function() {
         var firstScriptTag = document.getElementsByTagName('script')[0];
         firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-        promiseYoutubeAPI = $.Deferred(function(defer) {
+        promiseYoutubeAPI = $.Deferred(function (defer) {
           window.onYouTubeIframeAPIReady = defer.resolve;
 
-          setTimeout(function() {
+          setTimeout(function () {
             defer.reject('Request for YouTube API timed out after 30 seconds.');
           }, 30000);
         });
@@ -3506,9 +3506,9 @@ theme.Video = (function() {
 
       return promiseYoutubeAPI;
     },
-    promisePlayer: function(id, options) {
-      return this.promiseAPI().then(function() {
-        return $.Deferred(function(defer) {
+    promisePlayer: function (id, options) {
+      return this.promiseAPI().then(function () {
+        return $.Deferred(function (defer) {
           if (typeof window.YT === 'undefined') {
             defer.reject(
               "We're sorry, something went wrong. The YouTube API has not loaded correctly."
@@ -3518,11 +3518,11 @@ theme.Video = (function() {
           /* eslint-disable no-undef */
           var player = new YT.Player(id, options); // global YT variable injected by YouTube API
 
-          player.addEventListener('onReady', function() {
+          player.addEventListener('onReady', function () {
             defer.resolve(player);
           });
 
-          setTimeout(function() {
+          setTimeout(function () {
             defer.reject(
               'Request for YouTube player has timed out after 30 seconds.'
             );
@@ -3533,12 +3533,12 @@ theme.Video = (function() {
   };
 
   var vimeo = {
-    promiseAPI: function() {
+    promiseAPI: function () {
       if (!promiseVimeoAPI) {
-        promiseVimeoAPI = $.Deferred(function(defer) {
+        promiseVimeoAPI = $.Deferred(function (defer) {
           var tag = document.createElement('script');
           tag.src = 'https://player.vimeo.com/api/player.js';
-          tag.onload = tag.onreadystatechange = function() {
+          tag.onload = tag.onreadystatechange = function () {
             if (!this.readyState || this.readyState === 'complete') {
               defer.resolve();
             }
@@ -3547,7 +3547,7 @@ theme.Video = (function() {
           var firstScriptTag = document.getElementsByTagName('script')[0];
           firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
 
-          setTimeout(function() {
+          setTimeout(function () {
             defer.reject('Request for Vimeo API timed out after 30 seconds.');
           }, 30000);
         });
@@ -3556,9 +3556,9 @@ theme.Video = (function() {
       return promiseVimeoAPI;
     },
 
-    promisePlayer: function(id, options) {
-      return this.promiseAPI().then(function() {
-        return $.Deferred(function(defer) {
+    promisePlayer: function (id, options) {
+      return this.promiseAPI().then(function () {
+        return $.Deferred(function (defer) {
           if (typeof window.Vimeo === 'undefined') {
             defer.reject(
               "We're sorry, something went wrong. The Vimeo API has not loaded correctly."
@@ -3567,13 +3567,13 @@ theme.Video = (function() {
 
           var player = new window.Vimeo.Player(id, options);
 
-          setTimeout(function() {
+          setTimeout(function () {
             defer.reject(
               'Request for Vimeo player has timed out after 30 seconds.'
             );
           }, 30000);
 
-          player.ready().then(function() {
+          player.ready().then(function () {
             defer.resolve(player);
           });
         });
@@ -3605,14 +3605,14 @@ theme.Video = (function() {
   }
 
   Video.prototype = _.assignIn({}, Video.prototype, {
-    onLoad: function() {
+    onLoad: function () {
       this.$container
         .on('click', selectors.loadPlayerButton, this._loadPlayer.bind(this))
         .on('click', selectors.closePlayerButton, this._closePlayer.bind(this))
         .on('click', selectors.bodyOverlay, this._closePlayer.bind(this));
     },
 
-    _loadPlayer: function() {
+    _loadPlayer: function () {
       var $container = this.$container;
       var $playerContainer = $(selectors.playerContainer, $container);
       var playerType = this.$container.attr('data-video-type');
@@ -3630,7 +3630,7 @@ theme.Video = (function() {
         .fail(this._onPlayerLoadError.bind(this));
     },
 
-    _loadYoutubePlayer: function(container) {
+    _loadYoutubePlayer: function (container) {
       return youtube
         .promisePlayer(container, {
           videoId: this.$container.attr('data-video-id'),
@@ -3643,26 +3643,26 @@ theme.Video = (function() {
           }
         })
         .then(
-          function(player) {
+          function (player) {
             this.player = player;
           }.bind(this)
         );
     },
 
-    _loadVimeoPlayer: function(container) {
+    _loadVimeoPlayer: function (container) {
       return vimeo
         .promisePlayer(container, {
           id: this.$container.attr('data-video-id')
         })
         .then(
-          function(player) {
+          function (player) {
             this.player = player;
             this.player.play();
           }.bind(this)
         );
     },
 
-    _onPlayerLoadReady: function() {
+    _onPlayerLoadReady: function () {
       $(selectors.closePlayerButton, this.$container)
         .show()
         .focus();
@@ -3684,12 +3684,12 @@ theme.Video = (function() {
       });
     },
 
-    _onPlayerLoadError: function(err) {
+    _onPlayerLoadError: function (err) {
       this.$container.addClass(classes.playerError);
       $(selectors.errorMessage, this.$container).text(err);
     },
 
-    _closeOnEscape: function(evt) {
+    _closeOnEscape: function (evt) {
       if (evt.keyCode !== 27) {
         return;
       }
@@ -3698,27 +3698,27 @@ theme.Video = (function() {
       $(selectors.loadPlayerButton, this.$container).focus();
     },
 
-    _onScroll: function() {
+    _onScroll: function () {
       var scrollTop = $(window).scrollTop();
 
       if (
         scrollTop > this.videoTop + 0.25 * this.videoHeight ||
         scrollTop + this.windowHeight <
-          this.videoBottom - 0.25 * this.videoHeight
+        this.videoBottom - 0.25 * this.videoHeight
       ) {
         // Debounce DOM edits to the next frame with requestAnimationFrame
         requestAnimationFrame(this._closePlayer.bind(this));
       }
     },
 
-    _setScrollPositionValues: function() {
+    _setScrollPositionValues: function () {
       this.videoHeight = this.$container.outerHeight(true);
       this.videoTop = this.$container.offset().top;
       this.videoBottom = this.videoTop + this.videoHeight;
       this.windowHeight = $(window).innerHeight();
     },
 
-    _closePlayer: function() {
+    _closePlayer: function () {
       $(selectors.body).removeClass(classes.videoPlaying);
       $(selectors.cover, this.$container).removeClass(classes.playerLoaded);
       this.$container.removeClass(classes.playerLoaded);
@@ -3743,7 +3743,7 @@ theme.Video = (function() {
   return Video;
 })();
 
-theme.CollectionsList = (function() {
+theme.CollectionsList = (function () {
   function CollectionsList(container) {
     var $container = (this.$container = $(container));
     var stretchImage = $container.is('[data-stretch-image]');
@@ -3757,18 +3757,18 @@ theme.CollectionsList = (function() {
     self._collectionListFix();
     $(window).on(
       'resize' + namespace,
-      $.debounce(250, function() {
+      $.debounce(250, function () {
         self._collectionListFix();
       })
     );
   }
 
   CollectionsList.prototype = _.assignIn({}, CollectionsList.prototype, {
-    onUnload: function() {
+    onUnload: function () {
       $(window).off(this.namespace);
     },
 
-    _collectionListFix: function() {
+    _collectionListFix: function () {
       var numberRows = this.$container.find('.grid').data('number-rows');
       var $featureCards = this.$container.find('.featured-card');
 
@@ -3785,7 +3785,7 @@ theme.CollectionsList = (function() {
         var $cardHeaders = $currentRow.find('.featured-card__header');
 
         // Find the max heights for each row
-        $currentRow.each(function() {
+        $currentRow.each(function () {
           var $cardTitle = $(this).find('.featured-card__title');
           var $cardAction = $(this).find('.featured-card__action');
           var $cardImageWrapper = $(this).find('.featured-card__image-wrapper');
@@ -3810,7 +3810,7 @@ theme.CollectionsList = (function() {
   return CollectionsList;
 })();
 
-theme.ProductRecommendations = (function() {
+theme.ProductRecommendations = (function () {
   function ProductRecommendations(container) {
     this.$container = $(container);
 
@@ -3823,7 +3823,7 @@ theme.ProductRecommendations = (function() {
       '&limit=6';
 
     $.get(recommendationsSectionUrl).then(
-      function(section) {
+      function (section) {
         var recommendationsMarkup = $(section).html();
         if (recommendationsMarkup.trim() !== '') {
           this.$container.html(recommendationsMarkup);
@@ -3836,19 +3836,21 @@ theme.ProductRecommendations = (function() {
 })();
 
 
-theme.init = function() {
-  theme.customerTemplates.init();
+theme.init = function () {
+  if (document.body.className.indexOf('template-customers') > -1) {
+    theme.customerTemplates.init();
+  }
   slate.rte.wrapTable();
   slate.rte.iframeReset();
 
   // Common a11y fixes
   slate.a11y.pageLinkFocus($(window.location.hash));
 
-  $('.in-page-link').on('click', function(evt) {
+  $('.in-page-link').on('click', function (evt) {
     slate.a11y.pageLinkFocus($(evt.currentTarget.hash));
   });
 
-  $('a[href="#"]').on('click', function(evt) {
+  $('a[href="#"]').on('click', function (evt) {
     evt.preventDefault();
   });
 
@@ -3872,13 +3874,13 @@ theme.init = function() {
   theme.productCardImageLoadingAnimation();
 };
 
-theme.articleImages = function() {
+theme.articleImages = function () {
   var $indentedRteImages = $('.rte--indented-images');
   if (!$indentedRteImages.length) {
     return;
   }
 
-  $indentedRteImages.find('img').each(function(i, el) {
+  $indentedRteImages.find('img').each(function (i, el) {
     var $el = $(el);
     var attr = $el.attr('style');
 
@@ -3892,7 +3894,7 @@ theme.articleImages = function() {
   });
 };
 
-theme.passwordModalInit = function() {
+theme.passwordModalInit = function () {
   var $loginModal = $('#LoginModal');
   if (!$loginModal.length) {
     return;
@@ -3909,7 +3911,7 @@ theme.passwordModalInit = function() {
   }
 };
 
-theme.productCardImageLoadingAnimation = function() {
+theme.productCardImageLoadingAnimation = function () {
   var selectors = {
     image: '[data-image]',
     imagePlaceholder: '[data-image-placeholder]',
@@ -3920,7 +3922,7 @@ theme.productCardImageLoadingAnimation = function() {
     hidden: 'placeholder-background--hide'
   };
 
-  $(document).on('lazyloaded', function(e) {
+  $(document).on('lazyloaded', function (e) {
     var $target = $(e.target);
 
     if (!$target.is(selectors.image)) {
@@ -3949,7 +3951,7 @@ theme.productCardImageLoadingAnimation = function() {
 $(theme.init);
 
 var links = document.links;
-for (let i = 0, linksLength = links.length ; i < linksLength ; i++) {
+for (let i = 0, linksLength = links.length; i < linksLength; i++) {
   if (links[i].hostname !== window.location.hostname) {
     links[i].target = '_blank';
     links[i].relList.add('noreferrer', 'noopener');
@@ -3962,12 +3964,268 @@ $('.tab-content').hide();
 $('.tab-content:first').show();
 
 // Click function
-$('#tabs-nav li').click(function(){
+$('#tabs-nav li').click(function () {
   $('#tabs-nav li').removeClass('active');
   $(this).addClass('active');
   $('.tab-content').hide();
-  
+
   var activeTab = $(this).find('a').attr('href');
   $(activeTab).fadeIn();
   return false;
+});
+
+/* =========================================================================
+   CH Header Logic (Migrated from header.liquid)
+   ========================================================================= */
+window.CH = window.CH || {};
+
+CH.initHeader = function () {
+  const root = document.querySelector('.ch-header');
+  if (!root) return;
+
+  const qs = (s, sc = root) => sc.querySelector(s);
+  const bar = qs('.bar');
+  const nav = root.querySelector('.nav-band');
+  const mq = window.matchMedia('(min-width: 992px)');
+
+  let lastY = window.pageYOffset || 0;
+  let shy = false;
+  let shyAnchor = 0;
+  const HIDE_AFTER = 80;
+  const SHOW_AFTER = 32;
+  let ticking = false;
+
+  const isDesktop = () => mq.matches;
+
+  function updateNavTop() {
+    let topPx = 0;
+    if (isDesktop()) {
+      const barVisible = !root.classList.contains('is-shy');
+      if (barVisible && bar) {
+        const r = bar.getBoundingClientRect();
+        topPx = Math.max(0, Math.round(r.height));
+      }
+    }
+    root.style.setProperty('--navTop', `${topPx}px`);
+  }
+
+  function onScroll() {
+    const y = window.pageYOffset || 0;
+    const dy = y - lastY;
+
+    if (dy > 0) { // scrolling down
+      if (!shy && (y - shyAnchor) > HIDE_AFTER) {
+        shy = true;
+        shyAnchor = y;
+        root.style.setProperty('--tw', '.36s');
+        root.classList.add('is-shy');
+        updateNavTop();
+      }
+    } else if (dy < 0) { // scrolling up
+      if (shy && (shyAnchor - y) > SHOW_AFTER) {
+        shy = false;
+        shyAnchor = y;
+        root.style.setProperty('--tw', '.24s');
+        root.classList.remove('is-shy');
+        updateNavTop();
+      }
+    }
+    if (y > 2) root.classList.add('has-scrolled'); else root.classList.remove('has-scrolled');
+    // updateNavTop(); // Optimization: Removed from every frame
+    lastY = y;
+    ticking = false;
+  }
+
+  function onResize() {
+    updateNavTop();
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(onScroll);
+    }
+  }, { passive: true });
+
+  window.addEventListener('resize', () => {
+    requestAnimationFrame(onResize);
+  }, { passive: true });
+
+  // Initial pass
+  root.style.setProperty('--tw', '.28s');
+  updateNavTop();
+
+  // Mega menu interactions (Robust State Tracking)
+  const wraps = [...root.querySelectorAll('.mmg-wrap[data-mega]')];
+  let current = null;
+  let timers = new Map();
+
+  function getTimers(w) {
+    if (!timers.has(w)) timers.set(w, { open: 0, close: 0 });
+    return timers.get(w);
+  }
+  function clearOpen(w) { const t = getTimers(w); clearTimeout(t.open); t.open = 0; }
+  function clearClose(w) { const t = getTimers(w); clearTimeout(t.close); t.close = 0; }
+
+  function closeAll(except) {
+    wraps.forEach(w => {
+      if (w !== except) {
+        w.dataset.open = 'false';
+        w._hovering = false; // Reset state
+        const p = w.querySelector('.mmg');
+        if (p) p._hovering = false;
+      }
+    });
+    if (except) current = except; else current = null;
+  }
+
+  function openWrap(w) {
+    if (!isDesktop()) return;
+    if (current === w && w.dataset.open === 'true') return;
+    closeAll(w);
+    w.dataset.open = 'true';
+    current = w;
+  }
+
+  function scheduleOpen(w) {
+    const t = getTimers(w);
+    clearOpen(w); clearClose(w);
+    t.open = setTimeout(() => openWrap(w), 50); // Faster open for responsiveness
+  }
+
+  function scheduleClose(w) {
+    const t = getTimers(w);
+    clearOpen(w); clearClose(w);
+    t.close = setTimeout(() => {
+      const panel = w.querySelector('.mmg');
+      // Check our manual flags
+      if (w._hovering || (panel && panel._hovering)) return;
+
+      w.dataset.open = 'false';
+      if (current === w) current = null;
+    }, 450);
+  }
+
+  wraps.forEach(wrap => {
+    const link = wrap.querySelector(':scope > a');
+    const panel = wrap.querySelector(':scope > .mmg');
+
+    // Initialize flags
+    wrap._hovering = false;
+    if (panel) panel._hovering = false;
+
+    // Wrapper Events
+    wrap.addEventListener('mouseenter', () => {
+      wrap._hovering = true;
+      if (isDesktop()) scheduleOpen(wrap);
+    });
+    wrap.addEventListener('mouseleave', () => {
+      wrap._hovering = false;
+      if (isDesktop()) scheduleClose(wrap);
+    });
+
+    // Panel Events
+    if (panel) {
+      panel.addEventListener('mouseenter', () => {
+        panel._hovering = true;
+        // Clear any pending close from the wrapper leave
+        if (isDesktop()) clearClose(wrap);
+      });
+      panel.addEventListener('mouseleave', () => {
+        panel._hovering = false;
+        if (isDesktop()) scheduleClose(wrap);
+      });
+    }
+
+    // Touch/Focus accessibility support
+    wrap.addEventListener('focusin', () => isDesktop() && openWrap(wrap));
+
+    link?.addEventListener('click', (e) => {
+      if (!isDesktop()) return;
+      if (!link.getAttribute('href') || link.getAttribute('href') === '#') {
+        e.preventDefault();
+        openWrap(wrap);
+      }
+    });
+
+    wrap.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeAll();
+        link?.focus();
+      }
+    });
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!isDesktop()) return;
+    if (!e.target.closest('.ch-header .nav-band')) closeAll();
+  });
+  mq.addEventListener('change', () => closeAll());
+
+  // Search Typewriter
+  const prompts = root.querySelector('[data-ps-prompts]');
+  if (prompts) {
+    try {
+      const phrases = JSON.parse(prompts.textContent || '[]');
+      if (phrases.length) {
+        const desktopInput = root.querySelector('[data-ps-input]');
+        const mobileInput = root.querySelector('.m-search input');
+
+        function startTypewriter(input) {
+          if (!input || input.dataset.tw === '1') return;
+          input.dataset.tw = '1';
+          let i = 0, j = 0, del = false, hold = 0;
+          (function tick() {
+            if (document.activeElement === input && input.value) {
+              input.placeholder = ''; return setTimeout(tick, 600);
+            }
+            const p = phrases[i] || '';
+            input.placeholder = p.slice(0, j);
+            if (!del) {
+              if (j < p.length) { j++; return setTimeout(tick, 55); }
+              if (hold < 12) { hold++; return setTimeout(tick, 80); }
+              hold = 0; del = true; return setTimeout(tick, 250);
+            } else {
+              if (j > 0) { j--; return setTimeout(tick, 28); }
+              del = false; i = (i + 1) % phrases.length; return setTimeout(tick, 300);
+            }
+          })();
+        }
+        startTypewriter(desktopInput);
+        startTypewriter(mobileInput);
+      }
+    } catch (e) { }
+  }
+};
+
+CH.initSkeletons = function () {
+  const heroes = document.querySelectorAll('.ch-hero-skeleton.is-loading');
+  const grids = document.querySelectorAll('.ch-grid-skeleton.is-loading');
+
+  if (heroes.length || grids.length) {
+    const clean = (el) => el.classList.remove('is-loading');
+
+    // Listener for lazysizes
+    document.addEventListener('lazyloaded', function (e) {
+      // If an image loads inside a slideshow (and it's not a skeleton block!), hide the skeleton
+      if (e.target.closest('.hero__slide')) {
+        heroes.forEach(clean);
+      }
+      if (e.target.closest('.ch-cell') || e.target.closest('.product-card')) {
+        grids.forEach(clean);
+      }
+    });
+
+    // Also check if images are already loaded (eager)
+    // This is a simple fallback.
+    setTimeout(() => {
+      heroes.forEach(clean);
+      grids.forEach(clean);
+    }, 4000);
+  }
+};
+
+$(document).ready(function () {
+  if (CH.initHeader) CH.initHeader();
+  if (CH.initSkeletons) CH.initSkeletons();
 });

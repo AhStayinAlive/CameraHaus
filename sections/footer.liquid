@@ -1,11 +1,38 @@
 <footer class="site-footer" role="contentinfo">
+  <!-- Global footer typography -->
+  <style>
+    .site-footer,
+    .site-footer * {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+                   "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    }
+    /* Footer logo on top of Follow us */
+    .footer-logo { margin: 0 0 12px; }
+    .footer-logo__img { max-width: 180px; height: auto; display: inline-block; }
+    @media (min-width: 750px) { .footer-logo__img { max-width: 220px; } }
+  </style>
+
   <div class="page-width">
     <div class="flex-footer">
       {% for block in section.blocks %}
         <div class="flex__item" {{ block.shopify_attributes }}>
           {% case block.type %}
+
             {% when 'social' %}
               <div class="site-footer__section">
+                <!-- Logo on top -->
+                <div class="footer-logo text-{{ block.settings.align }}">
+                  <a href="{{ routes.root_url }}" aria-label="{{ shop.name }}">
+                    <img
+                      src="{{ 'ch_logo.png' | file_img_url: '360x' }}"
+                      srcset="{{ 'ch_logo.png' | file_img_url: '180x' }} 1x, {{ 'ch_logo.png' | file_img_url: '360x' }} 2x"
+                      alt="{{ shop.name }} logo"
+                      class="footer-logo__img"
+                      loading="lazy"
+                      width="180" height="28">
+                  </a>
+                </div>
+
                 {% if block.settings.title != blank %}
                   <h4 class="h1 site-footer__section-title text-{{ block.settings.align }}">{{ block.settings.title | escape }}</h4>
                 {% endif %}
@@ -97,32 +124,46 @@
 
             {% when 'newsletter' %}
               <style>
+                /* Newsletter input + button use theme settings; defaults set in schema below */
                 .site-footer__newsletter-input {
                   background-color: {{ block.settings.color_newsletter_input }};
                   color: {{ block.settings.color_newsletter_input_text }};
+                  border-color: transparent;
                 }
+                .site-footer__newsletter-input::-webkit-input-placeholder { color: {{ block.settings.color_newsletter_input_text }}; opacity: 0.7; }
+                .site-footer__newsletter-input:-moz-placeholder { color: {{ block.settings.color_newsletter_input_text }}; opacity: 0.7; }
+                .site-footer__newsletter-input:-ms-input-placeholder { color: {{ block.settings.color_newsletter_input_text }}; opacity: 0.7; }
+                .site-footer__newsletter-input::-ms-input-placeholder { color: {{ block.settings.color_newsletter_input_text }}; opacity: 1; }
 
-                .site-footer__newsletter-input::-webkit-input-placeholder {
+                /* Button matches the same red + white */
+                .site-footer .btn.btn--narrow {
+                  background-color: {{ block.settings.color_newsletter_input }};
                   color: {{ block.settings.color_newsletter_input_text }};
-                  opacity: 0.7;
+                  border-color: {{ block.settings.color_newsletter_input }};
                 }
+                .site-footer .btn.btn--narrow:hover,
+                .site-footer .btn.btn--narrow:focus {
+                  opacity: 0.9;
+                }
+                /* spacing for the social/Follow us column */
+.flex-footer { gap: clamp(20px, 4vw, 56px); } /* adds column gap for all items */
+@media (min-width: 990px) {
+  .site-footer__section--social { margin-right: clamp(24px, 6vw, 96px); }
+}
+@media (max-width: 989px) {
+  .site-footer__section--social { margin-bottom: 16px; }
+}
 
-                .site-footer__newsletter-input:-moz-placeholder {
-                  color: {{ block.settings.color_newsletter_input_text }};
-                  opacity: 0.7;
-                }
+/* existing logo styles */
+.footer-logo { margin: 0 0 12px; }
+.footer-logo__img { max-width: 180px; height: auto; display: inline-block; }
+@media (min-width: 750px) { .footer-logo__img { max-width: 220px; } }
+@media (min-width: 990px){
+  .site-footer__section--social { margin-left: -16px; } /* tweak: -16, -24, -40, etc. */
+}
 
-                .site-footer__newsletter-input:-ms-input-placeholder {
-                  color: {{ block.settings.color_newsletter_input_text }};
-                  opacity: 0.7;
-                }
-
-                .site-footer__newsletter-input::-ms-input-placeholder {
-                  color: {{ block.settings.color_newsletter_input_text }};
-                  opacity: 1;
-                }
               </style>
-              <div class="site-footer__section">
+             <div class="site-footer__section site-footer__section--social">
                 <h4 class="site-footer__section-title h1">
                   {% if block.settings.title != blank %}
                     {{ block.settings.title | escape }}
@@ -159,6 +200,7 @@
       {% endfor %}
     </div>
   </div>
+
   <div class="site-footer__copyright">
     <div class="page-width">
       <div class="grid medium-up--grid--table">
@@ -183,7 +225,6 @@
     </div>
   </div>
 </footer>
-
 
 
 {% schema %}
@@ -224,7 +265,7 @@
         "ja": "支払いアイコンを表示する",
         "ko": "결제 아이콘 표시",
         "nb": "Vis betalingsikoner",
-        "nl": "Betalingspictogrammen weergeven",
+        "nl": "Betalingspictogrammen weergeben",
         "pt-BR": "Exibir ícones de pagamento",
         "pt-PT": "Mostrar ícones de pagamento",
         "sv": "Visa betalningsikoner",
@@ -328,75 +369,9 @@
             "zh-TW": "圖示對齊"
           },
           "options": [
-            {
-              "value": "left",
-              "label": {
-                "da": "Venstre",
-                "de": "Links",
-                "en": "Left",
-                "es": "Izquierda",
-                "fi": "Vasen",
-                "fr": "Gauche",
-                "hi": "बाएँ",
-                "it": "Sinistra",
-                "ja": "左",
-                "ko": "왼쪽",
-                "nb": "Venstre",
-                "nl": "Links",
-                "pt-BR": "Esquerda",
-                "pt-PT": "Esquerda",
-                "sv": "Vänster",
-                "th": "ด้านซ้าย",
-                "zh-CN": "左侧",
-                "zh-TW": "左方"
-              }
-            },
-            {
-              "value": "center",
-              "label": {
-                "da": "Centreret",
-                "de": "Mitte",
-                "en": "Center",
-                "es": "Centrar",
-                "fi": "Keskitetty",
-                "fr": "Centre",
-                "hi": "केंद्र",
-                "it": "Al centro",
-                "ja": "中央",
-                "ko": "센터",
-                "nb": "Sentrer",
-                "nl": "Midden",
-                "pt-BR": "Centro",
-                "pt-PT": "Centro",
-                "sv": "Centrera",
-                "th": "ตรงกลาง",
-                "zh-CN": "居中",
-                "zh-TW": "置中"
-              }
-            },
-            {
-              "value": "right",
-              "label": {
-                "da": "Højre",
-                "de": "Rechts",
-                "en": "Right",
-                "es": "Derecha",
-                "fi": "Oikea",
-                "fr": "Droite",
-                "hi": "दाएँ",
-                "it": "Destra",
-                "ja": "右",
-                "ko": "오른쪽",
-                "nb": "Høyre",
-                "nl": "Rechts",
-                "pt-BR": "Direita",
-                "pt-PT": "Direita",
-                "sv": "Höger",
-                "th": "ด้านขวา",
-                "zh-CN": "右侧",
-                "zh-TW": "右方"
-              }
-            }
+            { "value": "left", "label": { "da": "Venstre", "de": "Links", "en": "Left", "es": "Izquierda", "fi": "Vasen", "fr": "Gauche", "hi": "बाएँ", "it": "Sinistra", "ja": "左", "ko": "왼쪽", "nb": "Venstre", "nl": "Links", "pt-BR": "Esquerda", "pt-PT": "Esquerda", "sv": "Vänster", "th": "ด้านซ้าย", "zh-CN": "左侧", "zh-TW": "左方" } },
+            { "value": "center", "label": { "da": "Centreret", "de": "Mitte", "en": "Center", "es": "Centrar", "fi": "Keskitetty", "fr": "Centre", "hi": "केंद्र", "it": "Al centro", "ja": "中央", "ko": "센터", "nb": "Sentrer", "nl": "Midden", "pt-BR": "Centro", "pt-PT": "Centro", "sv": "Centrera", "th": "ตรงกลาง", "zh-CN": "居中", "zh-TW": "置中" } },
+            { "value": "right", "label": { "da": "Højre", "de": "Rechts", "en": "Right", "es": "Derecha", "fi": "Oikea", "fr": "Droite", "hi": "दाएँ", "it": "Destra", "ja": "右", "ko": "오른쪽", "nb": "Høyre", "nl": "Rechts", "pt-BR": "Direita", "pt-PT": "Direita", "sv": "Höger", "th": "ด้านขวา", "zh-CN": "右侧", "zh-TW": "右方" } }
           ],
           "default": "left"
         }
@@ -554,7 +529,7 @@
             "ja": "テキスト",
             "ko": "텍스트",
             "nb": "Tekst",
-            "nl": "Tekst",
+            "nl": "Text",
             "pt-BR": "Texto",
             "pt-PT": "Texto",
             "sv": "Text",
@@ -576,8 +551,8 @@
             "nb": "<p>Del butikkdetaljer, kampanjer eller merkevareinnhold med kundene dine</p>",
             "nl": "<p>Deel winkeldetails, promoties of merkcontent met je klanten</p>",
             "pt-BR": "<p>Compartilhe informações da loja, promoções ou conteúdo da marca com seus clientes</p>",
-            "pt-PT": "<p>Partilhe detalhes da loja, promoções ou conteúdo\nde marca com os seus clientes</p>",
-            "sv": "<p>Dela butikens detaljer, kampanjer eller varumärkesinnehåll med dina kunder.</p>",
+            "pt-PT": "<p>Partilhe detaljer da loja, promoções ou conteúdo\nde marca com os seus clientes</p>",
+            "sv": "<p>Kampanjer, nya produkter och försäljning. Direkt till din inkorg.</p>",
             "th": "<p>แชร์รายละเอียดร้านค้า โปรโมชัน หรือเนื้อหาแบรนด์กับลูกค้าของคุณ</p>",
             "zh-CN": "<p>与您的客户分享商店详细信息、促销信息或品牌内容</p>",
             "zh-TW": "<p>與顧客分享商店的詳細資訊、宣傳活動或品牌內容。</p>"
@@ -632,7 +607,7 @@
             "zh-CN": "新闻稿字段",
             "zh-TW": "電子報欄位"
           },
-          "default": "#1a1a1a"
+          "default": "#d12f24"
         },
         {
           "type": "color",
@@ -657,7 +632,7 @@
             "zh-CN": "新闻稿文本",
             "zh-TW": "電子報文字"
           },
-          "default": "#fff"
+          "default": "#ffffff"
         },
         {
           "type": "text",
@@ -737,7 +712,7 @@
             "it": "<p>Promozioni, nuovi prodotti e offerte. Direttamente nella tua casella di posta.</p>",
             "ja": "<p>新商品やセール情報などのお得な情報をお届けします。</p>",
             "ko": "<p>프로모션, 신제품, 판매. 받은 편지함으로 바로 이동.</p>",
-            "nb": "<p>Kampanjer, nye produkter og salg. Direkte i innboksen din.</p>",
+            "nb": "<p>Kampanjer, nye produkter og salg. Direkt i innboksen din.</p>",
             "nl": "<p>Promoties, nieuwe producten en uitverkoop rechtstreeks in je inbox.</p>",
             "pt-BR": "<p>Promoções, novos produtos e vendas. Diretamente para sua caixa de entrada.</p>",
             "pt-PT": "<p>Promoções, novos produtos e ofertas. Diretamente na sua caixa de entrada.</p>",

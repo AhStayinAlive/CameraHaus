@@ -1,0 +1,282 @@
+{%- comment -%}
+CART DRAWER — full version with inventory auto-fix on add-to-cart
+{%- endcomment -%}
+
+
+
+<div class="cart-wrap" data-cart-root>
+  <div class="cart-head">
+    <h3 class="cart-title">SHOPPING CART</h3>
+    <button class="cart-x" type="button" data-cart-close aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18 6L6 18M6 6l12 12"
+          stroke="currentColor" stroke-width="1.9"
+          stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </button>
+  </div>
+
+  {% render 'ch-cart-alert' %}
+
+  <div class="cart-body">
+    <div class="items" data-cart-items></div>
+  </div>
+
+  <div class="cart-ft">
+    <div class="row">
+      <div class="subtotal-lbl" style="color: var(--heading-color, #4b5563);">
+        Subtotal:
+      </div>
+      <div class="subtotal-val" data-cart-subtotal>—</div>
+    </div>
+
+    <div class="fine">Taxes and shipping calculated at checkout</div>
+
+    <div class="cta">
+      <a class="btn btn-outline" href="/cart">View cart</a>
+      <a class="btn btn-solid" href="/checkout" data-checkout>Check out</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  window.chRoutes = {
+    cartUrl: {{ routes.cart_url | json }},
+    locale: {{ request.locale.iso_code | json }},
+    currency: {{ shop.currency | json }}
+  };
+</script>
+
+
+<!-- CTA HARDENER -->
+<script>
+(function(){
+  const panel = document.querySelector('.ch-panel[data-ch-panel="cart"]');
+  if (!panel) return;
+
+  function ensureCTAs(){
+    const ft = panel.querySelector('.cart-ft'); if (!ft) return;
+
+    let cta = ft.querySelector('.cta');
+    if (!cta) {
+      cta = document.createElement('div');
+      cta.className = 'cta';
+      ft.appendChild(cta);
+    }
+
+    let view = cta.querySelector('a[href="/cart"]');
+    if (!view) {
+      view = document.createElement('a');
+      view.href = '/cart';
+      view.className = 'btn btn-outline';
+      view.textContent = 'View cart';
+      cta.appendChild(view);
+    }
+
+    let go = cta.querySelector('[data-checkout], a[href*="/checkout"], [name="checkout"]');
+    if (!go) {
+      go = document.createElement('a');
+      go.href = '/checkout';
+      go.setAttribute('data-checkout','');
+      go.className = 'btn btn-solid';
+      go.textContent = 'Check out';
+      cta.appendChild(go);
+    }
+
+    cta.removeAttribute('hidden');
+    cta.style.display = 'grid';
+    [view, go].forEach(el => { el.style.display = 'flex'; el.style.width = '100%'; });
+  }
+
+  ensureCTAs();
+  document.addEventListener('cart:refreshed', ensureCTAs);
+
+  const ft = panel.querySelector('.cart-ft');
+  if (ft) {
+    new MutationObserver(()=>ensureCTAs()).observe(ft, { childList:true, subtree:true });
+  }
+})();
+</script>
+
+<!-- CART: GLOBAL HOTFIX (theme.liquid before </body>) -->
+<style id="cart-hotfix">
+  .ch-panel[data-ch-panel="cart"] .ch-panel__ov,
+  .cart-drawer__overlay{ z-index: 999990 !important; }
+  .ch-panel[data-ch-panel="cart"] .ch-panel__pn,
+  #CartDrawer, .cart-drawer{
+    z-index: 999991 !important;
+    width:min(520px, calc(100vw - 44px)) !important;
+    border-radius:0 !important;
+    overflow-x:hidden !important;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .ch-panel__hd,
+  .ch-panel[data-ch-panel="cart"] .drawer__header,
+  .ch-panel[data-ch-panel="cart"] .drawer__title{ display:none !important; }
+
+  .ch-panel[data-ch-panel="cart"] .it-title{ text-transform:none !important; }
+
+  .ch-panel[data-ch-panel="cart"] .stepper,
+  #CartDrawer .quantity, .cart-drawer .quantity{
+    display:grid !important; grid-template-columns:32px 40px 32px !important; height:34px !important;
+    border:1px solid #111 !important; border-radius:10px !important; overflow:hidden !important;
+  }
+  .ch-panel[data-ch-panel="cart"] .stepper input,
+  #CartDrawer .quantity__input, .cart-drawer .quantity__input{ border:0 !important; background:transparent !important; text-align:center !important; font-size:13px !important; }
+  .ch-panel[data-ch-panel="cart"] .stepper button,
+  #CartDrawer .quantity__button, .cart-drawer .quantity__button{ border:0 !important; background:#fff !important; color:#111 !important; }
+  .ch-panel[data-ch-panel="cart"] .stepper .plus,
+  #CartDrawer .quantity__button:last-child,
+  .cart-drawer .quantity__button:last-child{ background:#111 !important; color:#fff !important; }
+  .ch-panel[data-ch-panel="cart"] .stepper button:hover,
+  #CartDrawer .quantity__button:hover,
+  .cart-drawer .quantity__button:hover{ color:#e03a2f !important; }
+  #CartDrawer .quantity__button:last-child:hover,
+  .cart-drawer .quantity__button:last-child:hover{ background:#e03a2f !important; color:#fff !important; }
+
+  .ch-panel[data-ch-panel="cart"] .icon-btn,
+  .ch-panel[data-ch-panel="cart"] [data-cart-close]{ transition:color .15s,border-color .15s; }
+  .ch-panel[data-ch-panel="cart"] .icon-btn:hover{ color:#e03a2f !important; }
+  .ch-panel[data-ch-panel="cart"] [data-cart-close]:hover{ color:#e03a2f !important; border-color:#e03a2f !important; }
+
+  .ch-panel[data-ch-panel="cart"] input[type="checkbox"]{
+    accent-color:#e03a2f !important;
+  }
+
+  #CartDrawer a[href="/cart"],
+  .cart-drawer a[href="/cart"],
+  .ch-panel[data-ch-panel="cart"] a[href="/cart"]{
+    background:#fff !important; color:#111 !important; border:1px solid #111 !important; border-radius:10px !important;
+  }
+  #CartDrawer a[href="/cart"]:hover,
+  .cart-drawer a[href="/cart"]:hover,
+  .ch-panel[data-ch-panel="cart"] a[href="/cart"]:hover{
+    background:#e03a2f !important; border-color:#e03a2f !important; color:#fff !important;
+  }
+
+  #CartDrawer [name="checkout"],
+  .cart-drawer [name="checkout"],
+  .ch-panel[data-ch-panel="cart"] [name="checkout"],
+  #CartDrawer a[href*="/checkout"],
+  .cart-drawer a[href*="/checkout"],
+  .ch-panel[data-ch-panel="cart"] a[href*="/checkout"],
+  #CartDrawer .button--checkout,
+  .cart-drawer .button--checkout,
+  .ch-panel[data-ch-panel="cart"] .button--checkout,
+  #CartDrawer .cart__checkout-button,
+  .cart-drawer .cart__checkout-button,
+  .ch-panel[data-ch-panel="cart"] .cart__checkout-button{
+    background:#e03a2f !important; border:1px solid #e03a2f !important; color:#fff !important;
+    height:44px !important; border-radius:10px !important; display:flex !important; align-items:center !important; justify-content:center !important; width:100% !important; max-width:100% !important; opacity:1 !important; filter:none !important;
+    text-transform: none !important; letter-spacing:.02em !important; font-weight:800 !important;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .cart-title{
+    font-weight:800 !important;
+    color: var(--heading-color, inherit) !important;
+  }
+  .ch-panel[data-ch-panel="cart"] .subtotal-lbl{ font-weight:700 !important; }
+  .ch-panel[data-ch-panel="cart"] .subtotal-val{ font-weight:700 !important; }
+  .ch-panel[data-ch-panel="cart"] .it-title{ font-weight:600 !important; }
+  .ch-panel[data-ch-panel="cart"] .btn{ font-weight:800 !important; }
+
+  .ch-panel[data-ch-panel="cart"] .cart__policies,
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree{
+    margin-top:4px;
+  }
+
+  /* TOS gray, one-line text */
+  .ch-panel[data-ch-panel="cart"] .terms,
+  .ch-panel[data-ch-panel="cart"] .cart__policies label,
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree label {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-size:12px !important;
+    font-weight:400 !important;
+    color: var(--muted, #6B7280) !important;
+    text-transform:none !important;
+    white-space:nowrap;
+    margin-top:4px;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .cart__policies label a,
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree label a{
+    color: var(--muted, #6B7280) !important;
+    text-decoration: underline;
+    text-transform:none !important;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .terms input[type="checkbox"],
+  .ch-panel[data-ch-panel="cart"] .cart__policies input[type="checkbox"],
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree input[type="checkbox"] {
+    margin:0 !important;
+    width:14px !important;
+    height:14px !important;
+    accent-color: var(--brand) !important;
+    flex-shrink:0;
+  }
+  .ch-panel[data-ch-panel="cart"] .cart-body{
+  flex:1 1 auto !important;
+  min-height:0 !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+</style>
+
+
+<script>
+(function(){
+  const cartPanel = document.querySelector('.ch-panel[data-ch-panel="cart"]');
+  if (!cartPanel) return;
+
+  function fullyUnlockScroll() {
+    // Clear inline locks
+    document.documentElement.style.overflow = '';
+    document.documentElement.style.position = '';
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+
+    // Remove common lock classes used by themes / drawers
+    const classes = [
+      'no-scroll',
+      'overflow-hidden',
+      'drawer-open',
+      'js-drawer-open',
+      'modal-open',
+      'scroll-locked',
+      'ch-panel-open'
+    ];
+    classes.forEach(c => document.body.classList.remove(c));
+  }
+
+  function syncScrollLock() {
+    // If no panel is open at all, scrolling should be free
+    const anyOpen = document.querySelector('.ch-panel[data-open]');
+    if (!anyOpen) fullyUnlockScroll();
+  }
+
+  // Watch the cart panel's open/close state
+  new MutationObserver(muts => {
+    for (const m of muts) {
+      if (m.attributeName === 'data-open') {
+        syncScrollLock();
+      }
+    }
+  }).observe(cartPanel, { attributes: true });
+
+  // Also react to global ch:panel events
+  document.addEventListener('ch:panel', (e) => {
+    const d = e && e.detail;
+    if (!d) return;
+    if (d.name === 'cart' && !d.open) {
+      syncScrollLock();
+    }
+  });
+
+  // Safety: on load, if nothing is open, ensure scroll is unlocked
+  syncScrollLock();
+})();
+</script>

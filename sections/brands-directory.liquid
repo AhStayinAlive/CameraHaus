@@ -1,0 +1,435 @@
+{% comment %}
+  Section: Brands Directory
+  - Beautiful brands page with search and A-Z filtering
+  - Sorted alphabetically
+{% endcomment %}
+
+<section id="brands-directory" class="brands-directory">
+  <div class="page-width">
+    {% if section.settings.show_header %}
+      <header class="section-header">
+        <h1 class="section-header__title">{{ section.settings.heading }}</h1>
+        {% if section.settings.subheading != blank %}
+          <p class="section-header__subtitle">{{ section.settings.subheading }}</p>
+        {% endif %}
+      </header>
+    {% endif %}
+
+    {%- comment -%} Search Bar {%- endcomment -%}
+    <div class="brands-search-wrapper">
+      <div class="brands-search-box">
+        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="text" 
+               class="brands-search-input" 
+               placeholder="Search brands..." 
+               id="brandSearch"
+               autocomplete="off">
+      </div>
+    </div>
+
+    {%- comment -%} A-Z Alphabet Filter {%- endcomment -%}
+    <div class="alphabet-filter">
+      <button class="alphabet-btn active" data-letter="all">All</button>
+      {% assign alphabet = "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z" | split: "," %}
+      {% for letter in alphabet %}
+        <button class="alphabet-btn" data-letter="{{ letter }}">{{ letter }}</button>
+      {% endfor %}
+    </div>
+
+    <div class="brands-grid" id="brandsGrid">
+      {% if section.blocks.size > 0 %}
+        {%- assign sorted_brands = section.blocks | sort: 'settings.brand_name' -%}
+        {% for block in sorted_brands %}
+          {% liquid
+            assign brand_name = block.settings.brand_name
+            assign brand_logo = block.settings.brand_logo
+            assign brand_url = block.settings.brand_url
+          %}
+          
+          {% if brand_name != blank %}
+            {%- assign first_letter = brand_name | slice: 0 | upcase -%}
+            <a href="{{ brand_url }}" 
+               class="brand-tile"
+               data-brand-name="{{ brand_name | downcase }}"
+               data-letter="{{ first_letter }}"
+               {{ block.shopify_attributes }}>
+              {% if brand_logo %}
+                <img src="{{ brand_logo | image_url: width: 200 }}" 
+                     alt="{{ brand_name }}"
+                     loading="lazy"
+                     width="160"
+                     height="54">
+              {% else %}
+                <span class="brand-fallback">{{ brand_name }}</span>
+              {% endif %}
+            </a>
+          {% endif %}
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          <p>No brands configured. Add brand blocks in the theme editor.</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="no-results" style="display: none;">
+      <p>No brands found matching your search.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  .brands-directory {
+    padding: 60px 0;
+    background: linear-gradient(180deg, #fafafa 0%, #fff 100%);
+  }
+  
+  .section-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  
+  .section-header__title {
+    font-size: clamp(28px, 3vw + 10px, 42px);
+    font-weight: 700;
+    margin: 0 0 12px;
+    color: rgba(0,0,0,.7);
+    letter-spacing: -0.02em;
+  }
+  
+  .section-header__subtitle {
+    color: #6B7280;
+    font-size: 16px;
+    margin: 0;
+  }
+
+  /* Search Bar */
+  .brands-search-wrapper {
+    max-width: 600px;
+    margin: 0 auto 32px;
+  }
+
+  .brands-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 16px;
+    color: #9CA3AF;
+    pointer-events: none;
+  }
+
+  .brands-search-input {
+    width: 100%;
+    padding: 14px 16px 14px 48px;
+    border: 2px solid #E5E7EB;
+    border-radius: 12px;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    background: white;
+  }
+
+  .brands-search-input:focus {
+    outline: none;
+    border-color: #D12F24;
+    box-shadow: 0 0 0 3px rgba(209, 47, 36, 0.1);
+  }
+
+  /* Alphabet Filter */
+  .alphabet-filter {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    justify-content: flex-start;
+    margin-bottom: 32px;
+    padding: 0 20px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+    position: relative;
+  }
+
+  /* Scroll indicator gradient on mobile */
+  .alphabet-filter::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 60px;
+    background: linear-gradient(to right, transparent 0%, #fafafa 80%);
+    pointer-events: none;
+  }
+
+  .alphabet-filter::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+
+  @media (min-width: 750px) {
+    .alphabet-filter {
+      flex-wrap: wrap;
+      justify-content: center;
+      overflow-x: visible;
+    }
+    
+    .alphabet-filter::after {
+      display: none;
+    }
+  }
+
+  .alphabet-btn {
+    min-width: 40px;
+    height: 40px;
+    padding: 0 12px;
+    border: 2px solid #E5E7EB;
+    background: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #6B7280;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .alphabet-btn:hover {
+    border-color: #D12F24;
+    color: #D12F24;
+  }
+
+  @media (min-width: 750px) {
+    .alphabet-btn:hover {
+      transform: translateY(-2px);
+    }
+  }
+
+  .alphabet-btn.active {
+    background: #D12F24;
+    border-color: #D12F24;
+    color: white;
+  }
+
+  .alphabet-btn.no-brands {
+    opacity: 0.5;
+    color: #9CA3AF;
+    border-color: #E5E7EB;
+  }
+
+  .alphabet-btn.no-brands:hover {
+    opacity: 0.7;
+    border-color: #D1D5DB;
+    color: #6B7280;
+  }
+  
+  .brands-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+  
+  @media (min-width: 750px) {
+    .brands-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+  
+  @media (min-width: 1100px) {
+    .brands-grid {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+  }
+  
+  .brand-tile {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 112px;
+    padding: 20px;
+    border-radius: 16px;
+    border: 2px solid #E5E7EB;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    text-decoration: none;
+    color: #111;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .brand-tile:hover {
+    transform: translateY(-4px);
+    border-color: #D12F24;
+    box-shadow: 0 12px 24px rgba(209, 47, 36, 0.15);
+  }
+  
+  .brand-tile:active {
+    transform: translateY(-2px) scale(0.98);
+  }
+  
+  .brand-tile img {
+    max-width: 100%;
+    max-height: 60px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+  
+  .brand-fallback {
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.02em;
+    color: #374151;
+  }
+  
+  .empty-state,
+  .no-results {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 80px 20px;
+    color: #9CA3AF;
+    font-size: 18px;
+  }
+</style>
+
+<script>
+(function() {
+  const searchInput = document.getElementById('brandSearch');
+  const grid = document.getElementById('brandsGrid');
+  const tiles = Array.from(grid.querySelectorAll('.brand-tile'));
+  const alphabetBtns = document.querySelectorAll('.alphabet-btn');
+  const noResults = document.querySelector('.no-results');
+  
+  let currentLetter = 'all';
+
+  function filterBrands() {
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    let visibleCount = 0;
+
+    tiles.forEach(tile => {
+      const brandName = tile.dataset.brandName || '';
+      const brandLetter = tile.dataset.letter || '';
+      
+      const matchesSearch = brandName.includes(searchTerm);
+      const matchesLetter = currentLetter === 'all' || brandLetter === currentLetter;
+      
+      if (matchesSearch && matchesLetter) {
+        tile.style.display = '';
+        visibleCount++;
+      } else {
+        tile.style.display = 'none';
+      }
+    });
+
+    // Show/hide no results message
+    if (visibleCount === 0) {
+      grid.style.display = 'none';
+      noResults.style.display = 'block';
+    } else {
+      grid.style.display = 'grid';
+      noResults.style.display = 'none';
+    }
+
+    // Update alphabet buttons availability
+    updateAlphabetButtons();
+  }
+
+  function updateAlphabetButtons() {
+    const availableLetters = new Set();
+    tiles.forEach(tile => {
+      const letter = tile.dataset.letter;
+      if (letter) {
+        availableLetters.add(letter);
+      }
+    });
+
+    alphabetBtns.forEach(btn => {
+      if (btn.dataset.letter === 'all') return;
+      
+      // Add class instead of disabling
+      if (availableLetters.has(btn.dataset.letter)) {
+        btn.classList.remove('no-brands');
+      } else {
+        btn.classList.add('no-brands');
+      }
+    });
+  }
+
+  // Search handler
+  if (searchInput) {
+    searchInput.addEventListener('input', filterBrands);
+  }
+
+  // Alphabet filter handlers
+  alphabetBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      alphabetBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentLetter = btn.dataset.letter;
+      filterBrands();
+    });
+  });
+
+  // Initial update
+  updateAlphabetButtons();
+})();
+</script>
+
+{% schema %}
+{
+  "name": "Brands Directory",
+  "settings": [
+    {
+      "type": "checkbox",
+      "id": "show_header",
+      "label": "Show header",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Our Brands"
+    },
+    {
+      "type": "text",
+      "id": "subheading",
+      "label": "Subheading",
+      "default": "Official brand partners since 1980"
+    }
+  ],
+  "blocks": [
+    {
+      "type": "brand",
+      "name": "Brand",
+      "settings": [
+        {
+          "type": "text",
+          "id": "brand_name",
+          "label": "Brand Name",
+          "info": "e.g., Canon, Nikon, Sony"
+        },
+        {
+          "type": "image_picker",
+          "id": "brand_logo",
+          "label": "Brand Logo"
+        },
+        {
+          "type": "url",
+          "id": "brand_url",
+          "label": "Brand Collection URL"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Brands Directory"
+    }
+  ]
+}
+{% endschema %}

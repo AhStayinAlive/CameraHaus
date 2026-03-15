@@ -1,236 +1,562 @@
+{%- comment -%}
+  SNIPPET: ch-mega
+  - Modes:
+      • 'cats'   → flat category text list (multi-column, no subcategories)
+      • 'brands' → logo tiles (from brand_rows mapping)
+      • 'stores' → one-column list + CTA
+  - Panel mounts under header, overlay behind
+{%- endcomment -%}
+
 {%- assign _mode = mode | default: 'cats' -%}
 
 <style>
-/* ── Typography (Space Grotesk + Inter) ─────────────────────────────────── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap');
+  .mmg-wrap[data-mega]{ position:relative; }
 
-:root{
-  --font-heading: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-}
-html{ font-family: var(--font-body); font-feature-settings: "cv01","cv02","ss03","tnum" 0; }
-.price,[data-price]{ font-feature-settings: "tnum" 1, "lnum" 1; font-variant-numeric: tabular-nums lining-nums; }
-h1,h2,h3,.display{ font-family: var(--font-heading); letter-spacing:-.01em; }
-.smallcaps{ letter-spacing:.06em; text-transform:uppercase; }
+  /* ===== PANEL (fixed under header) ===== */
+  .mmg{
+    --brand:#D12F24;               /* CTA / accent red */
+    --ink:#111111;                 /* primary text */
+    --ink-2:#6B7280;               /* section labels */
+    --ink-soft:#4B5563;
+    --chev:#9CA3AF;
 
-/* ── Mega styles ─────────────────────────────────────────────────────────── */
-:where([data-mega="{{ _mode }}"]) {
-  --mega-pad: clamp(12px, 1.5vw, 16px);
-  --mega-minw: clamp(940px, 76vw, 1180px);
-  --mega-gap: clamp(10px, 1.2vw, 16px);
-  --mega-radius: 16px;
-  --mega-border: var(--line, #e8e8e8);
-  --mega-shadow: 0 22px 60px rgba(17,17,17,.18);
-  --ink: #161616; --muted: #666; --muted-2:#9CA3AF; --brand:#E0302A;
-  --brand-10: color-mix(in srgb, var(--brand) 10%, transparent);
-  --brand-18: color-mix(in srgb, var(--brand) 18%, transparent);
-  --rail-w: clamp(220px, 20vw, 260px);
-  --thumb: clamp(120px, 10vw, 160px);
-  --fade-w: 24px; --min-card: 260px; --mega-left: 0px; --mega-top: 0px;
-}
-[data-mega="{{ _mode }}"]{ position:relative; isolation:isolate; }
-[data-mega="{{ _mode }}"] > .mega{
-  position:fixed; left:var(--mega-left); top:calc(var(--mega-top) + 10px);
-  background:#fff; color:var(--ink);
-  border-radius:var(--mega-radius); border:1px solid var(--mega-border);
-  padding:var(--mega-pad); box-shadow:var(--mega-shadow);
-  display:none; z-index:4000; max-width:min(1240px, 95vw);
-}
-[data-mega="{{ _mode }}"][data-open="true"] > .mega{ display:block; }
-@media (min-width:992px){
-  [data-mega="{{ _mode }}"]:hover > .mega,
-  [data-mega="{{ _mode }}"]:focus-within > .mega{ display:block; }
-}
-[data-mega="{{ _mode }}"] .grid{ display:grid; grid-template-columns:var(--rail-w) 1fr; gap:var(--mega-gap); min-width:var(--mega-minw); }
-[data-mega="{{ _mode }}"] .rail{
-  border-right:1px solid var(--mega-border); padding-right:12px; max-height:70vh; overflow:auto; content-visibility:auto;
-  box-shadow: inset 0 10px 8px -10px rgba(0,0,0,.12), inset 0 -10px 8px -10px rgba(0,0,0,.1);
-}
-[data-mega="{{ _mode }}"] .ps-title{ margin:0 0 8px; font:800 12px/1 var(--font-body); color:var(--muted); letter-spacing:.02em; }
-[data-mega="{{ _mode }}"] .cats{ list-style:none; margin:0; padding:0; display:grid; gap:2px; }
-[data-mega="{{ _mode }}"] .cats a{ position:relative; display:flex; align-items:center; gap:10px; padding:10px; border-radius:10px; color:#111; text-decoration:none; min-height:44px; transition: background-color .14s ease; outline:none; }
-[data-mega="{{ _mode }}"] .cats a:hover,[data-mega="{{ _mode }}"] .cats a:focus{ background:#f6f6f6; }
-[data-mega="{{ _mode }}"] .cats a[aria-current="true"]{ background:#f1f5f9; }
-[data-mega="{{ _mode }}"] .cats a[aria-current="true"]::before{ content:""; position:absolute; inset:8px auto 8px 0; width:3px; border-radius:3px; background:var(--brand-18); }
-[data-mega="{{ _mode }}"] .cat-ico{ width:22px; height:22px; color:var(--muted-2); flex:0 0 22px; display:grid; place-items:center; }
+    position:fixed; left:0; right:0; top:0; z-index:9999;
+    background:#fff; color:var(--ink);
+    border:0; border-radius:0; box-shadow:0 24px 64px rgba(16,24,40,.18);
+    opacity:0; visibility:hidden; pointer-events:none; transform:translateY(8px);
+    transition:opacity .18s cubic-bezier(.22,.61,.36,1), transform .18s cubic-bezier(.22,.61,.36,1);
+    overflow-y:auto;                  /* single scroll if content overflows */
+    max-height:100vh;                 /* JS will shrink further from header height */
+  }
+  .mmg.is-open{ opacity:1; visibility:visible; pointer-events:auto; transform:none; }
 
-[data-mega="{{ _mode }}"] .prev{ display:grid; grid-template-rows:auto auto auto 1fr auto; max-height:72vh; overflow:auto; padding-right:6px; min-width:0; }
-[data-mega="{{ _mode }}"] .titlebar{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 0 6px; }
-[data-mega="{{ _mode }}"] .titlebar .title{ font:800 14px/1.2 var(--font-heading); color:#000; }
-[data-mega="{{ _mode }}"] .titlebar .viewall{ display:inline-flex; gap:6px; align-items:center; font-weight:700; color:#111; text-decoration:none; }
+  .mmg-shell{
+    padding:24px 40px 28px;
+  }
+  .mmg-inner{
+    margin:0 auto;
+    max-width:1220px;                /* centers content, balanced whitespace */
+  }
 
-[data-mega="{{ _mode }}"] .chips{ display:flex; gap:10px; overflow-x:auto; padding:6px 0 10px; -webkit-overflow-scrolling:touch; mask-image: linear-gradient(to right, transparent, #000 var(--fade-w), #000 calc(100% - var(--fade-w)), transparent); -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fade-w), #000 calc(100% - var(--fade-w)), transparent); }
-[data-mega="{{ _mode }}"] .chips::-webkit-scrollbar{ display:none; }
-[data-mega="{{ _mode }}"] .chip{ display:inline-flex; align-items:center; height:36px; padding:0 14px; border-radius:999px; border:2px solid var(--brand-18); background:#fff; color:#111; font:700 12.5px/1 var(--font-body); white-space:nowrap; outline:none; transition: background-color .14s ease, border-color .14s ease, color .14s ease; cursor:pointer; }
-[data-mega="{{ _mode }}"] .chip:hover,[data-mega="{{ _mode }}"] .chip:focus{ background:color-mix(in srgb, var(--brand) 6%, #fff); border-color:var(--brand); }
-[data-mega="{{ _mode }}"] .chip[aria-current="true"]{ background:var(--brand); color:#fff; border-color:var(--brand); }
+  /* Headings */
+  .mmg-head{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:12px; margin-bottom:18px;
+  }
+  .mmg-sectiontag{
+    background:transparent;
+    color:var(--ink-2);
+    padding:0;
+    font:600 14px/1.2 "Inter",system-ui;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
 
-/* NEW: 3x2 product grid — larger, image-first cards */
-[data-mega="{{ _mode }}"] .cards{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:var(--mega-gap); align-content:start; min-width:0; }
-@media (max-width: 1200px){ [data-mega="{{ _mode }}"] .cards{ grid-template-columns:repeat(2, minmax(0,1fr)); } }
-@media (max-width: 640px){ [data-mega="{{ _mode }}"] .cards{ grid-template-columns:1fr; } }
+  /* ===== CATEGORIES: TEXT LIST WITH ARROW (MULTI-COLUMN) ===== */
+  .mmg-catlist{
+    list-style:none;
+    margin:4px 0 0;
+    padding:0;
 
-/* ch-card component — GLOBAL (unscoped) */
-.ch-card{ --ch-accent:#E0302A; --ch-accent-200:#F7C6C3; border:1px solid #E5E7EB; border-radius:14px; background:#fff; display:flex; flex-direction:column; height:100%; box-shadow:0 1px 2px rgba(16,24,40,.04); overflow:hidden; }
-@media (hover:hover){ .ch-card:hover{ box-shadow:0 10px 24px rgba(16,24,40,.10); transform:translateY(-1px); transition:box-shadow .18s ease, transform .18s ease; } }
-.ch-card__media{ aspect-ratio: 4/3; background:#fafafa; display:block; }
-.ch-card__img{ width:100%; height:100%; object-fit:contain; }
-.ch-card__body{ padding:10px 12px 12px; display:flex; flex-direction:column; gap:6px; }
-.ch-meta{ font-size:11px; color:#6B7280; text-transform:uppercase; letter-spacing:.04em; font-weight:700; }
-.ch-card__title{ margin:0; font-weight:800; font-size:14px; line-height:1.35; min-height:2.6em; }
-.ch-card__titlelink{ color:#111; text-decoration:none; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.ch-price{ display:flex; gap:8px; align-items:baseline; }
-.ch-price__cur{ color:var(--ch-accent); font-weight:900; font-size:16px; white-space:nowrap; }
-.ch-price__compare{ color:#6B7280; text-decoration:line-through; font-size:12px; }
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0,1fr));
+    column-gap:48px;
+    row-gap:4px;
+  }
+  @media (min-width:1024px){
+    .mmg-catlist{
+      grid-template-columns:repeat(3, minmax(0,1fr));
+    }
+  }
 
-/* Sale badge: top-right, orange pill */
-.ch-badge--ribbon{ position:absolute; top:10px; right:10px; z-index:5; background:#FFEDD5; color:#B45309; font-weight:900; font-size:11px; line-height:1; padding:6px 8px; border-radius:999px; box-shadow:0 2px 8px rgba(0,0,0,.08); }
+  .mmg-catlink{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:6px 4px;
+    border-radius:8px;
+    text-decoration:none;
+    color:var(--ink);
+    font:600 18px/1.35 "Inter",system-ui;
+    transition:color .18s ease, background-color .14s ease;
+  }
+  .mmg-catlink::after{
+    content:"";
+    margin-left:auto;
+    width:6px; height:6px;
+    border-right:2px solid var(--chev);
+    border-top:2px solid var(--chev);
+    transform:rotate(45deg);
+    opacity:.9;
+  }
+  .mmg-catlink:hover,
+  .mmg-catlink:focus-visible{
+    color:var(--brand);
+    background:#F9FAFB;
+  }
+  .mmg-catlink:focus-visible{
+    outline:0;
+    box-shadow:0 0 0 2px rgba(32,94,214,.35);
+  }
 
-/* Mobile sheet behaviour */
-@media (max-width: 991px){
-  [data-mega="{{ _mode }}"] > .mega{ left:auto; right:0; top:0; width:min(92vw,560px); height:100dvh; border-radius:0; border-left:1px solid var(--mega-border); transform:translateX(100%); transition:transform .2s ease; padding:0; }
-  [data-mega="{{ _mode }}"][data-open="true"] > .mega{ transform:translateX(0); }
-  [data-mega="{{ _mode }}"] .sheet-head{ position:sticky; top:0; background:#fff; border-bottom:1px solid var(--mega-border); z-index:1; display:flex; align-items:center; justify-content:space-between; padding:12px 14px; }
-  [data-mega="{{ _mode }}"] .sheet-title{ font:800 14px/1.2 var(--font-heading); }
-  [data-mega="{{ _mode }}"] .sheet-close{ width:34px; height:34px; border-radius:999px; border:1px solid var(--mega-border); background:#fff; font-weight:900; }
-  [data-mega="{{ _mode }}"] .grid{ grid-template-columns:1fr; min-width:auto; }
-  [data-mega="{{ _mode }}"] .rail{ border-right:0; border-bottom:1px solid var(--mega-border); padding:8px 6px; max-height:none; }
-  [data-mega="{{ _mode }}"] .cats{ display:flex; gap:6px; overflow:auto; padding:2px 6px; }
-  [data-mega="{{ _mode }}"] .cats a{ padding:8px 10px; border-radius:999px; background:#f6f6f6; }
-  [data-mega="{{ _mode }}"] .cats a[aria-current="true"]{ background:#111; color:#fff; }
-  [data-mega="{{ _mode }}"] .prev{ max-height:unset; padding:10px 10px 84px; }
-  [data-mega="{{ _mode }}"] .titlebar{ position:sticky; top:44px; background:#fff; padding:10px 0; z-index:1; }
-  [data-mega="{{ _mode }}"] .cards{ grid-template-columns:repeat(2,minmax(0,1fr)); }
-  [data-mega="{{ _mode }}"] .cta-row{ position:sticky; bottom:0; background:#fff; border-top:1px solid var(--mega-border); padding:10px; z-index:1; }
-}
+  /* ===== BRAND LOGO GRID (6 PER ROW DESKTOP, SMALLER TILES) ===== */
+  .mmg-brandgrid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:12px;
+    margin-top:6px;
+  }
+  @media (min-width:768px){
+    .mmg-brandgrid{
+      grid-template-columns:repeat(4,minmax(0,1fr));
+    }
+  }
+  @media (min-width:1200px){
+    .mmg-brandgrid{
+      grid-template-columns:repeat(6,minmax(0,1fr));
+    }
+  }
+
+  .mmg-brandtile{
+    position:relative;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    min-height:72px;
+    padding:10px 8px;
+    border-radius:14px;
+    border:1px solid rgba(17,17,17,.10);
+    background:linear-gradient(180deg,#fff 0%,#fafafa 100%);
+    box-shadow:0 6px 20px rgba(17,17,17,.05);
+    text-decoration:none;
+    color:var(--ink);
+    transition:
+      transform .18s ease,
+      box-shadow .18s ease,
+      border-color .18s ease,
+      background .18s ease;
+    overflow:hidden;
+  }
+  .mmg-brandtile:hover{
+    transform:translateY(-2px);
+    border-color:rgba(17,17,17,.20);
+    box-shadow:0 10px 28px rgba(17,17,17,.10);
+  }
+  .mmg-brandtile:active{
+    transform:translateY(0) scale(.98);
+  }
+  .mmg-brandtile:focus-visible{
+    outline:0;
+    box-shadow:0 0 0 3px rgba(32,94,214,.35);
+  }
+  .mmg-brandtile img{
+    max-width:100%;
+    max-height:50px;
+    width:auto;
+    height:auto;
+    object-fit:contain;
+  }
+  .mmg-brandfallback{
+    font:600 14px/1.3 "Inter",system-ui;
+  }
+
+  /* Red hover pill like site brand */
+  .mmg-brandtile::after{
+    content:attr(data-name);
+    position:absolute;
+    left:10px; right:10px; bottom:8px;
+    padding:3px 8px;
+    border-radius:999px;
+    background:var(--brand);
+    color:#fff;
+    font-size:11px; line-height:1.2;
+    text-align:center;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity .15s ease, transform .15s ease;
+    pointer-events:none;
+    text-transform:capitalize;
+    box-shadow:0 2px 8px rgba(209,47,36,.25);
+  }
+  .mmg-brandtile:hover::after,
+  .mmg-brandtile:focus-visible::after{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  /* ===== CTA ===== */
+  .mmg-railcta{
+    margin-top:18px;
+  }
+  .mmg .mmg-cta{
+    display:inline-flex; align-items:center; justify-content:center;
+    height:36px; padding:0 14px;
+    border-radius:8px; border:0;
+    background:var(--brand); color:#fff;
+    font:700 13px/1 "Inter",system-ui;
+    box-shadow:0 6px 16px rgba(0,0,0,.1);
+    transition: background .2s ease, box-shadow .2s ease;
+    text-decoration:none;
+    white-space:nowrap;
+    gap: 8px; /* Space between text and icon */
+  }
+  .mmg .mmg-cta:hover{
+    background: color-mix(in srgb, var(--brand) 88%, white 12%);
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(0,0,0,.18);
+  }
+  .mmg .mmg-cta svg {
+    transition: transform 0.22s ease;
+  }
+  .mmg .mmg-cta:hover svg {
+    transform: translateX(3px);
+  }
+  .mmg .mmg-cta:active{ transform:translateY(1px); }
+
+  /* Brands mode: top-right header CTA */
+
+
+  /* MAKE "VIEW ALL BRANDS" STICKY IN BRANDS MODE ONLY (legacy) */
+  .mmg[data-mode="brands"] .mmg-railcta{
+    position:sticky;
+    bottom:16px;
+    padding-top:14px;
+    margin-top:12px;
+    background:linear-gradient(to bottom, rgba(255,255,255,0), #fff 55%);
+    z-index:2;
+  }
+
+  /* ===== STORES MODE (simple one-column + CTA) ===== */
+  .mmg--stores .mmg-head{ margin-bottom:12px; }
+  .mmg-1col{
+    padding-right:4px;
+  }
+  .mmg-1col ul{
+    list-style:none; margin:0; padding:0;
+    max-width:360px;
+    display:grid; gap:8px;
+  }
+  .mmg-1col a{
+    display:block; padding:6px 0;
+    font:600 16px/1.35 "Inter",system-ui;
+    color:var(--ink); text-decoration:none; border-radius:4px;
+    transition:color .18s ease;
+  }
+  .mmg-1col a:hover,
+  .mmg-1col a:focus-visible{
+    color:var(--brand); background:transparent;
+  }
+
+  /* Overlay */
+  .mmg-overlay{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.45);
+    opacity:0; pointer-events:none;
+    transition:opacity .18s;
+    z-index:9998;
+  }
+  .mmg-overlay.is-open{ opacity:1; pointer-events:auto; }
+
+  /* ===== Animations ===== */
+  @keyframes mmg-fade-up {
+    from{opacity:0; transform:translateY(8px)}
+    to{opacity:1; transform:none}
+  }
+  .mmg.mmg-animate [data-stagger] > *{
+    opacity:0; transform:translateY(6px);
+    animation:mmg-fade-up .26s ease-out both;
+  }
+
+  /* Reduced motion */
+  @media (prefers-reduced-motion:reduce){
+    .mmg, .mmg-overlay{ transition:none !important; }
+    .mmg *{ animation:none !important; transform:none !important; }
+  }
+
+  @media (max-width:980px){
+    .mmg-shell{ padding:20px 18px 24px; }
+  }
+
+  /* ===== BRAND LOGO GRID (6 PER ROW DESKTOP, CLEANER LOOK) ===== */
+  .mmg-brandgrid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    column-gap:18px;
+    row-gap:14px;
+    margin-top:14px;
+  }
+  @media (min-width:768px){
+    .mmg-brandgrid{
+      grid-template-columns:repeat(4,minmax(0,1fr));
+    }
+  }
+  @media (min-width:1200px){
+    .mmg-brandgrid{
+      grid-template-columns:repeat(6,minmax(0,1fr));
+    }
+  }
+
+  .mmg-brandtile{
+    position:relative;
+    display:flex; align-items:center; justify-content:center; text-align:center;
+    min-height:64px;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid rgba(15,23,42,.06);
+    background:#ffffff;
+    box-shadow:0 3px 12px rgba(15,23,42,.04);
+    text-decoration:none;
+    color:var(--ink);
+    transition:
+      transform .16s ease,
+      box-shadow .16s ease,
+      border-color .16s ease,
+      background .16s ease;
+    overflow:hidden;
+  }
+  .mmg-brandtile:hover{
+    transform:translateY(-1px);
+    border-color:rgba(15,23,42,.14);
+    box-shadow:0 6px 18px rgba(15,23,42,.10);
+  }
+  .mmg-brandtile:active{
+    transform:translateY(0) scale(.985);
+  }
+  .mmg-brandtile:focus-visible{
+    outline:0;
+    box-shadow:0 0 0 3px rgba(32,94,214,.35);
+  }
+
+  .mmg-brandtile img{
+    max-width:100%;
+    max-height:44px;
+    width:auto;
+    height:auto;
+    object-fit:contain;
+  }
+  .mmg-brandfallback{
+    font:600 14px/1.3 "Inter",system-ui;
+  }
+
+  .mmg-brandtile::after{
+    content:attr(data-name);
+    position:absolute;
+    left:10px; right:10px; bottom:6px;
+    padding:3px 8px;
+    border-radius:999px;
+    background:var(--brand);
+    color:#fff;
+    font-size:11px; line-height:1.2;
+    text-align:center;
+    opacity:0;
+    transform:translateY(6px);
+    transition:opacity .15s ease, transform .15s ease;
+    pointer-events:none;
+    text-transform:capitalize;
+    box-shadow:0 2px 8px rgba(209,47,36,.25);
+  }
+  .mmg-brandtile:hover::after,
+  .mmg-brandtile:focus-visible::after{
+    opacity:1;
+    transform:translateY(0);
+  }
+
+  .mmg[data-mode="brands"] .mmg-railcta{
+    position:sticky;
+    bottom:18px;
+    margin-top:20px;
+    padding:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:transparent;
+    z-index:3;
+  }
+  .mmg[data-mode="brands"] .mmg-railcta::before{
+    content:"";
+    position:absolute;
+    inset:-4px -10px;
+    border-radius:999px;
+    background:rgba(255,255,255,.96);
+    box-shadow:0 6px 18px rgba(15,23,42,.20);
+    z-index:-1;
+    pointer-events:none;
+  }
+
+  /* ===== BRANDS CTA FOOTER ===== */
+  .brands-cta-footer {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 2px solid rgba(15, 23, 42, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .brands-count {
+    margin: 0;
+    color: #6B7280;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .brands-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: #D12F24;
+    color: white;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(209, 47, 36, 0.2);
+  }
+
+  .brands-cta-btn:hover {
+    background: #A02419;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(209, 47, 36, 0.3);
+  }
+
+  .brands-cta-btn svg {
+    transition: transform 0.2s ease;
+  }
+
+  .brands-cta-btn:hover svg {
+    transform: translateX(2px);
+  }
+
 </style>
 
-<div data-mega="{{ _mode }}" aria-haspopup="true" aria-expanded="false">
-  {% if _mode == 'cats' %}
-    <a href="{{ categories_fallback_url | default: '/collections/all' }}" data-mega-trigger>All Categories</a>
-  {% else %}
-    <a href="{{ brands_fallback_url | default: '/search?type=product' }}" data-mega-trigger>Brands</a>
-  {% endif %}
+{%- comment -%} Resolve Categories & Stores from the main menu (top level only) {%- endcomment -%}
+{%- assign cat_links = nil -%}
+{%- if menu_obj and menu_obj.links -%}
+  {%- assign p_norm = parent_title | default: 'Category' | strip | downcase -%}
+  {%- for l in menu_obj.links -%}
+    {%- assign t_norm = l.title | strip | downcase -%}
+    {%- if t_norm == p_norm or t_norm contains 'categor' or t_norm contains 'shop' -%}
+      {%- assign cat_links = l.links -%}{%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+  {%- if cat_links == nil or cat_links == empty -%}
+    {%- for l in menu_obj.links -%}
+      {% if l.links and l.links.size > 0 %}
+        {%- assign cat_links = l.links -%}{%- break -%}
+      {% endif %}
+    {%- endfor -%}
+  {%- endif -%}
+{%- endif -%}
 
-  <div class="mega" role="dialog" aria-label="{% if _mode == 'cats' %}All Categories{% else %}Brands{% endif %}" aria-modal="false" tabindex="-1">
-    <div class="sheet-head" hidden>
-      <div class="sheet-title">{% if _mode == 'cats' %}All Categories{% else %}Brands{% endif %}</div>
-      <button type="button" class="sheet-close" aria-label="Close">×</button>
-    </div>
+{%- assign stores_links = nil -%}
+{%- assign stores_parent_link = nil -%}
+{%- if menu_obj and menu_obj.links -%}
+  {%- assign s_norm = stores_parent_title | default: 'Stores' | strip | downcase -%}
+  {%- for l in menu_obj.links -%}
+    {%- assign t_norm = l.title | strip | downcase -%}
+    {%- if t_norm == s_norm or t_norm contains 'store' or t_norm contains 'where' -%}
+      {%- assign stores_links = l.links -%}
+      {%- assign stores_parent_link = l -%}
+      {%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
 
-    <div class="grid">
-      <div class="rail">
-        <p class="ps-title">{% if _mode == 'cats' %}Hover or focus a category to preview{% else %}Hover or focus a brand to preview{% endif %}</p>
-        <ul class="cats" role="menu" {% if _mode == 'cats' %}data-cat-rail{% else %}data-br-rail{% endif %}>
-          {% if _mode == 'cats' %}
-            {% if categories_parent_index >= 0 and menu_obj and menu_obj.links %}
-              {% for l in menu_obj.links %}
-                {% if forloop.index0 == categories_parent_index %}
-                  {% for c in l.links %}
-                    {% assign label = c.title | strip %}
-                    {% assign url = c.url | default: '/collections/all' %}
-                    {%- assign icon_key = '' -%}
-                    {%- for ln in icon_override_lines -%}
-                      {%- assign parts = ln | split: '|' -%}
-                      {%- assign ov_lab = parts[0] | strip -%}
-                      {%- assign ov_key = parts[1] | strip -%}
-                      {%- if ov_lab != '' and ov_key != '' -%}
-                        {%- assign ov_lab_d = ov_lab | downcase -%}
-                        {%- assign label_d  = label  | downcase -%}
-                        {%- if ov_lab_d == label_d -%}{%- assign icon_key = ov_key -%}{%- endif -%}
-                      {%- endif -%}
-                    {%- endfor -%}
-                    {% assign subs = c.links | map: 'title' | join: '||' %}
-                    <li>
-                      <a href="{{ url }}" data-cat="{{ label | escape }}" data-subs="{{ subs | escape }}" role="menuitem" title="Preview {{ label }} products" tabindex="0">
-                        <span class="cat-ico" aria-hidden="true">
-                          {% assign lk = icon_key | default: label | downcase %}
-                          {% if lk contains 'camera' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="7" width="18" height="12" rx="2"/><circle cx="12" cy="13" r="4"/><path d="M9 7l1.5-2h3L15 7"/></svg>
-                          {% elsif lk contains 'lens' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="3" width="12" height="18" rx="3"/><path d="M8 7h8M8 11h8M8 15h8"/></svg>
-                          {% elsif lk contains 'drone' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="2"/><path d="M4 10h6l2-2 2 2h6M10 14H4m16 0h-6"/></svg>
-                          {% elsif lk contains 'tripod' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v5M8 8h8M7 21l5-10 5 10M5 21h14"/></svg>
-                          {% elsif lk contains 'flash' or lk contains 'lighting' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M7 2h10L9 13h5l-5 9v-8H6z"/></svg>
-                          {% elsif lk contains 'storage' or lk contains 'sd' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h2M12 7h2M16 7h2"/></svg>
-                          {% elsif lk contains 'microphone' or lk contains 'mic' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M12 18v3M8 21h8M5 12a7 7 0 0 0 14 0"/></svg>
-                          {% elsif lk contains 'gimbal' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="6" width="16" height="6" rx="2"/><path d="M12 12v7M9 19h6"/></svg>
-                          {% elsif lk contains 'binocular' or lk contains 'scope' %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7" cy="14" r="3"/><circle cx="17" cy="14" r="3"/><path d="M10 14h4M5 11l2-4m10 4-2-4"/></svg>
-                          {% else %}<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-                          {% endif %}
-                        </span>
-                        <span>{{ label }}</span>
-                      </a>
-                    </li>
-                  {% endfor %}
-                {% endif %}
+{%- assign brands_links = nil -%}
+{%- if menu_obj and menu_obj.links -%}
+  {%- assign b_norm = brands_parent_title | default: 'Brands' | strip | downcase -%}
+  {%- for l in menu_obj.links -%}
+    {%- assign t_norm = l.title | strip | downcase -%}
+    {%- if t_norm == b_norm -%}
+      {%- assign brands_links = l.links -%}{%- break -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- endif -%}
+
+{%- assign stores_title = stores_parent_link.title | default: 'Where to find us' -%}
+<div class="mmg {% if _mode == 'stores' %}mmg--stores{% endif %}"
+     data-mode="{{ _mode }}" role="dialog" aria-modal="false"
+     aria-label="{% if _mode == 'cats' %}All Categories{% elsif _mode == 'brands' %}Brands{% else %}{{ stores_title }}{% endif %}">
+  <div class="mmg-shell">
+    <div class="mmg-inner">
+
+      {% if _mode == 'stores' %}
+        <!-- ================= STORES: ONE-COLUMN + CTA ================= -->
+        <div class="mmg-head">
+          <span class="mmg-sectiontag">{{ stores_title }}</span>
+        </div>
+
+        <div class="mmg-1col">
+          <ul data-stagger="stores">
+            {% if stores_links and stores_links.size > 0 %}
+              {% for s in stores_links %}
+                <li><a href="{{ s.url }}">{{ s.title | strip }}</a></li>
               {% endfor %}
             {% endif %}
-          {% else %}
-            {%- assign brands_parent_title = 'brands' -%}
-            {%- assign brands_links = '' -%}
-            {%- if menu_obj and menu_obj.links -%}
-              {%- for l in menu_obj.links -%}
-                {%- assign t_norm = l.title | strip | downcase -%}
-                {%- if t_norm == brands_parent_title or t_norm contains 'brand' -%}{%- assign brands_links = l.links -%}{%- endif -%}
-              {%- endfor -%}
-            {%- endif -%}
-            {%- if brands_links != blank -%}
-              {%- for b in brands_links -%}
-                {%- assign bname = b.title | strip -%}
-                {%- assign bhandle = bname | handleize -%}
-                {%- assign subs = b.links | map: 'title' | join: '||' -%}
-                <li>
-                  <a class="brand" role="menuitem" tabindex="0"
-                     href="{{ b.url | default: '/search?type=product&q=' | append: bname | url_encode }}"
-                     data-brand="{{ bname | escape }}" data-brand-subs="{{ subs | escape }}" title="Preview {{ bname }}">
-                    <img src="/cdn/shop/files/{{ bhandle }}.png" alt="{{ bname }} logo" width="22" height="22" loading="lazy" decoding="async" onerror="this.style.display='none'">
-                    <span>{{ bname }}</span>
-                  </a>
-                </li>
-              {%- endfor -%}
-            {%- else -%}
-              {%- assign braw = brands_list | default: "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" | newline_to_br | split: '<br />' -%}
-              {%- for b in braw -%}
-                {%- assign bname = b | strip -%}
-                {%- assign bhandle = bname | handleize -%}
-                <li>
-                  <a class="brand" role="menuitem" tabindex="0" href="/search?q=vendor:%22{{ bname | escape }}%22&type=product"
-                     data-brand="{{ bname | escape }}" data-brand-subs="" title="Preview {{ bname }}">
-                    <img src="/cdn/shop/files/{{ bhandle }}.png" alt="{{ bname }} logo" width="22" height="22" loading="lazy" decoding="async" onerror="this.style.display='none'">
-                    <span>{{ bname }}</span>
-                  </a>
-                </li>
-              {%- endfor -%}
-            {%- endif -%}
+          </ul>
+
+          {% if stores_links and stores_links.size > 0 and stores_parent_link and stores_parent_link.url %}
+          <div class="mmg-railcta">
+            <a class="mmg-cta" href="{{ stores_parent_link.url }}">
+              View all
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-icon lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </a>
+          </div>
+          {% endif %}
+        </div>
+
+      {% elsif _mode == 'cats' %}
+        <!-- ================= CATEGORIES: TEXT LIST ================= -->
+        <div class="mmg-head">
+          <span class="mmg-sectiontag">Shop by category</span>
+        </div>
+
+        <ul class="mmg-catlist" data-stagger="cats">
+          {% assign category_links = cat_links %}
+          {% if category_links and category_links.size > 0 %}
+            {% for c in category_links %}
+              {% assign label = c.title | strip %}
+              {% assign url   = c.url | default: '/collections/all' %}
+              <li>
+                <a class="mmg-catlink" href="{{ url }}">
+                  <span class="mmg-catlabel">{{ label }}</span>
+                </a>
+              </li>
+            {% endfor %}
           {% endif %}
         </ul>
-      </div>
 
-      <div class="prev" {% if _mode == 'brands' %}style="padding-top:6px;"{% endif %}>
-        <div class="titlebar">
-          <div class="title" {% if _mode == 'cats' %}data-cats-title{% else %}data-br-title{% endif %}>{% if _mode == 'cats' %}Popular now{% else %}Popular from brand{% endif %}</div>
-          <a class="viewall"
-            {% if _mode == 'cats' %}href="{{ categories_fallback_url | default: '/collections/all' }}" data-cats-viewall{% else %}href="{{ brands_fallback_url | default: '/search?type=product' }}" data-br-viewall{% endif %}>
-            <span class="txt">View all</span><span class="arr">→</span>
+        <div class="mmg-railcta">
+          <a class="mmg-cta" href="{{ categories_fallback_url | default: '/collections/all' }}">
+            View all categories
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-right-icon lucide-arrow-right"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
           </a>
         </div>
 
-        <p class="ps-title" {% if _mode == 'cats' %}data-cats-help{% else %}data-br-help{% endif %}>
-          {% if _mode == 'cats' %}Sub-categories — click a chip to preview{% else %}Browse by brand category — click a chip to preview{% endif %}
-        </p>
+      {% elsif _mode == 'brands' %}
+        <!-- ================= FEATURED BRANDS ================= -->
+        <div class="mmg-head">
+          <span class="mmg-sectiontag">Shop our featured brands</span>
+        </div>
 
-        <div class="chips" {% if _mode == 'cats' %}data-cats-subchips{% else %}data-br-subchips{% endif %}></div>
+        <div class="mmg-brandgrid" data-stagger="brands">
+          {%- render 'brands-from-header', header_blocks: header_section_blocks -%}
+        </div>
 
-        <!-- Cards area; will auto-fill with the default collection on open -->
-        <div class="cards" {% if _mode == 'cats' %}data-cats-cards{% else %}data-br-cards{% endif %} role="region" aria-live="polite" aria-atomic="true"></div>
-
-        <div class="cta-row">
-          <a class="viewall"
-            {% if _mode == 'cats' %}href="{{ categories_fallback_url | default: '/collections/all' }}" data-cats-viewall{% else %}href="{{ brands_fallback_url | default: '/search?type=product' }}" data-br-viewall{% endif %}>
-            <span class="txt">View all</span><span class="arr">→</span>
+        <div class="brands-cta-footer">
+          <p class="brands-count">200+ brands available</p>
+          <a class="brands-cta-btn" href="{{ brands_fallback_url | default: '/pages/brands' }}">
+            View all brands
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+            </svg>
           </a>
         </div>
-      </div>
+
+      {% endif %}
+
     </div>
   </div>
 </div>
@@ -238,194 +564,124 @@ h1,h2,h3,.display{ font-family: var(--font-heading); letter-spacing:-.01em; }
 <script>
 (() => {
   const MODE = {{ _mode | json }};
-  const script = document.currentScript;
-  let wrap = script && script.previousElementSibling;
-  if (!wrap || !wrap.matches(`[data-mega="${MODE}"]`)) wrap = document.querySelector(`[data-mega="${MODE}"]`);
-  if (!wrap) return;
 
-  const isMobile = () => window.matchMedia('(max-width: 991px)').matches;
-  const nf = new Intl.NumberFormat({{ request.locale.iso_code | json }} || 'en-PH', { style:'currency', currency: {{ shop.currency | json }} || 'PHP' });
-  const money = (c)=> nf.format((Number(c)||0)/100);
-  const esc = (s)=> (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));
-  const widthSwap=(u,w)=> u&&u.indexOf('{width}')>-1 ? u.replace('{width}', String(w)) : (u||'').replace(/(\.(?:jpe?g|png|webp|gif))(?:\?.*)?$/i, `_${w}x$1`);
-  const srcset=(u)=> `${widthSwap(u,360)} 360w, ${widthSwap(u,540)} 540w, ${widthSwap(u,720)} 720w`;
-  const pickUrl=(p)=> (p&&((p.image&&(p.image.url||p.image))||(p.featured_image&&p.featured_image.url)))||'';
-  const saleBadge=(now, was)=> (was>now && was>0) ? `<span class="ch-badge--ribbon">-${Math.max(1, Math.round(100-(now/was)*100))}%</span>` : '';
-  const skeleton=(cards, n=6)=>{ cards.innerHTML=''; for(let i=0;i<n;i++){ const d=document.createElement('div'); d.className='ch-card'; d.innerHTML='<div class="ch-card__media"><div class="skeleton" style="width:100%;height:100%;"></div></div><div class="ch-card__body"><div class="skeleton" style="height:12px;border-radius:6px;margin-bottom:6px;"></div><div class="skeleton" style="height:14px;border-radius:6px;width:80%"></div></div>'; cards.appendChild(d);} };
-
-  const trigger = wrap.querySelector('[data-mega-trigger]');
-  const mega   = wrap.querySelector('.mega');
-  const rail   = wrap.querySelector(MODE==='cats' ? '[data-cat-rail]' : '[data-br-rail]');
-  const title  = wrap.querySelector(MODE==='cats' ? '[data-cats-title]' : '[data-br-title]');
-  const viewAs = wrap.querySelectorAll(MODE==='cats' ? '[data-cats-viewall]' : '[data-br-viewall]');
-  const chips  = wrap.querySelector(MODE==='cats' ? '[data-cats-subchips]' : '[data-br-subchips]');
-  const help   = wrap.querySelector(MODE==='cats' ? '[data-cats-help]' : '[data-br-help]');
-  const cards  = wrap.querySelector(MODE==='cats' ? '[data-cats-cards]' : '[data-br-cards]');
-  const head   = wrap.querySelector('.sheet-head');
-
-  if(!rail || !cards || !mega) return;
-
-  const positionMega = () => {
-    if(isMobile()) return;
-    const t = trigger || wrap;
-    const r = t.getBoundingClientRect();
-    const left = Math.max(8, Math.min(r.left, window.innerWidth - mega.offsetWidth - 8));
-    const top  = r.bottom;
-    mega.style.setProperty('--mega-left', `${left}px`);
-    mega.style.setProperty('--mega-top', `${top}px`);
-  };
-  ['resize','scroll'].forEach(ev=>window.addEventListener(ev, positionMega, {passive:true}));
-
-  let openT=null, closeT=null;
-  function openMega(){
-    const anySearchOpen = document.querySelector('[data-ch-search] .ps-panel[data-open="true"], [data-ch-search] .sheet.is-open');
-    if (anySearchOpen) return;
-    positionMega();
-    wrap.setAttribute('data-open','true');
-    wrap.setAttribute('aria-expanded','true');
-    mega.setAttribute('aria-modal', String(isMobile()));
-    if(isMobile()){ head.hidden=false; document.body.style.overflow='hidden'; }
-    // Load default content the first time it opens (cats mode)
-    if(MODE==='cats' && !cards.dataset.boot){ loadDefault(); cards.dataset.boot='1'; }
+  function findWrap() {
+    return (
+      document.querySelector(`[data-mega="${MODE}"]`) ||
+      document.querySelector('[data-mega]')
+    );
   }
-  function closeMega(){ wrap.setAttribute('data-open','false'); wrap.setAttribute('aria-expanded','false'); mega.setAttribute('aria-modal','false'); head.hidden=true; document.body.style.overflow=''; }
-  window.CHCloseMega = closeMega;
 
-  wrap.addEventListener('mouseenter', ()=>{ clearTimeout(closeT); openT=setTimeout(openMega, 80); });
-  wrap.addEventListener('mouseleave', ()=>{ clearTimeout(openT); closeT=setTimeout(closeMega, 500); });
-  wrap.addEventListener('focusin', openMega);
-  document.addEventListener('click', (e)=>{ if(wrap.getAttribute('data-open')!=='true') return; if(!wrap.contains(e.target)) closeMega(); });
-  trigger && trigger.addEventListener('click', (e)=>{ if(isMobile()){ e.preventDefault(); openMega(); mega.focus(); } });
-  head?.querySelector('.sheet-close')?.addEventListener('click', closeMega);
-  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeMega(); });
+  function initOnce() {
+    const wrap  = findWrap();
+    if (!wrap) return false;
 
-  let ctl=null; const cache=new Map();
-  const suggest=(q)=>{ if(ctl) ctl.abort(); ctl=new AbortController(); return fetch(`/search/suggest.json?q=${encodeURIComponent(q)}&resources[type]=product&resources[limit]=6`, {signal:ctl.signal, headers:{'Accept':'application/json'}, cache:'no-store'}).then(r=>r.ok?r.json():null).catch(()=>null); };
-  const byLabel=(label)=>{ const k='cat:'+label.toLowerCase(); if(cache.has(k)) return Promise.resolve(cache.get(k)); return suggest(label).then(js=>{ cache.set(k,js||{}); return js||{}; }); };
-  const byVendor=(v)=>{ const k='v:'+v.toLowerCase(); if(cache.has(k)) return Promise.resolve(cache.get(k)); return suggest(`vendor:"${v}"`).then(js=>{ cache.set(k,js||{}); return js||{}; }); };
-  const byVendorTerm=(v,t)=>{ const k='vt:'+v.toLowerCase()+'|'+t.toLowerCase(); if(cache.has(k)) return Promise.resolve(cache.get(k)); return suggest(`vendor:"${v}" ${t}`).then(js=>{ cache.set(k,js||{}); return js||{}; }); };
-  const fallbackFromCollectionUrl=(url)=>{
-    const m=(url||'').match(/\/collections\/([^\/?#]+)/); if(!m) return Promise.resolve(null);
-    const handle=m[1];
-    return fetch(`/collections/${handle}/products.json?limit=6`, {headers:{'Accept':'application/json'}, cache:'no-store'})
-      .then(r=>r.ok?r.json():null)
-      .then(js=>{
-        const list = (js && Array.isArray(js.products)) ? js.products : [];
-        return { resources:{ results:{ products: list.map(p=>({ title:p.title, url:`/products/${p.handle}`, handle:p.handle, vendor:p.vendor, price:(p.variants&&p.variants[0]?Number(p.variants[0].price||0)*100:0), compare_at_price:(p.variants&&p.variants[0]&&p.variants[0].compare_at_price?Number(p.variants[0].compare_at_price||0)*100:0), image:(p.images&&p.images[0])?(p.images[0].src||p.images[0]):(p.image&&p.image.src)||'' })) } } };
-      }).catch(()=>null);
-  };
+    const panel = wrap.querySelector('.mmg');
+    if (!panel) return false;
 
-  function renderList(js, fallbackUrl){
-    cards.innerHTML='';
-    const list = js && js.resources && js.resources.results && Array.isArray(js.resources.results.products)
-      ? js.resources.results.products : [];
+    const placeholder = document.createComment('mmg-placeholder');
+    const overlay = document.createElement('div'); overlay.className = 'mmg-overlay';
 
-    if(list.length===0 && MODE==='cats' && fallbackUrl){
-      fallbackFromCollectionUrl(fallbackUrl).then(fb=>{
-        const fl = fb && fb.resources && fb.resources.results && Array.isArray(fb.resources.results.products) ? fb.resources.results.products : [];
-        if(fl.length){ renderList(fb); return; }
-        cards.innerHTML='<div style="color:#666;padding:8px;">No products yet — try <strong>View all</strong>.</div>';
-      }); return;
+    function headerEl(){
+      const h = document.getElementById('ch-header-{{ section.id }}');
+      return h || document.querySelector('[data-ch-header], header.site-header, header');
     }
-    if(list.length===0){ cards.innerHTML='<div style="color:#666;padding:8px;">No products yet — try <strong>View all</strong>.</div>'; return; }
+    function calcTopOffset(){
+      const header = headerEl();
+      const band   = header?.querySelector('.nav-band');
+      let top = 0;
+      if (band){
+        const cs = getComputedStyle(band);
+        const r  = band.getBoundingClientRect();
+        top = (cs.position === 'fixed' || band.classList.contains('is-fixed'))
+              ? Math.round(r.bottom) : Math.round(header.getBoundingClientRect().bottom);
+      } else if (header){
+        top = Math.round(header.getBoundingClientRect().bottom);
+      }
+      return Math.max(0, Math.min(top, window.innerHeight * 0.5));
+    }
 
-    list.slice(0,6).forEach(p=>{
-      const u = pickUrl(p);
-      const now = Number(p.price || p.price_min || 0);
-      const was = Number(p.compare_at_price || 0);
-      const hasSale = was > now && was > 0;
-      const nowStr = money(now); const wasStr = hasSale ? money(was) : '';
-      const el = document.createElement('div'); el.className = 'ch-card';
-      el.innerHTML = `
-        <a class="ch-card__overlay" href="${p.url||'#'}" aria-label="View ${esc(p.title||'')}"></a>
-        <div class="ch-card__mediawrap" style="position:relative">
-          <a class="ch-card__media" href="${p.url||'#'}" aria-label="${esc(p.title||'')}">
-            ${hasSale ? `${saleBadge(now,was)}` : ``}
-            <img class="ch-card__img" src="${widthSwap(u,720)}" srcset="${srcset(u)}" sizes="(max-width:991px) 44vw, 360px" alt="${esc(p.title||'')}" loading="lazy" decoding="async">
-          </a>
-        </div>
-        <div class="ch-card__body">
-          ${p.vendor ? `<div class='ch-meta'>${esc(p.vendor)}</div>` : ''}
-          <h3 class="ch-card__title" title="${esc((p.vendor ? p.vendor+' · ' : '') + (p.title||''))}">
-            <a class="ch-card__titlelink" href="${p.url||'#'}">${esc(p.title||'')}</a>
-          </h3>
-          <div class="ch-price" aria-label="Price">
-            <span class="ch-price__cur">${nowStr}</span>
-            ${hasSale ? `<span class="ch-price__compare">${wasStr}</span>` : ``}
-          </div>
-        </div>
-      `;
-      cards.appendChild(el);
+    function setOffsets(){
+      const top = calcTopOffset();
+      panel.style.top = top + 'px';
+      panel.style.maxHeight = `calc(100vh - ${top}px)`;
+    }
+
+    function applyStagger(nodes, step=22){
+      if(!nodes) return;
+      let i=0;
+      [...nodes].forEach(el=>{
+        el.style.animationDelay = (0.06 + (i*step/1000)) + 's';
+        el.style.willChange = 'transform,opacity';
+        i++;
+      });
+    }
+
+    function mount(){
+      if (panel.parentNode !== document.body){
+        panel.parentNode.insertBefore(placeholder, panel);
+        document.body.appendChild(panel);
+      }
+      if (!overlay.parentNode){
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', ()=> wrap.setAttribute('data-open','false'));
+      }
+      setOffsets();
+      panel.classList.add('is-open','mmg-animate');
+      requestAnimationFrame(()=> overlay.classList.add('is-open'));
+
+      const cats   = panel.querySelector('[data-stagger="cats"]');
+      const brands = panel.querySelector('[data-stagger="brands"]');
+      const stores = panel.querySelector('[data-stagger="stores"]');
+      if (cats)   applyStagger(cats.children);
+      if (brands) applyStagger(brands.children);
+      if (stores) applyStagger(stores.children);
+    }
+
+    function unmount(){
+      overlay.classList.remove('is-open');
+      overlay.remove();
+      panel.classList.remove('is-open','mmg-animate');
+      if (placeholder.parentNode){
+        placeholder.parentNode.insertAdjacentElement('beforebegin', panel);
+        placeholder.remove();
+      }
+      panel.style.top = '';
+      panel.style.maxHeight = '';
+    }
+
+    const mo = new MutationObserver(()=> {
+      wrap.getAttribute('data-open')==='true' ? mount() : unmount();
     });
+    mo.observe(wrap, { attributes:true, attributeFilter:['data-open'] });
 
-    cards.setAttribute('aria-label', `${Math.min(6, list.length)} results loaded`);
+    if (wrap.getAttribute('data-open') === 'true') mount();
+
+    window.addEventListener('scroll', setOffsets,  {passive:true});
+    window.addEventListener('resize', setOffsets,  {passive:true});
+    panel.addEventListener('mmg:reflow', setOffsets);
+
+    window.CH_Mega = window.CH_Mega || {
+      open: (mode=MODE)  => (document.querySelector(`[data-mega="${mode}"]`)||wrap)?.setAttribute('data-open','true'),
+      close:(mode=MODE)  => (document.querySelector(`[data-mega="${mode}"]`)||wrap)?.setAttribute('data-open','false')
+    };
+
+    return true;
   }
 
-  /* CLICK-ONLY SUBCHIPS */
-  function renderChips(labels, vendor, onRun){
-    chips.innerHTML=''; const list=(labels||[]).map(s=>String(s).trim()).filter(Boolean).slice(0,8);
-    if(!list.length){ chips.style.display='none'; help && (help.style.display='none'); return; }
-    chips.style.display='flex'; help && (help.style.display='');
-
-    list.forEach((t)=>{
-      const a=document.createElement('a'); a.className='chip'; a.textContent=t; a.href = MODE==='cats' ? `/search?q=${encodeURIComponent(t)}` : `/search?q=${encodeURIComponent('vendor:"'+vendor+'" '+t)}&type=product`; a.tabIndex=0;
-      const trigger = (evt) => { evt.preventDefault(); onRun(t, a); chips.querySelectorAll('.chip[aria-current]').forEach(x=>x.removeAttribute('aria-current')); a.setAttribute('aria-current','true'); a.scrollIntoView({behavior:'smooth', inline:'center', block:'nearest'}); };
-      a.addEventListener('click', trigger); a.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ trigger(e); } }); chips.appendChild(a);
-    });
+  function boot(){
+    if (initOnce()) return;
+    let tries = 0, max = 20;
+    const iv = setInterval(()=>{
+      tries++;
+      if (initOnce() || tries>=max) clearInterval(iv);
+    }, 100);
   }
 
-  const setCTA = (text, url) => { viewAs.forEach(v=>{ if(v){ v.href=url; v.querySelector('.txt')?.replaceChildren(document.createTextNode(`View all ${text}`)); } }); };
-
-  // NEW: Default content on open — from Theme Editor collection passed as categories_fallback_url
-  function loadDefault(){
-    const catUrl = {{ categories_fallback_url | json }} || '/collections/all';
-    title && (title.textContent = 'Featured picks');
-    setCTA('featured', catUrl);
-    // Hide helper line until a category is focused
-    help && (help.style.display='none'); chips.style.display='none';
-    skeleton(cards, 6);
-    // Try collection.json to avoid empty state
-    fallbackFromCollectionUrl(catUrl).then(fb=>{ if(fb) renderList(fb, catUrl); });
-  }
-
-  /* CLICK-ONLY RAIL (CATEGORIES/BRANDS) */
-  if(MODE==='cats'){
-    rail && Array.from(rail.querySelectorAll('a[data-cat]')).forEach((a)=>{
-      const label=a.getAttribute('data-cat')||''; 
-      const subs=(a.getAttribute('data-subs')||'').split('||').map(s=>s.trim()).filter(Boolean);
-      const catUrl=a.getAttribute('href')||{{ categories_fallback_url | default: "/collections/all" | json }};
-
-      const run=(chipEl)=>{
-        title && (title.textContent = chipEl ? `Popular in ${chipEl.textContent}` : `Popular in ${label}`);
-        setCTA(chipEl ? chipEl.textContent : label, catUrl);
-        renderChips(subs, null, (t)=>{ title.textContent=`Popular in ${t}`; skeleton(cards); byLabel(t).then(js=>renderList(js, catUrl)); });
-        skeleton(cards); byLabel(label).then(js=>renderList(js, catUrl));
-        help && (help.style.display=''); chips.style.display = subs.length? 'flex':'none';
-        rail.querySelectorAll('a[aria-current]').forEach(x=>x.removeAttribute('aria-current')); a.setAttribute('aria-current','true');
-      };
-
-      const activate = (e)=>{ e.preventDefault(); run(); };
-      a.addEventListener('click', activate);
-      a.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ activate(e); } });
-    });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot, {once:true});
   } else {
-    rail && Array.from(rail.querySelectorAll('.brand')).forEach((b)=>{
-      const vendor=b.getAttribute('data-brand')||''; 
-      const subs=(b.getAttribute('data-brand-subs')||'').split('||').map(s=>s.trim()).filter(Boolean);
-
-      const run=(chipEl)=>{
-        title && (title.textContent = chipEl ? `Popular from ${vendor} — ${chipEl.textContent}` : `Popular from ${vendor}`);
-        const base=`/search?type=product&q=${encodeURIComponent('vendor:"'+vendor+'"')}`;
-        setCTA(vendor, base);
-        renderChips(subs, vendor, (t)=>{ title.textContent = `Popular from ${vendor} — ${t}`; setCTA(`${vendor} ${t}`, `${base}%20${encodeURIComponent(t)}`); skeleton(cards); byVendorTerm(vendor,t).then(js=>renderList(js)); });
-        skeleton(cards); byVendor(vendor).then(js=>renderList(js));
-        rail.querySelectorAll('a[aria-current]').forEach(x=>x.removeAttribute('aria-current')); b.setAttribute('aria-current','true');
-      };
-
-      const activate = (e)=>{ e.preventDefault(); run(); };
-      b.addEventListener('click', activate);
-      b.addEventListener('keydown', (e)=>{ if(e.key==='Enter'||e.key===' '){ activate(e); } });
-    });
+    boot();
   }
 })();
 </script>

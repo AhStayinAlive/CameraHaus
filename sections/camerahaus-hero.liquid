@@ -1,0 +1,263 @@
+{% liquid
+  assign desktop_bg = section.settings.image_desktop
+  assign mobile_bg  = section.settings.image_mobile | default: section.settings.image_desktop
+
+  # Backward-compatible fallbacks so saving never breaks when we change steps
+  assign _pad_y    = section.settings.section_padding_y2    | default: section.settings.section_padding_y
+  assign _card_w   = section.settings.card_width_px2        | default: section.settings.card_width_px
+  assign _card_h   = section.settings.card_height_px2       | default: section.settings.card_height_px
+  assign _card_h_m = section.settings.card_height_mobile_px2| default: section.settings.card_height_mobile_px
+%}
+
+<section id="ch-hero-card-{{ section.id }}"
+  class="ch-hero-card ch-hero-card--{{ section.settings.text_color }} ch-hero-card--img-{{ section.settings.image_side }} ch-hero-card--style-{{ section.settings.style_variant }} {% unless section.settings.stack_mobile %}ch-hero-card--nostack{% endunless %}"
+  aria-label="CameraHaus hero">
+
+  <div class="ch-hero-card__section">
+    <div class="ch-hero-card__inner">
+      <div class="ch-hero-card__content">
+        {% if section.settings.eyebrow != blank %}<p class="ch-hero-card__eyebrow">{{ section.settings.eyebrow }}</p>{% endif %}
+        {% if section.settings.heading != blank %}<h2 class="ch-hero-card__heading">{{ section.settings.heading }}</h2>{% endif %}
+        {% if section.settings.subheading != blank %}<p class="ch-hero-card__sub">{{ section.settings.subheading }}</p>{% endif %}
+        <div class="ch-hero-card__ctas">
+          {% if section.settings.cta_label != blank and section.settings.cta_link != blank %}
+            <a href="{{ section.settings.cta_link }}" class="ch-hero-card__btn ch-hero-card__btn--primary">{{ section.settings.cta_label }}</a>
+          {% endif %}
+          {% if section.settings.secondary_cta_label != blank and section.settings.secondary_cta_link != blank %}
+            <a href="{{ section.settings.secondary_cta_link }}" class="ch-hero-card__btn ch-hero-card__btn--ghost">{{ section.settings.secondary_cta_label }}</a>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="ch-hero-card__media" aria-hidden="true">
+        {% if section.settings.show_halo %}<span class="ch-hero-card__halo"></span>{% endif %}
+        {% if desktop_bg != blank %}
+          <picture>
+            {% if mobile_bg != blank %}<source media="(max-width: 749px)" srcset="{{ mobile_bg | image_url: width: 900 }}">{% endif %}
+            <img
+              src="{{ desktop_bg | image_url: width: 1600 }}"
+              alt=""
+              loading="eager"
+              class="ch-hero-card__img"
+              width="{{ desktop_bg.width }}"
+              height="{{ desktop_bg.height }}"
+            >
+          </picture>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  #ch-hero-card-{{ section.id }}{
+    /* Section + card sizing (with safe fallbacks) */
+    --section-bg: {{ section.settings.section_bg }};
+    --pad-y: {{ _pad_y }}px;
+    --card-w: {{ _card_w }}px;
+    --card-h: {{ _card_h }}px;
+    --card-h-m: {{ _card_h_m }}px;
+
+    /* Look & feel */
+    --brand: {{ section.settings.brand_color }};
+    --card-bg: {{ section.settings.card_bg }};
+    --card-border: {{ section.settings.card_border_color }};
+    --radius: {{ section.settings.card_radius }}px;
+    --card-pad: {{ section.settings.card_padding }}px;
+    --img-col: {{ section.settings.image_width_percent }}%;
+
+    /* Type */
+    --fs-eyebrow: {{ section.settings.fs_eyebrow }}px;
+    --fs-heading: {{ section.settings.fs_heading }}px;
+    --fs-heading-m: {{ section.settings.fs_heading_m }}px;
+    --fs-sub: {{ section.settings.fs_sub }}px;
+    --fs-sub-m: {{ section.settings.fs_sub_m }}px;
+    --fs-btn: {{ section.settings.fs_btn }}px;
+
+    /* Image controls */
+    --img-scale: {{ section.settings.image_scale | divided_by: 100.0 }};
+    --img-shift-x: {{ section.settings.image_shift_x }}%;
+    --img-shift-y: {{ section.settings.image_shift_y }}%;
+
+    /* Halo */
+    --halo-size: {{ section.settings.halo_size }}px;
+    --halo-strength: {{ section.settings.halo_strength | divided_by: 100.0 }};
+    --halo-color: {{ section.settings.halo_color }};
+  }
+
+  /* Section wrapper shows page background around the compact card */
+  #ch-hero-card-{{ section.id }} .ch-hero-card__section{
+    background: var(--section-bg);
+    padding: var(--pad-y) clamp(12px, 3vw, 24px);
+  }
+
+  /* Card */
+  #ch-hero-card-{{ section.id }} .ch-hero-card__inner{
+    max-width: var(--card-w);
+    height: var(--card-h);
+    margin-inline: auto;
+    display: grid;
+    grid-template-columns: 1fr var(--img-col);
+    align-items: center;
+    gap: clamp(12px, 2.4vw, 24px);
+    padding: var(--card-pad);
+    border-radius: var(--radius);
+    background: var(--card-bg);
+    overflow: hidden;
+    box-shadow:
+      {% if section.settings.style_variant == 'clean' and section.settings.enable_shadow %}
+        0 6px 18px rgba(0,0,0,.06)
+      {% elsif section.settings.style_variant == 'solid' and section.settings.enable_shadow %}
+        0 10px 30px rgba(0,0,0,.10)
+      {% else %}
+        none
+      {% endif %};
+    {% if section.settings.card_border %}border: 1px solid var(--card-border);{% endif %}
+  }
+
+  /* Text block */
+  #ch-hero-card-{{ section.id }} .ch-hero-card__content{ display:flex; flex-direction:column; gap:.35rem; }
+  #ch-hero-card-{{ section.id }} .ch-hero-card__eyebrow{
+    font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+    display:inline-block; align-self:flex-start; padding:.28rem .56rem; border-radius:999px;
+    background: color-mix(in srgb, var(--brand) 16%, transparent);
+    font-size: var(--fs-eyebrow);
+  }
+  #ch-hero-card-{{ section.id }} .ch-hero-card__heading{
+    font-family: var(--font-heading-family, inherit);
+    font-weight: 800; letter-spacing:.01em; line-height:1.2;
+    font-size: clamp(var(--fs-heading-m), 2.1vw, var(--fs-heading));
+    margin:0;
+  }
+  #ch-hero-card-{{ section.id }} .ch-hero-card__sub{
+    font-size: clamp(var(--fs-sub-m), 1.6vw, var(--fs-sub));
+    margin:0; opacity:.9;
+  }
+
+  /* CTAs */
+  #ch-hero-card-{{ section.id }} .ch-hero-card__ctas{ display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.3rem; }
+  #ch-hero-card-{{ section.id }} .ch-hero-card__btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    padding:.5rem .85rem; border-radius: 999px; font-weight:700; text-decoration:none; border:2px solid transparent;
+    font-size: var(--fs-btn); line-height:1;
+  }
+  #ch-hero-card-{{ section.id }} .ch-hero-card__btn--primary{ background: var(--brand); color:#fff; }
+  #ch-hero-card-{{ section.id }} .ch-hero-card__btn--ghost{ background:transparent; color: currentColor; border-color: currentColor; }
+
+  /* Media block */
+  #ch-hero-card-{{ section.id }} .ch-hero-card__media{
+    position: relative; width:100%; height:100%;
+    display:flex; align-items:center; justify-content:flex-end;
+  }
+  #ch-hero-card-{{ section.id }} .ch-hero-card__halo{
+    position:absolute; right:8%; width: var(--halo-size); height: var(--halo-size);
+    border-radius: 999px; filter: blur(18px);
+    background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--halo-color) calc(var(--halo-strength)*100%), transparent) 0%, transparent 70%);
+    z-index:0;
+  }
+  #ch-hero-card-{{ section.id }} .ch-hero-card__img{
+    position: relative; z-index:1;
+    width: 100%; height: 100%;
+    object-fit: contain;
+    transform: translate(calc(var(--img-shift-x) * 1%), calc(var(--img-shift-y) * 1%)) scale(var(--img-scale));
+    transform-origin: center right;
+    filter: drop-shadow(0 6px 16px rgba(0,0,0,.10));
+  }
+
+  /* Flip to left image */
+  #ch-hero-card-{{ section.id }}.ch-hero-card--img-left .ch-hero-card__inner{ grid-template-columns: var(--img-col) 1fr; }
+  #ch-hero-card-{{ section.id }}.ch-hero-card--img-left .ch-hero-card__media{ justify-content:flex-start; }
+  #ch-hero-card-{{ section.id }}.ch-hero-card--img-left .ch-hero-card__img{ transform-origin: center left; }
+
+  /* Light/Dark text */
+  #ch-hero-card-{{ section.id }}.ch-hero-card--dark{ color:#111; }
+  #ch-hero-card-{{ section.id }}.ch-hero-card--light{ color:#fff; }
+  #ch-hero-card-{{ section.id }}.ch-hero-card--light .ch-hero-card__eyebrow{ background: color-mix(in srgb, var(--brand) 35%, transparent); }
+
+  /* Style variants */
+  #ch-hero-card-{{ section.id }}.ch-hero-card--style-solid .ch-hero-card__inner{ background: color-mix(in srgb, var(--brand) 12%, #fff 100%); }
+  #ch-hero-card-{{ section.id }}.ch-hero-card--style-clean .ch-hero-card__section{ background: color-mix(in srgb, var(--brand) 6%, #F5F7FB 94%); }
+
+  /* Mobile */
+  @media (max-width: 749px){
+    #ch-hero-card-{{ section.id }} .ch-hero-card__inner{
+      height: var(--card-h-m);
+      grid-template-columns: 1fr;
+    }
+    #ch-hero-card-{{ section.id }} .ch-hero-card__media{ order:-1; justify-content:center; }
+    #ch-hero-card-{{ section.id }} .ch-hero-card__img{ transform-origin:center; }
+    #ch-hero-card-{{ section.id }}.ch-hero-card--nostack .ch-hero-card__inner{
+      display:grid; grid-template-columns: 1fr var(--img-col);
+    }
+    #ch-hero-card-{{ section.id }}.ch-hero-card--nostack .ch-hero-card__media{ order:0; }
+  }
+</style>
+
+{% schema %}
+{
+  "name": "CameraHaus Hero",
+  "tag": "section",
+  "class": "section-camerahaus-hero-card",
+  "settings": [
+    { "type": "text", "id": "eyebrow", "label": "Eyebrow", "default": "CameraHaus" },
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Zero Lag. All Power." },
+    { "type": "textarea", "id": "subheading", "label": "Subtitle", "default": "Shop Now" },
+
+    { "type": "url", "id": "cta_link", "label": "Primary CTA link" },
+    { "type": "text", "id": "cta_label", "label": "Primary CTA label", "default": "Shop Now" },
+    { "type": "url", "id": "secondary_cta_link", "label": "Secondary CTA link" },
+    { "type": "text", "id": "secondary_cta_label", "label": "Secondary CTA label", "default": "Learn More" },
+
+    { "type": "image_picker", "id": "image_desktop", "label": "Side image" },
+    { "type": "image_picker", "id": "image_mobile", "label": "Mobile image (optional)" },
+    { "type": "select", "id": "image_side", "label": "Image side", "default": "right",
+      "options": [ { "value": "left", "label": "Left" }, { "value": "right", "label": "Right" } ] },
+    { "type": "checkbox", "id": "stack_mobile", "label": "Stack image on mobile (image above text)", "default": true },
+
+    { "type": "select", "id": "style_variant", "label": "Style", "default": "clean",
+      "options": [ { "value": "clean", "label": "Clean (white card)" }, { "value": "solid", "label": "Solid (brand tint)" } ] },
+
+    /* Section bg + spacing (≤101 steps) — renamed ids to avoid incompatibility */
+    { "type": "color", "id": "section_bg", "label": "Section background", "default": "#F6F8FC" },
+    { "type": "range", "id": "section_padding_y2", "label": "Section padding Y", "min": 8, "max": 80, "step": 2, "default": 16, "unit": "px" },
+
+    /* Card size/appearance — renamed ids to avoid old saved values breaking */
+    { "type": "range", "id": "card_width_px2", "label": "Card max width", "min": 560, "max": 1120, "step": 10, "default": 880, "unit": "px" },
+    { "type": "range", "id": "card_height_px2", "label": "Card height (desktop)", "min": 180, "max": 360, "step": 4, "default": 220, "unit": "px" },
+    { "type": "range", "id": "card_height_mobile_px2", "label": "Card height (mobile)", "min": 200, "max": 380, "step": 4, "default": 240, "unit": "px" },
+    { "type": "range", "id": "card_radius", "label": "Card corner radius", "min": 0, "max": 24, "step": 1, "default": 12, "unit": "px" },
+    { "type": "range", "id": "card_padding", "label": "Card inner padding", "min": 10, "max": 28, "step": 1, "default": 16, "unit": "px" },
+    { "type": "checkbox", "id": "card_border", "label": "Show card border", "default": true },
+    { "type": "color", "id": "card_border_color", "label": "Card border color", "default": "#E9EDF3" },
+    { "type": "color", "id": "card_bg", "label": "Card background", "default": "#FFFFFF" },
+    { "type": "checkbox", "id": "enable_shadow", "label": "Soft shadow", "default": true },
+
+    /* Image column + controls */
+    { "type": "range", "id": "image_width_percent", "label": "Image column width (%)", "min": 38, "max": 58, "step": 1, "default": 46, "unit": "%" },
+    { "type": "range", "id": "image_scale", "label": "Image scale (%)", "min": 90, "max": 170, "step": 2, "default": 120, "unit": "%" },
+    { "type": "range", "id": "image_shift_x", "label": "Image shift X (%)", "min": -20, "max": 20, "step": 1, "default": 6, "unit": "%" },
+    { "type": "range", "id": "image_shift_y", "label": "Image shift Y (%)", "min": -20, "max": 20, "step": 1, "default": 0, "unit": "%" },
+
+    /* Halo behind image (helps white-canvas PNG/JPGs) */
+    { "type": "checkbox", "id": "show_halo", "label": "Show spotlight halo behind image", "default": true },
+    { "type": "range", "id": "halo_size", "label": "Halo size (px)", "min": 120, "max": 360, "step": 10, "default": 220, "unit": "px" },
+    { "type": "range", "id": "halo_strength", "label": "Halo strength (%)", "min": 10, "max": 80, "step": 5, "default": 40, "unit": "%" },
+    { "type": "color", "id": "halo_color", "label": "Halo color", "default": "#FFD4D4" },
+
+    /* Type sizes (smaller defaults) */
+    { "type": "range", "id": "fs_eyebrow", "label": "Eyebrow size", "min": 10, "max": 15, "step": 1, "default": 12, "unit": "px" },
+    { "type": "range", "id": "fs_heading", "label": "Heading size (desktop)", "min": 18, "max": 28, "step": 1, "default": 22, "unit": "px" },
+    { "type": "range", "id": "fs_heading_m", "label": "Heading size (mobile)", "min": 16, "max": 26, "step": 1, "default": 20, "unit": "px" },
+    { "type": "range", "id": "fs_sub", "label": "Subtitle size (desktop)", "min": 12, "max": 16, "step": 1, "default": 14, "unit": "px" },
+    { "type": "range", "id": "fs_sub_m", "label": "Subtitle size (mobile)", "min": 12, "max": 16, "step": 1, "default": 13, "unit": "px" },
+    { "type": "range", "id": "fs_btn", "label": "Button text size", "min": 12, "max": 16, "step": 1, "default": 13, "unit": "px" },
+
+    { "type": "color", "id": "brand_color", "label": "Brand red", "default": "#D62828" },
+    { "type": "select", "id": "text_color", "label": "Text color on card", "default": "dark",
+      "options": [ { "value": "dark", "label": "Dark" }, { "value": "light", "label": "Light" } ] }
+  ],
+  "presets": [
+    { "name": "CameraHaus Hero", "category": "Banners" }
+  ]
+}
+{% endschema %}

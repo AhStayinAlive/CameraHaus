@@ -1,0 +1,60 @@
+/* =========================================
+   Global Animations
+   Unified keyframes to reduce duplication
+   ========================================= */
+
+/* Simple Spinner */
+@keyframes ch-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: ch-spin 0.7s linear infinite;
+}
+
+/* Fade Up (Standardized to 16px slide) */
+@keyframes ch-fade-up {
+    0% {
+        opacity: 0;
+        transform: translate3d(0, 16px, 0);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+.animate-fade-up {
+    animation: ch-fade-up 0.6s cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+}
+
+/* Fade In (No slide) */
+@keyframes ch-fade-in {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.animate-fade-in {
+    animation: ch-fade-in 0.4s ease forwards;
+}
+
+/* Pulse */
+@keyframes ch-pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+}

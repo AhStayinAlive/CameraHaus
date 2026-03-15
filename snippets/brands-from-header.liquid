@@ -1,0 +1,26 @@
+{%- comment -%}
+  Snippet: Brands from Header Blocks
+  Renders brand tiles from header section blocks for mega menu
+{%- endcomment -%}
+
+{%- if header_blocks and header_blocks.size > 0 -%}
+  {%- for block in header_blocks -%}
+    {%- if block.type == 'brand' -%}
+      {%- assign brand_name = block.settings.brand_name -%}
+      {%- assign brand_logo = block.settings.brand_logo -%}
+      {%- assign brand_url = block.settings.brand_url -%}
+      
+      {%- if brand_name != blank -%}
+        <a href="{{ brand_url }}" class="mmg-brandtile" data-name="{{ brand_name | downcase }}" {{ block.shopify_attributes }}>
+          {%- if brand_logo -%}
+            <img loading="lazy" src="{{ brand_logo | image_url: width: 160 }}" width="160" height="54" alt="{{ brand_name | escape }}">
+          {%- else -%}
+            <span class="mmg-brandfallback">{{ brand_name }}</span>
+          {%- endif -%}
+        </a>
+      {%- endif -%}
+    {%- endif -%}
+  {%- endfor -%}
+{%- else -%}
+  <p style="padding: 20px; color: var(--ink-2); grid-column: 1 / -1;">No brands added. Add brand blocks in Header theme settings.</p>
+{%- endif -%}

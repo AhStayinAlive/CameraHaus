@@ -1,0 +1,246 @@
+
+<section id="catc-{{ section.id }}" class="catc chb--pre" role="region" aria-labelledby="catc-heading-{{ section.id }}">
+  <div class="page-width">
+    <div class="catc__top">
+      <h2 id="catc-heading-{{ section.id }}" class="catc__heading">
+        {{ section.settings.heading | default: 'Shop by Category' }}
+      </h2>
+    </div>
+
+    <!-- Viewport -->
+    <div class="catc__viewport" aria-roledescription="carousel" aria-label="{{ section.settings.heading | default: 'Shop by Category' }}">
+      <!-- Added data-track for shared slider -->
+      <div class="catc__strip" role="list" tabindex="0" data-strip data-track>
+        {% for block in section.blocks %}
+          {% assign t = block.settings %}
+          <!-- Added data-tile for shared intro animation -->
+          <div role="listitem" class="catc__item" data-tile {{ block.shopify_attributes }}>
+            <a class="catc-chip" href="{{ t.link | default: '#' }}" aria-label="Browse {{ t.title | escape }}">
+              <span class="catc-chip__icon" aria-hidden="true">
+                {% if t.image != blank %}
+                  {{ t.image
+                    | image_url: width: 300
+                    | image_tag:
+                        widths: '180,240,300',
+                        sizes: '(max-width: 739px) 80px, (max-width: 1099px) 100px, 120px',
+                        loading: 'lazy',
+                        decoding: 'async',
+                        alt: t.title
+                  }}
+                {% else %}
+                  {{ 'image' | placeholder_svg_tag: 'catc-chip__ph' }}
+                {% endif %}
+              </span>
+              <span class="catc-chip__label">{{ t.title | escape }}</span>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+
+      {% render 'chpc-controls',
+          id: section.id,
+          show_dots: false,
+          show_arrows: true,
+          mobile_hide_arrows: true,
+          placement: 'inside' %}
+    </div>
+  </div>
+
+  <style>
+    #catc-{{ section.id }}{
+      --brand: {{ section.settings.brand | default: '#e03a2f' }};
+      --ink: #111827;
+      --gap: 32px;
+      --tile-w: clamp(88px, 10vw, 128px);
+      --icon: clamp(64px, 8vw, 110px);
+      --label-size: 14px;
+      --pad-t: {{ section.settings.pad_t | default: 24 }}px;
+      --pad-b: {{ section.settings.pad_b | default: 24 }}px;
+      padding-top: var(--pad-t);
+      padding-bottom: var(--pad-b);
+    }
+
+    /* container */
+    #catc-{{ section.id }} .page-width{ max-width:1440px; margin:0 auto; padding:0 28px; }
+    @media (max-width:739.98px){ #catc-{{ section.id }} .page-width{ padding:0 16px; } }
+
+    .catc__top{ display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0 0 8px; }
+    #catc-{{ section.id }} .catc__heading{
+      margin:0;
+      font-weight:700;
+      letter-spacing:-.01em;
+      line-height:1.15;
+      font-size:clamp(24px, 3vw + 8px, 32px);
+      color: var(--heading-color, inherit);
+      font-family: inherit;
+    }
+
+    /* viewport + strip */
+    .catc__viewport{ position:relative; }
+    .catc__strip{
+      display:flex; gap:var(--gap);
+      overflow-x:auto; padding:8px 8px 18px;
+      scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch;
+      scrollbar-width:none; align-items:flex-start;
+    }
+    .catc__strip::-webkit-scrollbar{ display:none; }
+
+    /* items */
+    .catc__item{
+      flex:0 0 auto; width:var(--tile-w); text-align:center; scroll-snap-align:center;
+      backface-visibility: hidden;
+      transform: translateZ(0);
+    }
+
+    /* chip */
+    .catc-chip{
+      display:flex; flex-direction:column; align-items:center; text-decoration:none; color:inherit;
+      gap:10px; outline:0;
+    }
+    .catc-chip__icon{
+      display:grid; place-items:center; width:var(--icon); height:var(--icon);
+      border-radius:12px;
+      /* Removed filter animations for mobile performance */
+      transition: transform .18s ease, opacity .18s ease;
+      opacity:.95;
+    }
+    .catc-chip__icon img{ width:100%; height:100%; object-fit:contain; display:block; }
+    .catc-chip__label{
+      font-size:var(--label-size); line-height:1.2; color:var(--ink);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%;
+    }
+    .catc-chip:focus-visible .catc-chip__icon,
+    .catc-chip:hover .catc-chip__icon{ transform:translateY(-2px); opacity:1; }
+    .catc-chip__ph{ background:#eef0f3; width:100%; height:100%; display:block; border-radius:12px; }
+
+    /* edge peek on mobile */
+    @media (max-width:739.98px){
+      #catc-{{ section.id }} .catc__viewport{
+        width: calc(100vw - (env(safe-area-inset-left) + env(safe-area-inset-right)));
+        margin-left: calc(50% - 50vw + env(safe-area-inset-left));
+        margin-right: calc(50% - 50vw + env(safe-area-inset-right));
+      }
+      .catc__strip{
+        padding-left:max(16px, env(safe-area-inset-left));
+        padding-right:max(16px, env(safe-area-inset-right));
+        scroll-padding-inline:max(16px, env(safe-area-inset-left));
+      }
+    }
+
+    /* === ARROWS (scoped) === */
+    #catc-{{ section.id }} .catc__viewport{ position:relative; }
+    #catc-{{ section.id }} .catc__viewport > .chpc__arrows{
+      position:absolute; top:0; right:0; bottom:0; left:0; z-index:6;
+      pointer-events: none;
+    }
+
+    #catc-{{ section.id }} .catc__viewport .chpc__arrow{
+      pointer-events:auto;
+      position:absolute; top:50%; transform:translateY(-50%);
+      width:38px; height:38px; display:grid; place-items:center;
+      background:transparent; color:var(--brand);
+      border:1.5px solid var(--brand); border-radius:9999px;
+      transition: background .15s ease, color .15s ease, transform .08s ease; cursor:pointer;
+    }
+    #catc-{{ section.id }} .catc__viewport .chpc__arrow:hover{ background:var(--brand); color:#fff; }
+    #catc-{{ section.id }} .catc__viewport .chpc__arrow:active{ transform:translateY(-50%) scale(.96); }
+    #catc-{{ section.id }} .catc__viewport .chpc__arrow[disabled]{ opacity:.35; pointer-events:none; }
+    #catc-{{ section.id }} .catc__viewport .chpc__arrow--prev{ left:-24px; }
+    #catc-{{ section.id }} .catc__viewport .chpc__arrow--next{ right:-24px; }
+
+    /* hide arrows under 1100px */
+    @media (max-width:1099.98px){
+      #catc-{{ section.id }} .catc__viewport > .chpc__arrows,
+      #catc-{{ section.id }} .catc__viewport .chpc__arrow{ display:none !important; }
+    }
+
+    /* === animation states === */
+
+    /* 1) pre-load: keep items invisible */
+    .catc.chb--pre .catc__item,
+    #catc-{{ section.id }}.catc--pre .catc__item{
+      opacity:0;
+      transform:translateY(16px);
+    }
+
+    /* 2) animating: map shared class */
+    .catc__item.chb-tile--intro,
+    .catc__item.chpc-slide--intro {
+      opacity: 0;
+      animation: ch-fade-up .42s cubic-bezier(.22,.61,.36,1) forwards;
+      will-change: transform, opacity;
+    }
+
+    /* 3) done */
+    .catc.chb--done .catc__item,
+    #catc-{{ section.id }}.catc--done .catc__item{
+      opacity:1;
+      transform:none;
+      animation:none;
+    }
+
+    /* Prefers-reduced-motion support */
+    @media (prefers-reduced-motion: reduce){
+      .catc__item.chb-tile--intro,
+      .catc__item.chpc-slide--intro { animation:none; opacity:1; transform:none; }
+      .catc.chb--pre .catc__item,
+      #catc-{{ section.id }}.catc--pre .catc__item{ opacity:1; transform:none; }
+    }
+  </style>
+
+
+
+  <script>
+  (function(){
+    function initCategorySlider(){
+      var root = document.getElementById('catc-{{ section.id }}'); if(!root) return;
+
+      // Use Shared Slider Class
+      if(typeof ChHorizontalSlider === 'undefined'){
+         console.warn("ChHorizontalSlider not loaded yet");
+         return;
+      }
+
+      new ChHorizontalSlider(root, {
+        trackSel: '[data-track]',
+        prevSel: '.chpc__arrow--prev',
+        nextSel: '.chpc__arrow--next',
+        dotsSel: null // no dots here
+      });
+
+      // Shared animation logic handles chb--pre / chpc--pre automatically
+    }
+
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', initCategorySlider);
+    } else {
+      initCategorySlider();
+    }
+  })();
+  </script>
+</section>
+
+{% schema %}
+{
+  "name": "Category Strip",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Shop by Category" },
+    { "type": "color", "id": "brand", "label": "Accent color", "default": "#e03a2f" },
+    { "type": "range", "id": "pad_t", "label": "Padding top", "min": 0, "max": 160, "step": 4, "unit": "px", "default": 24 },
+    { "type": "range", "id": "pad_b", "label": "Padding bottom", "min": 0, "max": 160, "step": 4, "unit": "px", "default": 24 }
+  ],
+  "blocks": [
+    {
+      "type": "category",
+      "name": "Category",
+      "settings": [
+        { "type": "text", "id": "title", "label": "Title", "default": "DJI Mavic" },
+        { "type": "image_picker", "id": "image", "label": "Icon image (transparent PNG on white preferred)" },
+        { "type": "url", "id": "link", "label": "Link" }
+      ]
+    }
+  ],
+  "max_blocks": 30,
+  "presets": [{ "name": "CMH · Category Strip (DJI)" }]
+}
+{% endschema %}

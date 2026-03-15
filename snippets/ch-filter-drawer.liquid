@@ -1,0 +1,1326 @@
+{%- comment -%}
+CART DRAWER — full version with inventory auto-fix on add-to-cart
+{%- endcomment -%}
+
+<style>
+  :root { --ch-cart-z: 2147483000; }
+
+  .ch-panel[data-ch-panel="cart"]{
+    --font-body:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
+    --ink:#111111;
+    --muted:#6B7280;
+    --muted-strong:#3F3F46;
+    --line:#E5E7EB;
+    --brand:#e03a2f;
+    --brand-600:#d12f24;
+    --stepper-h: 32px;
+    --heading-color:#4b5563;
+  }
+
+  /* PANEL + OVERLAY ANIMATION (match menu drawer timing/curve) */
+  .ch-panel[data-ch-panel="cart"] {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: var(--ch-cart-z) !important;
+    pointer-events: none;
+    font-family: var(--font-body);
+    overflow-x: hidden !important;
+  }
+.ch-panel[data-ch-panel="cart"][data-open] {
+  pointer-events: auto;
+}
+
+
+
+  .ch-panel[data-ch-panel="cart"] .ch-panel__ov {
+    position: absolute;
+    inset: 0;
+    z-index: calc(var(--ch-cart-z) + 1) !important;
+    background: rgba(0,0,0,.45) !important;
+    backdrop-filter: none !important;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity .22s, visibility .22s;
+  }
+  .ch-panel[data-ch-panel="cart"][data-open] .ch-panel__ov {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .ch-panel__pn{
+    z-index: calc(var(--ch-cart-z) + 2) !important;
+    width:min(430px, calc(100vw - 28px)) !important;
+    right:0; top:0; bottom:0; height:100%;
+    border-radius:0 !important;
+    background:#fff;
+    display:flex !important; flex-direction:column !important;
+    overflow:hidden !important; max-width:100% !important;
+    transform: translateX(104%); /* off-screen, like menu drawer but from right */
+    will-change: transform;
+    box-shadow: none;
+    transition: transform .32s cubic-bezier(.22,.61,.36,1),
+                box-shadow .32s ease;
+  }
+  .ch-panel[data-ch-panel="cart"][data-open] .ch-panel__pn{
+    transform: translateX(0);
+    box-shadow: 0 18px 48px rgba(0,0,0,.22);
+  }
+
+  .ch-panel[data-ch-panel="cart"] .ch-panel__hd,
+  .ch-panel[data-ch-panel="cart"] .drawer__header,
+  .ch-panel[data-ch-panel="cart"] .drawer__title{ display:none!important; }
+
+  .ch-panel[data-ch-panel="cart"] .cart-wrap{
+    display:flex !important; flex-direction:column !important;
+    height:100% !important; background:#fff;
+    overflow-x:hidden !important;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .cart-head{
+    display:flex; justify-content:space-between; align-items:center;
+    padding:14px 16px 12px; border-bottom:1px solid var(--line);
+  }
+  .ch-panel[data-ch-panel="cart"] .cart-head .cart-title{
+    margin:0;
+    font-size:18px;
+    text-transform:uppercase;
+    font-weight:600;
+    letter-spacing:.02em;
+    color: var(--heading-color, inherit) !important;
+  }
+  .ch-panel[data-ch-panel="cart"] .cart-x{
+    width:34px; height:34px; border:0; background:transparent;
+    display:grid; place-items:center; cursor:pointer; color:#1f2937;
+  }
+  .ch-panel[data-ch-panel="cart"] .cart-x svg{ width:20px; height:20px; }
+  .ch-panel[data-ch-panel="cart"] .cart-x:hover{ color:var(--brand); }
+
+  .ch-panel[data-ch-panel="cart"] .cart-alert{
+    display:none; background:#D9AC47; color:#fff;
+    padding:12px 42px 10px 14px;
+    gap:10px; align-items:center; font-size:13px;
+    position: sticky; top:0; z-index:3; flex-direction:column;
+  }
+  .ch-panel[data-ch-panel="cart"] .cart-alert.is-shown{ display:flex; }
+  .ch-panel[data-ch-panel="cart"] .cart-alert__icon{ width:20px; height:20px; display:grid; place-items:center; }
+  .ch-panel[data-ch-panel="cart"] .cart-alert__msg{ flex:1; width:100%; }
+  .ch-panel[data-ch-panel="cart"] .cart-alert__close{
+    position:absolute; top:8px; right:8px;
+    width:26px; height:26px; border:0; cursor:pointer;
+    display:grid; place-items:center; border-radius:6px;
+    background:rgba(0,0,0,.12); color:#fff;
+  }
+  .ch-panel[data-ch-panel="cart"] .cart-alert__close:hover{ background:rgba(0,0,0,.2); }
+  .ch-panel[data-ch-panel="cart"] .cart-alert__timer{
+    width:100%; height:3px; background:rgba(0,0,0,.15);
+    overflow:hidden; border-radius:2px; margin-top:6px;
+  }
+  .ch-panel[data-ch-panel="cart"] .cart-alert__timer .bar{
+    display:block; height:100%; width:100%;
+    background:rgba(255,255,255,.9);
+    transform-origin:left;
+    animation: cart-warn var(--durMs,3500ms) linear forwards;
+  }
+  @keyframes cart-warn { to { width:0%; } }
+
+  .ch-panel[data-ch-panel="cart"] .cart-body{
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+  }
+  .ch-panel[data-ch-panel="cart"] .items{
+    padding:8px 12px 12px;
+    overflow-x:hidden !important;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .it{
+    position:relative;
+    display:grid;
+    grid-template-columns:68px 1fr;
+    gap:10px;
+    padding:12px 0;
+  }
+  .ch-panel[data-ch-panel="cart"] .it + .it{ border-top:1px solid var(--line); }
+  .ch-panel[data-ch-panel="cart"] .it-img{ width:68px; height:68px; object-fit:contain; border-radius:10px; }
+  .ch-panel[data-ch-panel="cart"] .it-title{ margin:0; font-size:13px; line-height:1.25; color: var(--ink); }
+  .ch-panel[data-ch-panel="cart"] .it-variant{ font-size:11px; color:var(--muted); margin:2px 0 6px; text-transform:uppercase; }
+  .ch-panel[data-ch-panel="cart"] .it-price{ color:var(--brand); font-size:14px; }
+
+  .ch-panel[data-ch-panel="cart"] .it.is-removing{
+    animation: cart-row-out .24s ease forwards;
+    pointer-events:none;
+  }
+  @keyframes cart-row-out{
+    to{
+      transform: translateX(40px);
+      opacity: 0;
+    }
+  }
+
+  .ch-panel[data-ch-panel="cart"] .it.is-loading::before{
+    content:""; position:absolute; inset:0; background:rgba(255,255,255,.7); border-radius:10px;
+  }
+  .ch-panel[data-ch-panel="cart"] .it.is-loading::after{
+    content:""; position:absolute; top:50%; left:50%; width:26px; height:26px; margin:-13px 0 0 -13px;
+    border:2.8px solid rgba(224,58,47,.25); border-top-color: rgba(224,58,47,1);
+    border-radius:999px; animation: cartspin .55s linear infinite; z-index:3;
+  }
+  @keyframes cartspin { to { transform: rotate(360deg); } }
+
+  .ch-panel[data-ch-panel="cart"] .it-bar{ display:flex; align-items:center; gap:8px; margin-top:6px; }
+  .ch-panel[data-ch-panel="cart"] .stepper{
+    --col-w:34px;
+    display:grid !important; grid-template-columns:var(--col-w) minmax(40px,60px) var(--col-w) !important;
+    height:var(--stepper-h) !important; border:1.5px solid var(--ink); border-radius:12px; overflow:hidden;
+  }
+  .ch-panel[data-ch-panel="cart"] .stepper button,
+  .ch-panel[data-ch-panel="cart"] .stepper input{
+    display:flex !important; align-items:center !important; justify-content:center !important;
+    height:var(--stepper-h) !important;
+  }
+  .ch-panel[data-ch-panel="cart"] .stepper button{ border:0; background:#fff; font-size:15px; cursor:pointer; }
+  .ch-panel[data-ch-panel="cart"] .stepper button:first-child{ border-right:1px solid var(--ink); }
+  .ch-panel[data-ch-panel="cart"] .stepper button:last-child{ border-left:1px solid var(--ink); }
+  .ch-panel[data-ch-panel="cart"] .stepper input{
+    border:0; background:transparent; font-size:13px; width:100%; min-width:44px; text-align:center; outline:none; color: var(--ink);
+  }
+
+  .ch-panel[data-ch-panel="cart"] .icon-btn{
+    width:22px; height:22px; border:0; background:transparent;
+    display:grid; place-items:center; color:#6B7280; cursor:pointer; transition:color .15s,border-color .15s;
+  }
+  .ch-panel[data-ch-panel="cart"] .icon-btn:hover{ color:var(--brand); }
+
+  .ch-panel[data-ch-panel="cart"] .cart-ft{
+    flex:0 0 auto !important; background:#fff; border-top:1px solid var(--line);
+    padding:14px 18px 14px 14px; display:grid; gap:8px; width:100% !important; box-sizing:border-box;
+  }
+  .ch-panel[data-ch-panel="cart"] .row{ display:flex; justify-content:space-between; align-items:center; gap:16px; }
+  .ch-panel[data-ch-panel="cart"] .subtotal-lbl{ font-size:15px; font-weight:700 !important; white-space:nowrap; color:#0e0e10 !important; }
+  .ch-panel[data-ch-panel="cart"] .subtotal-val{ font-size:20px; font-weight:700 !important; line-height:1.1; white-space:nowrap; flex-shrink:0; color:#0e0e10 !important; }
+
+  .ch-panel[data-ch-panel="cart"] .fine{ font-size:12px; color: var(--muted); margin-top: 2px; }
+
+  /* BASE TOS GRAY STYLE — same tone as .fine */
+  .ch-panel[data-ch-panel="cart"] .terms,
+  .ch-panel[data-ch-panel="cart"] .terms-relentless label,
+  .ch-panel[data-ch-panel="cart"] .cart__policies label,
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree label {
+    display:inline-flex !important;
+    align-items:center;
+    gap:6px;
+    font-size:12px !important;
+    font-weight:400 !important;
+    color:var(--muted, #6B7280) !important;
+    text-transform:none !important;
+    white-space:nowrap !important;
+    margin-top:2px;
+    letter-spacing:0 !important;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .terms input{
+    margin:0;
+    accent-color:var(--brand);
+  }
+
+  .ch-panel[data-ch-panel="cart"] .cart-ft label.terms.keep{
+    display:inline-flex;
+    gap:8px;
+    align-items:center;
+    font-size:12px !important;
+    color: var(--muted-strong) !important;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .cta{ display:flex; flex-direction:column; gap:8px; width:100%; margin-top: 4px; }
+  .ch-panel[data-ch-panel="cart"] .btn{
+    display:flex; align-items:center; justify-content:center; width:100%; max-width:100%;
+    height:44px; border-radius:10px; font-size:13px; font-weight:800; letter-spacing:.08em;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .btn-outline{
+    background:#fff; border:1px solid #111; color:#111; border-radius:10px !important; font-weight:700;
+  }
+  .ch-panel[data-ch-panel="cart"] .btn-outline:hover{ background:var(--brand); border-color:var(--brand); color:#fff; font-weight:700; }
+
+  .ch-panel[data-ch-panel="cart"] .btn-solid,
+  .ch-panel[data-ch-panel="cart"] a[href*="/checkout"],
+  .ch-panel[data-ch-panel="cart"] [data-checkout],
+  .ch-panel[data-ch-panel="cart"] [name="checkout"],
+  .ch-panel[data-ch-panel="cart"] .button--checkout,
+  .ch-panel[data-ch-panel="cart"] .cart__checkout-button{
+    background:var(--brand) !important; border:1px solid var(--brand) !important; color:#fff !important;
+    height:44px !important; border-radius:10px !important; display:flex !important; align-items:center !important; justify-content:center !important; width:100% !important; max-width:100% !important; opacity:1 !important; filter:none !important;
+  }
+  .ch-panel[data-ch-panel="cart"] .btn-solid:hover,
+  .ch-panel[data-ch-panel="cart"] a[href*="/checkout"]:hover,
+  .ch-panel[data-ch-panel="cart"] [data-checkout]:hover,
+  .ch-panel[data-ch-panel="cart"] [name="checkout"]:hover,
+  .ch-panel[data-ch-panel="cart"] .button--checkout:hover,
+  .ch-panel[data-ch-panel="cart"] .cart__checkout-button:hover{
+    background:var(--brand-600) !important; border-color:var(--brand-600) !important; color:#fff !important;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .cta{ display:grid !important; gap:8px !important; }
+  .ch-panel[data-ch-panel="cart"] .cta .btn,
+  .ch-panel[data-ch-panel="cart"] .cta a{ display:flex !important; width:100% !important; max-width:100% !important; opacity:1 !important; visibility:visible !important; pointer-events:auto !important; }
+
+  .ch-panel[data-ch-panel="cart"] .cart-empty{ padding:42px 16px; display:flex; flex-direction:column; gap:14px; align-items:center; text-align:center; }
+  .ch-panel[data-ch-panel="cart"] .cart-empty svg{ width:54px; height:54px; color:#9CA3AF; }
+  .ch-panel[data-ch-panel="cart"] .cart-empty p{ margin:0; color:#6B7280; }
+  .ch-panel[data-ch-panel="cart"] .cart-empty .empty-btn{
+    display:flex; align-items:center; justify-content:center; width:100%;
+    background:var(--brand); border:1px solid var(--brand); height:44px; border-radius:10px; color:#fff; text-decoration:none;
+  }
+  .ch-panel[data-ch-panel="cart"].is-empty .cart-ft{ display:none !important; }
+
+  .ch-panel[data-ch-panel="cart"] [id*="CartDrawer-Recommendations"],
+  .ch-panel[data-ch-panel="cart"] [class*="recommendation"],
+  .ch-panel[data-ch-panel="cart"] .you-may-also-like{ display:none!important; }
+
+  .ch-panel[data-ch-panel="cart"] .cart-loading{ padding:16px 4px 8px; }
+  .ch-panel[data-ch-panel="cart"] .cart-loading-row{
+    display:grid; grid-template-columns:68px 1fr; gap:10px; padding:8px 0; align-items:center;
+  }
+  .ch-panel[data-ch-panel="cart"] .cart-loading-thumb,
+  .ch-panel[data-ch-panel="cart"] .cart-loading-line{
+    border-radius:10px;
+    background:linear-gradient(90deg,#e5e7eb 0%,#f3f4f6 40%,#e5e7eb 80%);
+    background-size:200% 100%;
+    animation: cart-skel 1.1s ease-in-out infinite;
+  }
+  .ch-panel[data-ch-panel="cart"] .cart-loading-thumb{ width:68px; height:68px; }
+  .ch-panel[data-ch-panel="cart"] .cart-loading-line{ height:12px; margin-bottom:6px; }
+  @keyframes cart-skel{ 0%{background-position:0% 0;} 100%{background-position:-200% 0;} }
+
+  .ch-panel[data-ch-panel="cart"] .terms a,
+  .ch-panel[data-ch-panel="cart"] .cart__policies label a,
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree label a {
+    display: inline !important;
+    white-space: inherit !important;
+    color: var(--muted, #6B7280) !important;
+    text-decoration: underline;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .terms input[type="checkbox"],
+  .ch-panel[data-ch-panel="cart"] .cart__policies input[type="checkbox"],
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree input[type="checkbox"] {
+    width: 12px !important;
+    height: 12px !important;
+    transform: scale(.85);
+    transform-origin: left center;
+  }
+</style>
+
+<div class="cart-wrap" data-cart-root>
+  <div class="cart-head">
+    <h3 class="cart-title">SHOPPING CART</h3>
+    <button class="cart-x" type="button" data-cart-close aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M18 6L6 18M6 6l12 12"
+          stroke="currentColor" stroke-width="1.9"
+          stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="cart-alert" data-cart-alert>
+    <div class="cart-alert__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 2 1 21h22L12 2zm0 6.5 1 6.5h-2l1-6.5zm0 9.5a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5z" fill="currentColor"/>
+      </svg>
+    </div>
+    <div class="cart-alert__msg" data-cart-alert-msg>
+      You must agree to the Terms of Service to check out.
+    </div>
+    <button type="button" class="cart-alert__close" data-cart-alert-close aria-label="Dismiss">×</button>
+    <div class="cart-alert__timer"><span class="bar"></span></div>
+  </div>
+
+  <div class="cart-body">
+    <div class="items" data-cart-items></div>
+  </div>
+
+  <div class="cart-ft">
+    <div class="row">
+      <div class="subtotal-lbl" style="color: var(--heading-color, #4b5563);">
+        Subtotal:
+      </div>
+      <div class="subtotal-val" data-cart-subtotal>—</div>
+    </div>
+
+    <div class="fine">Taxes and shipping calculated at checkout</div>
+
+    <div class="cta">
+      <a class="btn btn-outline" href="/cart">View cart</a>
+      <a class="btn btn-solid" href="/checkout" data-checkout>Check out</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const cartPanelSel = '.ch-panel[data-ch-panel="cart"]';
+    const IS_CART_PAGE = window.location.pathname.replace(/\/+$/, '') === {{ routes.cart_url | json }}.replace(/\/+$/, '');
+  const autoInventoryFixSeen = new Set();
+  let inventoryCheckInFlight = null;
+
+  let cartPanel = document.querySelector(cartPanelSel);
+  if (!cartPanel) {
+    const root = document.querySelector('[data-cart-root]');
+    if (root) {
+      const shell = document.createElement('div');
+      shell.className = 'ch-panel';
+      shell.setAttribute('data-ch-panel', 'cart');
+
+      const ov = document.createElement('div');
+      ov.className = 'ch-panel__ov';
+      ov.setAttribute('aria-hidden', 'true');
+
+      const pn = document.createElement('div');
+      pn.className = 'ch-panel__pn';
+
+      shell.appendChild(ov);
+      shell.appendChild(pn);
+      pn.appendChild(root);
+      document.body.appendChild(shell);
+      shell.dataset.teleported = 'true';
+      cartPanel = shell;
+    }
+  }
+
+  if (cartPanel && !cartPanel.dataset.teleported) {
+    document.body.appendChild(cartPanel);
+    cartPanel.dataset.teleported = 'true';
+  }
+
+  const panel      = document.querySelector(cartPanelSel);
+  if (!panel) return;
+
+  const itemsEl    = panel.querySelector('[data-cart-items]');
+  const subEl      = panel.querySelector('[data-cart-subtotal]');
+  let agree = null;
+
+  function getAgreeCheckbox() {
+    if (agree && panel.contains(agree)) return agree;
+
+    const boxes = panel.querySelectorAll(
+      '.cart-ft input[type="checkbox"], .cart__footer input[type="checkbox"], .cart__policies input[type="checkbox"], .ajaxcart__agree input[type="checkbox"]'
+    );
+    for (const cb of boxes) {
+      const label = cb.closest('label') || panel.querySelector(`label[for="${cb.id}"]`);
+      const txt = (label?.innerText || label?.textContent || '').toLowerCase();
+      if (txt.includes('terms of service') || txt.includes('terms and conditions') || txt.includes('terms of use')) {
+        agree = cb;
+        if (label) label.classList.add('terms');
+        return agree;
+      }
+    }
+
+    agree = panel.querySelector('#agree-terms');
+    return agree;
+  }
+
+  const closeBtn   = panel.querySelector('[data-cart-close]');
+  const alertBar   = panel.querySelector('[data-cart-alert]');
+  const alertMsgEl = panel.querySelector('[data-cart-alert-msg]');
+  const alertClose = panel.querySelector('[data-cart-alert-close]');
+  const overlayEl  = panel.querySelector('.ch-panel__ov');
+
+  let warnUntilTs = 0;
+  const inflightByKey = new Map();
+  let keepOpenInterval = 0;
+
+  function needTerms() {
+    const cb = getAgreeCheckbox();
+    return !!cb && !cb.checked;
+  }
+
+  const startKeepOpen = () => {
+    clearInterval(keepOpenInterval);
+    keepOpenInterval = setInterval(() => {
+      if (Date.now() < warnUntilTs && needTerms()) {
+        panel.setAttribute('data-open','');
+      } else {
+        clearInterval(keepOpenInterval);
+      }
+    }, 150);
+  };
+
+  new MutationObserver(() => {
+    if (Date.now() < warnUntilTs && needTerms() && !panel.hasAttribute('data-open')) {
+      panel.setAttribute('data-open','');
+    }
+  }).observe(panel, {attributes:true, attributeFilter:['data-open','class','style']});
+
+  const nf = new Intl.NumberFormat({{ request.locale.iso_code | json }} || 'en-PH', {
+    style:'currency',
+    currency: {{ shop.currency | json }} || 'PHP'
+  });
+  const money = c => nf.format((Number(c)||0)/100);
+  const esc = s => (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+  function showAlert(msg, durMs = 3500, opts){
+    if (!alertBar) return;
+    const ms = durMs || 3500;
+    const sticky = !!(opts && opts.sticky);
+
+    if (alertMsgEl && msg) alertMsgEl.textContent = msg;
+
+    let timer = alertBar.querySelector('.cart-alert__timer');
+    if (!timer) {
+      timer = document.createElement('div');
+      timer.className = 'cart-alert__timer';
+      timer.innerHTML = '<span class="bar"></span>';
+      alertBar.appendChild(timer);
+    } else {
+      const bar = timer.querySelector('.bar');
+      if (bar) {
+        bar.replaceWith(bar.cloneNode(true));
+      } else {
+        timer.innerHTML = '<span class="bar"></span>';
+      }
+    }
+
+    alertBar.style.setProperty('--durMs', String(ms)+'ms');
+    alertBar.classList.add('is-shown');
+    panel.setAttribute('data-open','');
+    alertBar.scrollIntoView({ block: 'start', behavior: 'smooth' });
+
+    clearTimeout(showAlert._t);
+
+    if (sticky) {
+      warnUntilTs = Date.now() + ms;
+      startKeepOpen();
+      showAlert._t = setTimeout(() => {
+        warnUntilTs = 0;
+        clearInterval(keepOpenInterval);
+        alertBar.classList.remove('is-shown');
+      }, ms);
+    } else {
+      showAlert._t = setTimeout(() => {
+        alertBar.classList.remove('is-shown');
+      }, ms);
+    }
+  }
+
+  alertClose && alertClose.addEventListener('click', () => {
+    alertBar && alertBar.classList.remove('is-shown'); warnUntilTs = 0; clearInterval(keepOpenInterval);
+  });
+
+  document.addEventListener('cart:inventory-warning', (e) => {
+    // 🔒 On the cart page, let the full-page bar handle the warning; don't open drawer
+    if (IS_CART_PAGE) return;
+
+    const detail = e && e.detail;
+    if (!detail || !detail.message) return;
+    showAlert(detail.message, 6000);
+    panel.setAttribute('data-open','');
+  });
+
+
+  function updateHeaderCount(n){
+    document.querySelectorAll('[data-cart-count]').forEach(b=>{ b.textContent = String(n||0); });
+  }
+
+  function rowTpl(line, idx){
+    const cp = Number(line.compare_at_price || 0);
+    const img = (line.image || (line.featured_image && (line.featured_image.url || line.featured_image))) || '';
+    const img224 = img.replace(/(\.(?:jpe?g|png|webp|gif))(?:\?.*)?$/i,'_224x$1');
+    const variant = (line.variant_title && line.variant_title !== 'Default Title')
+      ? `<div class="it-variant">${esc(line.variant_title)}</div>` : '';
+    return `
+      <div class="it"
+           data-line="${idx+1}"
+           data-key="${esc(line.key || '')}"
+           data-unit="${Number(line.final_price)||0}"
+           data-qty="${Number(line.quantity)||1}">
+        <img class="it-img" src="${img224}" alt="${esc(line.product_title||'')}">
+        <div>
+          <h4 class="it-title">${esc(line.product_title || line.title || '')}</h4>
+          ${variant}
+          <div>${cp>line.final_price?`<span class="it-compare">${money(cp)}</span>`:''}<span class="it-price">${money(line.final_price)}</span></div>
+          <div class="it-bar">
+            <div class="stepper">
+              <button type="button" data-dec aria-label="Decrease">−</button>
+              <input type="text" value="${line.quantity}" inputmode="numeric" data-qty-input>
+              <button type="button" data-inc aria-label="Increase">+</button>
+            </div>
+            <button class="icon-btn" type="button" title="Remove" data-remove>
+              <svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentColor" d="M6 7h12v2H6zm1 3h10l-1 10H8L7 10zm3-5h4l1 2H9l1-2z"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function setRowLoading(row, on){
+    if (!row) return;
+    row.classList.toggle('is-loading', !!on);
+  }
+
+  function showLoadingPlaceholder(){
+    if (!itemsEl) return;
+    if (itemsEl.children.length > 0) return;
+    itemsEl.innerHTML = `
+      <div class="cart-loading">
+        <div class="cart-loading-row">
+          <div class="cart-loading-thumb"></div>
+          <div>
+            <div class="cart-loading-line" style="width:70%;"></div>
+            <div class="cart-loading-line" style="width:45%;"></div>
+          </div>
+        </div>
+        <div class="cart-loading-row">
+          <div class="cart-loading-thumb"></div>
+          <div>
+            <div class="cart-loading-line" style="width:80%;"></div>
+            <div class="cart-loading-line" style="width:50%;"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function paint(cart){
+    itemsEl.innerHTML = '';
+
+    if (!cart || !cart.items || !cart.items.length){
+      itemsEl.innerHTML = `
+        <div class="cart-empty">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M16 16s-1.5-2-4-2-4 2-4 2"/>
+            <line x1="9" x2="9.01" y1="9" y2="9"/>
+            <line x1="15" x2="15.01" y1="9" y2="9"/>
+          </svg>
+          <p>Your cart is empty.</p>
+          <a class="empty-btn" href="/">Continue shopping</a>
+        </div>
+      `;
+      subEl.textContent = nf.format(0);
+      updateHeaderCount(0);
+      panel.classList.add('is-empty');
+
+      document.dispatchEvent(new CustomEvent('cart:refreshed',{detail:cart}));
+      return;
+    }
+
+    cart.items.forEach((l,i)=> itemsEl.insertAdjacentHTML('beforeend', rowTpl(l,i)) );
+    itemsEl.querySelectorAll('.it').forEach(bindRow);
+
+    subEl.textContent = nf.format((cart.items_subtotal_price||0)/100);
+    updateHeaderCount(cart.item_count || cart.items.length || 0);
+    panel.classList.remove('is-empty');
+    document.dispatchEvent(new CustomEvent('cart:refreshed',{detail:cart}));
+
+    // Immediately enforce inventory after any cart refresh
+    checkCartInventory(cart);
+  }
+
+  // VALIDATE LINES VIA /cart/change.js (no more relying on /variants)
+  function checkCartInventory(cart) {
+    if (!cart || !Array.isArray(cart.items) || !cart.items.length) return;
+    if (inventoryCheckInFlight) return;
+
+    const fixes = [];
+
+    inventoryCheckInFlight = Promise.all(
+      cart.items.map((item, idx) => {
+        const line = idx + 1;
+        const currentQty = Number(item.quantity) || 0;
+        const key = String(item.key || item.id || line);
+        const cacheKey = `${key}:${currentQty}`;
+
+        if (autoInventoryFixSeen.has(cacheKey)) {
+          return Promise.resolve();
+        }
+
+        return fetch('/cart/change.js', {
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'Accept':'application/json'
+          },
+          body: JSON.stringify({ line, quantity: currentQty })
+        })
+        .then((r) => {
+          const status = r.status;
+          return r.json().catch(() => null).then((data) => ({ status, data }));
+        })
+        .then(({ status, data }) => {
+          if (status === 422 && data && data.status === 422) {
+            const rawMsg = String(data.description || data.message || '');
+            const m = rawMsg.match(/only\s+(\d+)\s+items?/i);
+            const left = m && m[1] ? Number(m[1]) : null;
+
+            let allowed = left;
+            if (allowed == null && typeof data.available === 'number') allowed = data.available;
+            if (allowed == null && typeof data.quantity === 'number') allowed = data.quantity;
+
+            if (allowed != null && allowed !== currentQty) {
+              autoInventoryFixSeen.add(cacheKey);
+              fixes.push({
+                line,
+                quantity: Math.max(0, allowed),
+                available: allowed,
+                title: item.product_title || item.title || ''
+              });
+            }
+          }
+        })
+        .catch(() => {});
+      })
+    ).then(() => {
+      if (!fixes.length) return;
+
+      const first = fixes[0];
+      if (typeof showAlert === 'function') {
+        const msg =
+          first.available > 0
+            ? `Unfortunately we only have ${first.available} of "${first.title}" available right now. We've updated your cart.`
+            : `Unfortunately "${first.title}" is now out of stock and has been removed from your cart.`;
+        showAlert(msg, 6000);
+      }
+
+      return Promise.allSettled(
+        fixes.map(fix =>
+          fetch('/cart/change.js', {
+            method:'POST',
+            headers:{
+              'Content-Type':'application/json',
+              'Accept':'application/json'
+            },
+            body: JSON.stringify({ line: fix.line, quantity: fix.quantity })
+          }).catch(()=>{})
+        )
+      ).then(() => {
+        refresh();
+      });
+    }).finally(() => {
+      inventoryCheckInFlight = null;
+    });
+  }
+
+  function refresh(){
+    showLoadingPlaceholder();
+    fetch('/cart.js',{headers:{'Accept':'application/json'},cache:'no-store'})
+      .then(r=>r.json()).then(paint).catch(()=>{});
+  }
+
+  function setQtyForRow(row, nextQ, showLoader){
+    const key   = row.getAttribute('data-key');
+    const line  = Number(row.getAttribute('data-line')) || 1;
+    const input = row.querySelector('[data-qty-input]');
+    const prevQ = Number(row.getAttribute('data-qty')) || 0;
+
+    nextQ = Math.max(0, Number(nextQ) || 0);
+    if (nextQ === prevQ) return;
+
+    row.setAttribute('data-qty', nextQ);
+    if (input) input.value = nextQ;
+
+    const id = key || `line:${line}`;
+    if (inflightByKey.get(id)) return;
+
+    const isDelete = nextQ === 0 && !!showLoader;
+
+    inflightByKey.set(id, true);
+    if (showLoader) setRowLoading(row, true);
+
+    const payload = key
+      ? { id: key, quantity: nextQ }
+      : { line, quantity: nextQ };
+
+    fetch('/cart/change.js',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body: JSON.stringify(payload)
+    })
+    .then((r) => {
+      const status = r.status;
+      return r.json().catch(() => null).then((data) => ({ status, data }));
+    })
+    .then(({ status, data }) => {
+      inflightByKey.delete(id);
+      if (showLoader) setRowLoading(row, false);
+
+      if (status === 422 && data && data.status === 422) {
+        const rawMsg = String(data.description || data.message || '');
+        const titleEl = row.querySelector('.it-title');
+        const title = titleEl ? titleEl.textContent.trim() : '';
+        const m = rawMsg.match(/only\s+(\d+)\s+items?/i);
+        const left = m && m[1] ? m[1] : null;
+
+        let msg;
+        if (left && title) {
+          msg = `Unfortunately we only have ${left} of "${title}" available right now.`;
+        } else if (title) {
+          msg = `Unfortunately we don't have enough "${title}" in stock for that quantity.`;
+        } else {
+          msg = rawMsg || 'Unfortunately we don\u2019t have enough stock for that quantity.';
+        }
+
+        showAlert(msg, 6000);
+        refresh();
+        return;
+      }
+
+      if (isDelete && status >= 200 && status < 300) {
+        row.classList.add('is-removing');
+        row.addEventListener('animationend', () => {
+          refresh();
+        }, { once: true });
+      } else {
+        refresh();
+      }
+    })
+    .catch(() => {
+      inflightByKey.delete(id);
+      if (showLoader) setRowLoading(row, false);
+      refresh();
+    });
+  }
+
+  function bindRow(row){
+    const input = row.querySelector('[data-qty-input]');
+    const dec   = row.querySelector('[data-dec]');
+    const inc   = row.querySelector('[data-inc]');
+    const rmv   = row.querySelector('[data-remove]');
+
+    dec && dec.addEventListener('click', () => {
+      const curr = Number(row.getAttribute('data-qty')) || 0;
+      setQtyForRow(row, curr - 1);
+    });
+
+    inc && inc.addEventListener('click', () => {
+      const curr = Number(row.getAttribute('data-qty')) || 0;
+      setQtyForRow(row, curr + 1);
+    });
+
+    input && input.addEventListener('change', () => {
+      setQtyForRow(row, input.value);
+    });
+
+    rmv && rmv.addEventListener('click', () => {
+      setQtyForRow(row, 0, true);
+    });
+  }
+
+  if (document.readyState === 'complete') {
+    panel.setAttribute('data-ready','');
+  } else {
+    window.addEventListener('load', () => {
+      panel.setAttribute('data-ready','');
+    }, { once:true });
+  }
+
+  (function patchShopifyAlert(){
+    const nativeAlert = window.alert;
+    window.alert = function(msg){
+      if (needTerms() && typeof msg === 'string' && msg.toLowerCase().includes('terms of')) {
+        showAlert('You must agree to the Terms of Service to check out.', 3500, { sticky: true });
+        panel.setAttribute('data-open','');
+        return;
+      }
+      return nativeAlert.apply(window, arguments);
+    };
+  })();
+
+  function guardCheckoutAttempt(e) {
+    if (!panel.contains(e.target)) return;
+
+    const t = e.target.closest('[href*="/checkout"], [data-checkout], [name="checkout"], .button--checkout, .cart__checkout-button, form');
+    if (!t) return;
+
+    const isForm = t.tagName === 'FORM';
+    const looksCheckout =
+      (!isForm && t.matches('[href*="/checkout"], [data-checkout], [name="checkout"], .button--checkout, .cart__checkout-button')) ||
+      (isForm && (/checkout/i.test(t.action || '') || t.querySelector('[name="checkout"], .button--checkout, .cart__checkout-button')));
+
+    if (!looksCheckout) return;
+
+    if (needTerms()) {
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.();
+      warnUntilTs = Date.now() + 3500;
+      showAlert('You must agree to the Terms of Service to check out.', 3500, { sticky: true });
+      const agreeCb = getAgreeCheckbox();
+      agreeCb && agreeCb.focus({ preventScroll:false });
+      hardOpen();
+    } else {
+      warnUntilTs = 0;
+      alertBar && alertBar.classList.remove('is-shown');
+    }
+  }
+
+  ['click','submit','mousedown','touchstart'].forEach(ev => {
+    panel.addEventListener(ev, guardCheckoutAttempt, true);
+  });
+
+  const agreeCb = getAgreeCheckbox();
+  agreeCb && agreeCb.addEventListener('change', () => {
+    if (agreeCb.checked) {
+      alertBar && alertBar.classList.remove('is-shown');
+      warnUntilTs = 0;
+    }
+  });
+
+  window.unlockBodyScroll = function() {
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+    document.body.classList.remove('no-scroll','overflow-hidden','drawer-open','js-drawer-open','ch-panel-open','modal-open','scroll-locked');
+  };
+
+  function closeCart(){
+    if (Date.now() < warnUntilTs && needTerms()) {
+      const agreeCb = getAgreeCheckbox();
+      agreeCb && agreeCb.focus({ preventScroll:false });
+      showAlert('You must agree to the Terms of Service to check out.', 3500, { sticky: true });
+      panel.setAttribute('data-open','');
+      return;
+    }
+
+    panel.removeAttribute('data-open');
+    panel.classList.remove('is-open'); /* Fix for ch-panels-controller conflict */
+    if (window.CHPanels && typeof window.CHPanels.close === 'function') {
+      window.CHPanels.close('cart');
+    }
+
+    // 💡 Always release scroll when *our* cart closes
+    unlockBodyScroll();
+
+    try {
+      document.dispatchEvent(new CustomEvent('ch:panel',{detail:{name:'cart',open:false}}));
+    } catch(_){}
+
+    // Force-close native drawer
+    const native = document.querySelector('#CartDrawer, .cart-drawer');
+    if (native) {
+      native.querySelector('[data-drawer-close], .drawer__close, [data-action="close-drawer"]')?.click();
+      native.classList.remove('is-open', 'active', 'open');
+      native.removeAttribute('open');
+      native.setAttribute('aria-hidden', 'true');
+    }
+  }
+document.addEventListener('ch:panel', (e) => {
+  const d = e && e.detail;
+  if (!d) return;
+  if (d.name === 'cart' && !d.open) {
+    unlockBodyScroll();
+  }
+});
+
+  closeBtn && closeBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeCart();
+  });
+  overlayEl && overlayEl.addEventListener('click', closeCart);
+
+  const blockIfWarning = (ev) => {
+    if (Date.now() < warnUntilTs && needTerms()) {
+      ev.preventDefault(); ev.stopPropagation(); ev.stopImmediatePropagation?.();
+      panel.setAttribute('data-open',''); startKeepOpen();
+    }
+  };
+  overlayEl && overlayEl.addEventListener('click', blockIfWarning, true);
+
+  document.addEventListener('click', (e)=>{
+    if (!(Date.now() < warnUntilTs && needTerms())) return;
+    if (e.target.closest('.cart-drawer__overlay, [data-drawer-close], .drawer__close, [data-action="close-drawer"]')) {
+      blockIfWarning(e);
+    }
+  }, true);
+
+  document.addEventListener('ch:panel', (e)=>{
+    const d = e && e.detail;
+    if (d && d.name==='cart') {
+      if (d.open) {
+        panel.setAttribute('data-open','');
+        refresh();
+      } else {
+        if (Date.now() < warnUntilTs && needTerms()) { panel.setAttribute('data-open',''); startKeepOpen(); return; }
+        panel.removeAttribute('data-open');
+      }
+    }
+  });
+
+  function hardOpen(){ panel.setAttribute('data-open',''); startKeepOpen(); }
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Escape' || e.key === 'Esc') && Date.now() < warnUntilTs && needTerms()) {
+      e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.(); hardOpen();
+    }
+  }, true);
+
+/* CART BUTTON: open drawer */
+document.addEventListener('click', (e) => {
+  const trigger = e.target.closest(
+    '[data-panel-open="cart"],[data-ch-panel-open="cart"],[data-cart-open],[data-cart-trigger],.js-mini-cart,.header__icon--cart,#cart-icon-bubble,[aria-controls="CartDrawer"]'
+  );
+  if (!trigger) return;
+
+  // On the cart page, let the normal /cart link behavior run
+  if (IS_CART_PAGE) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  panel.setAttribute('data-open', '');
+  try {
+    document.dispatchEvent(new CustomEvent('ch:panel', { detail: { name: 'cart', open: true } }));
+  } catch (_) {}
+
+  refresh();
+}, true);
+
+
+
+
+
+  try {
+    if (!panel.dataset.preloaded) {
+      panel.dataset.preloaded = '1';
+      refresh();
+    }
+  } catch (e) {}
+})();
+</script>
+
+<!-- CTA HARDENER -->
+<script>
+(function(){
+  const panel = document.querySelector('.ch-panel[data-ch-panel="cart"]');
+  if (!panel) return;
+
+  function ensureCTAs(){
+    const ft = panel.querySelector('.cart-ft'); if (!ft) return;
+
+    let cta = ft.querySelector('.cta');
+    if (!cta) {
+      cta = document.createElement('div');
+      cta.className = 'cta';
+      ft.appendChild(cta);
+    }
+
+    let view = cta.querySelector('a[href="/cart"]');
+    if (!view) {
+      view = document.createElement('a');
+      view.href = '/cart';
+      view.className = 'btn btn-outline';
+      view.textContent = 'View cart';
+      cta.appendChild(view);
+    }
+
+    let go = cta.querySelector('[data-checkout], a[href*="/checkout"], [name="checkout"]');
+    if (!go) {
+      go = document.createElement('a');
+      go.href = '/checkout';
+      go.setAttribute('data-checkout','');
+      go.className = 'btn btn-solid';
+      go.textContent = 'Check out';
+      cta.appendChild(go);
+    }
+
+    cta.removeAttribute('hidden');
+    cta.style.display = 'grid';
+    [view, go].forEach(el => { el.style.display = 'flex'; el.style.width = '100%'; });
+  }
+
+  ensureCTAs();
+  document.addEventListener('cart:refreshed', ensureCTAs);
+
+  const ft = panel.querySelector('.cart-ft');
+  if (ft) {
+    new MutationObserver(()=>ensureCTAs()).observe(ft, { childList:true, subtree:true });
+  }
+})();
+</script>
+
+<!-- CART: GLOBAL HOTFIX (theme.liquid before </body>) -->
+<style id="cart-hotfix">
+  .ch-panel[data-ch-panel="cart"] .ch-panel__ov,
+  .cart-drawer__overlay{ z-index: 999990 !important; }
+  .ch-panel[data-ch-panel="cart"] .ch-panel__pn,
+  #CartDrawer, .cart-drawer{
+    z-index: 999991 !important;
+    width:min(520px, calc(100vw - 44px)) !important;
+    border-radius:0 !important;
+    overflow-x:hidden !important;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .ch-panel__hd,
+  .ch-panel[data-ch-panel="cart"] .drawer__header,
+  .ch-panel[data-ch-panel="cart"] .drawer__title{ display:none !important; }
+
+  .ch-panel[data-ch-panel="cart"] .it-title{ text-transform:none !important; }
+
+  .ch-panel[data-ch-panel="cart"] .stepper,
+  #CartDrawer .quantity, .cart-drawer .quantity{
+    display:grid !important; grid-template-columns:32px 40px 32px !important; height:34px !important;
+    border:1px solid #111 !important; border-radius:10px !important; overflow:hidden !important;
+  }
+  .ch-panel[data-ch-panel="cart"] .stepper input,
+  #CartDrawer .quantity__input, .cart-drawer .quantity__input{ border:0 !important; background:transparent !important; text-align:center !important; font-size:13px !important; }
+  .ch-panel[data-ch-panel="cart"] .stepper button,
+  #CartDrawer .quantity__button, .cart-drawer .quantity__button{ border:0 !important; background:#fff !important; color:#111 !important; }
+  .ch-panel[data-ch-panel="cart"] .stepper .plus,
+  #CartDrawer .quantity__button:last-child,
+  .cart-drawer .quantity__button:last-child{ background:#111 !important; color:#fff !important; }
+  .ch-panel[data-ch-panel="cart"] .stepper button:hover,
+  #CartDrawer .quantity__button:hover,
+  .cart-drawer .quantity__button:hover{ color:#e03a2f !important; }
+  #CartDrawer .quantity__button:last-child:hover,
+  .cart-drawer .quantity__button:last-child:hover{ background:#e03a2f !important; color:#fff !important; }
+
+  .ch-panel[data-ch-panel="cart"] .icon-btn,
+  .ch-panel[data-ch-panel="cart"] [data-cart-close]{ transition:color .15s,border-color .15s; }
+  .ch-panel[data-ch-panel="cart"] .icon-btn:hover{ color:#e03a2f !important; }
+  .ch-panel[data-ch-panel="cart"] [data-cart-close]:hover{ color:#e03a2f !important; border-color:#e03a2f !important; }
+
+  .ch-panel[data-ch-panel="cart"] input[type="checkbox"]{
+    accent-color:#e03a2f !important;
+  }
+
+  #CartDrawer a[href="/cart"],
+  .cart-drawer a[href="/cart"],
+  .ch-panel[data-ch-panel="cart"] a[href="/cart"]{
+    background:#fff !important; color:#111 !important; border:1px solid #111 !important; border-radius:10px !important;
+  }
+  #CartDrawer a[href="/cart"]:hover,
+  .cart-drawer a[href="/cart"]:hover,
+  .ch-panel[data-ch-panel="cart"] a[href="/cart"]:hover{
+    background:#e03a2f !important; border-color:#e03a2f !important; color:#fff !important;
+  }
+
+  #CartDrawer [name="checkout"],
+  .cart-drawer [name="checkout"],
+  .ch-panel[data-ch-panel="cart"] [name="checkout"],
+  #CartDrawer a[href*="/checkout"],
+  .cart-drawer a[href*="/checkout"],
+  .ch-panel[data-ch-panel="cart"] a[href*="/checkout"],
+  #CartDrawer .button--checkout,
+  .cart-drawer .button--checkout,
+  .ch-panel[data-ch-panel="cart"] .button--checkout,
+  #CartDrawer .cart__checkout-button,
+  .cart-drawer .cart__checkout-button,
+  .ch-panel[data-ch-panel="cart"] .cart__checkout-button{
+    background:#e03a2f !important; border:1px solid #e03a2f !important; color:#fff !important;
+    height:44px !important; border-radius:10px !important; display:flex !important; align-items:center !important; justify-content:center !important; width:100% !important; max-width:100% !important; opacity:1 !important; filter:none !important;
+    text-transform: none !important; letter-spacing:.02em !important; font-weight:800 !important;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .cart-title{
+    font-weight:800 !important;
+    color: var(--heading-color, inherit) !important;
+  }
+  .ch-panel[data-ch-panel="cart"] .subtotal-lbl{ font-weight:700 !important; }
+  .ch-panel[data-ch-panel="cart"] .subtotal-val{ font-weight:700 !important; }
+  .ch-panel[data-ch-panel="cart"] .it-title{ font-weight:600 !important; }
+  .ch-panel[data-ch-panel="cart"] .btn{ font-weight:800 !important; }
+
+  .ch-panel[data-ch-panel="cart"] .cart__policies,
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree{
+    margin-top:4px;
+  }
+
+  /* TOS gray, one-line text */
+  .ch-panel[data-ch-panel="cart"] .terms,
+  .ch-panel[data-ch-panel="cart"] .cart__policies label,
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree label {
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-size:12px !important;
+    font-weight:400 !important;
+    color: var(--muted, #6B7280) !important;
+    text-transform:none !important;
+    white-space:nowrap;
+    margin-top:4px;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .cart__policies label a,
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree label a{
+    color: var(--muted, #6B7280) !important;
+    text-decoration: underline;
+    text-transform:none !important;
+  }
+
+  .ch-panel[data-ch-panel="cart"] .terms input[type="checkbox"],
+  .ch-panel[data-ch-panel="cart"] .cart__policies input[type="checkbox"],
+  .ch-panel[data-ch-panel="cart"] .ajaxcart__agree input[type="checkbox"] {
+    margin:0 !important;
+    width:14px !important;
+    height:14px !important;
+    accent-color: var(--brand) !important;
+    flex-shrink:0;
+  }
+  .ch-panel[data-ch-panel="cart"] .cart-body{
+  flex:1 1 auto !important;
+  min-height:0 !important;
+  overflow-y:auto !important;
+  overflow-x:hidden !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+</style>
+
+<script id="cart-hotfix-js">
+(function(){
+  const CURRENCY = {{ shop.currency | json }} || "PHP";
+  const LOCALE   = {{ request.locale.iso_code | json }} || "en-PH";
+  const money = (c) => new Intl.NumberFormat(LOCALE,{style:'currency',currency:CURRENCY}).format((+c||0)/100);
+
+  function $panel(){
+    return document.querySelector('.ch-panel[data-ch-panel="cart"]') ||
+           document.querySelector('#CartDrawer') ||
+           document.querySelector('.cart-drawer');
+  }
+
+  function refresh(){
+    fetch('/cart.js',{headers:{'Accept':'application/json'},cache:'no-store'})
+      .then(r=>r.json())
+      .then(cart=>{
+        const p = $panel(); if (!p) return;
+        const sub = p.querySelector('[data-cart-subtotal]') || p.querySelector('[data-cart-subtotal-price]');
+        if (sub) sub.textContent = money(cart.items_subtotal_price||0);
+        document.dispatchEvent(new CustomEvent('cart:refreshed',{detail:cart}));
+      }).catch(()=>{});
+  }
+
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest('.stepper [data-inc], .stepper [data-dec], [data-remove], .quantity__button');
+    if (!btn) return;
+
+    if (btn.closest('.ch-panel[data-ch-panel="cart"]')) return;
+
+    const row = btn.closest('[data-key]') || btn.closest('[data-line]') || btn.closest('[data-cart-item]');
+    const qtyInput = row && (row.querySelector('[data-qty]') || row.querySelector('.quantity__input'));
+    if (!row || !qtyInput) return;
+
+    e.preventDefault(); e.stopPropagation();
+
+    let q = parseInt(qtyInput.value, 10) || 0;
+    if (btn.matches('[data-inc], .quantity__button:last-child')) q++;
+    else if (btn.matches('[data-dec], .quantity__button:first-child')) q = Math.max(0, q - 1);
+    else if (btn.hasAttribute('data-remove')) q = 0;
+
+    const key  = row.getAttribute('data-key');
+    const line = parseInt(row.getAttribute('data-line') || '1', 10);
+
+    const payload = key ? { id: key, quantity: q } : { line, quantity: q };
+
+    fetch('/cart/change.js', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body: JSON.stringify(payload)
+    })
+    .then((r) => {
+      const status = r.status;
+      return r.json().catch(() => null).then((data) => ({ status, data }));
+    })
+    .then(({ status, data }) => {
+      if (status === 422 && data && data.status === 422) {
+        const rawMsg = String(data.description || data.message || '');
+        const panelEl = $panel();
+        let title = '';
+
+        if (row) {
+          const titleEl =
+            row.querySelector('[data-cart-item-title]') ||
+            row.querySelector('.cart-item__name') ||
+            row.querySelector('.product__description__name') ||
+            row.querySelector('.cart__meta h2') ||
+            row.querySelector('.cart__product-title');
+          if (titleEl) title = titleEl.textContent.trim();
+        }
+
+        const m = rawMsg.match(/only\s+(\d+)\s+items?/i);
+        const left = m && m[1] ? m[1] : null;
+
+        let msg;
+        if (left && title) {
+          msg = `Unfortunately we only have ${left} of "${title}" available right now.`;
+        } else if (title) {
+          msg = `Unfortunately we don't have enough "${title}" in stock for that quantity.`;
+        } else {
+          msg = rawMsg || 'Unfortunately we don\u2019t have enough stock for that quantity.';
+        }
+
+        try {
+          document.dispatchEvent(new CustomEvent('cart:inventory-warning', { detail: { message: msg } }));
+        } catch (_){}
+
+        if (!panelEl || !panelEl.querySelector('[data-cart-alert]')) {
+          window.alert(msg);
+        }
+
+        refresh();
+        return;
+      }
+
+      refresh();
+    })
+    .catch(() => refresh());
+  }, true);
+
+
+
+  document.addEventListener('ch:panel', (e)=>{ const d=e.detail||{}; if(d.name==='cart' && d.open) refresh(); });
+})();
+</script>
+<script>
+(function(){
+  const cartPanel = document.querySelector('.ch-panel[data-ch-panel="cart"]');
+  if (!cartPanel) return;
+
+  function fullyUnlockScroll() {
+    // Clear inline locks
+    document.documentElement.style.overflow = '';
+    document.documentElement.style.position = '';
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+
+    // Remove common lock classes used by themes / drawers
+    const classes = [
+      'no-scroll',
+      'overflow-hidden',
+      'drawer-open',
+      'js-drawer-open',
+      'modal-open',
+      'scroll-locked',
+      'ch-panel-open'
+    ];
+    classes.forEach(c => document.body.classList.remove(c));
+  }
+
+  function syncScrollLock() {
+    // If no panel is open at all, scrolling should be free
+    const anyOpen = document.querySelector('.ch-panel[data-open]');
+    if (!anyOpen) fullyUnlockScroll();
+  }
+
+  // Watch the cart panel's open/close state
+  new MutationObserver(muts => {
+    for (const m of muts) {
+      if (m.attributeName === 'data-open') {
+        syncScrollLock();
+      }
+    }
+  }).observe(cartPanel, { attributes: true });
+
+  // Also react to global ch:panel events
+  document.addEventListener('ch:panel', (e) => {
+    const d = e && e.detail;
+    if (!d) return;
+    if (d.name === 'cart' && !d.open) {
+      syncScrollLock();
+    }
+  });
+
+  // Safety: on load, if nothing is open, ensure scroll is unlocked
+  syncScrollLock();
+})();
+</script>

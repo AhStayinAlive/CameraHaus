@@ -1,0 +1,366 @@
+/* ================================
+   Customer Auth – Base Styles
+   Used by: Login, Register, Recover, etc.
+   ================================ */
+
+/* Optional outer wrapper if you want to use it:
+   <div class="customer-auth"> ... </div>
+*/
+.customer-auth {
+  min-height: 60vh;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 0;
+}
+
+/* Card container for forms */
+.auth-card {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+/* Generic text centering helper */
+.text-center {
+  text-align: center;
+}
+
+/* Visually hidden text (for a11y only) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Main title for Login / Register / Recover pages */
+.auth-title {
+  margin: 0 0 24px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  line-height: 1.15;
+  font-size: clamp(24px, 3vw + 8px, 32px);
+  color: var(--heading-color, inherit);
+  font-family: inherit;
+  text-align: center;
+}
+
+/* Form container */
+.auth-form {
+  width: 100%;
+}
+
+/* Field blocks */
+.auth-form .form-field {
+  margin-bottom: 16px;
+}
+
+/* Labels */
+.auth-form label {
+  display: block;
+  font-size: 14px;
+  line-height: 1.2;
+  margin: 0 0 6px;
+  font-weight: 500;
+}
+
+/* Required marker */
+.auth-form label.required::after {
+  content: " *";
+  color: #e11d2a;
+}
+
+/* Inputs (email, password, text, etc.) */
+.auth-form input[type="email"],
+.auth-form input[type="password"],
+.auth-form input[type="text"],
+.auth-form input[type="tel"] {
+  width: 100%;
+  height: 44px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  padding: 0 12px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: #bdbdbd;
+  box-shadow: 0 0 0 2px rgba(226, 61, 45, 0.15);
+}
+
+/* Links inside auth forms */
+.auth-form a {
+  color: #6b7280;
+  text-decoration: underline;
+}
+
+.auth-form a:hover {
+  color: #4b5563;
+}
+
+/* "Forgot password?" link spacing */
+.auth-form .forgot-link {
+  margin: 8px 0 16px;
+}
+
+/* Primary buttons inside auth card */
+.auth-card .btn {
+  display: inline-block;
+  width: 100%;
+  height: 48px;
+  border: 0;
+  border-radius: 8px;
+  background: #e23d2d;
+  color: #fff;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.auth-card .btn:hover {
+  opacity: .95;
+}
+
+/* Small text row under button:
+   - Login form: "New customer? Create your account"
+   - Register form: "Already have an account? Sign in"
+*/
+.auth-form .new-customer {
+  margin-top: 14px;
+  font-size: 14px;
+}
+
+/* Success + error states */
+.form-success {
+  background: #f0fff4;
+  color: #1b5e20;
+  border: 1px solid #c8e6c9;
+  padding: 10px 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.errors,
+.form-message--error {
+  background: #fff5f5;
+  color: #b00020;
+  border: 1px solid #ffcdd2;
+  padding: 10px 12px;
+  border-radius: 4px;
+  margin: 0 0 16px;
+}
+
+/* Input error border */
+.input--error {
+  border-color: #ff6b6b;
+}
+
+/* Generic hide helper (used by Shopify) */
+.hide {
+  display: none;
+}
+/* ============================
+   Generic Customer Page Layout
+   ============================ */
+
+.customer-page {
+  padding-top: 32px;
+  padding-bottom: 40px;
+}
+
+.customer-page-title {
+  margin: 0 0 24px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  line-height: 1.15;
+  font-size: clamp(24px, 3vw + 8px, 32px);
+  color: var(--heading-color, inherit);
+}
+
+/* You can reuse the same style as .auth-title if you want:
+.auth-title,
+.customer-page-title { ... }
+*/
+
+/* Card container for account/order sections */
+.customer-card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 20px 24px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.04);
+  margin-bottom: 24px;
+}
+
+/* Secondary sidebar card can be a bit tighter if you like */
+.customer-card--side {
+  padding: 16px 20px;
+}
+
+/* Section headings inside cards (h2/h3) */
+.customer-section-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+/* Subtext like order date */
+.customer-subtext {
+  margin: 0 0 16px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Notes (cancelled order, fulfillment info, etc.) */
+.customer-card .note {
+  background: #f9fafb;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 12px;
+}
+
+/* ============================
+   Order Table
+   ============================ */
+
+.order-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 14px;
+}
+
+.order-table thead th {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.order-table tbody td,
+.order-table tbody th[scope="row"],
+.order-table tfoot th,
+.order-table tfoot td {
+  padding: 10px 8px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.order-table__product {
+  text-align: left;
+}
+
+.order-table__product a {
+  text-decoration: none;
+  color: inherit;
+}
+
+.order-table__product a:hover {
+  text-decoration: underline;
+}
+
+/* Discount styling */
+.order-discount {
+  color: #b91c1c;
+  font-weight: 500;
+}
+
+.order-discount--list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.order-discount__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+
+/* Return link at bottom */
+.full-width--return-link {
+  margin-top: 24px;
+}
+
+.return-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  text-decoration: none;
+  color: #4b5563;
+}
+
+.return-link:hover {
+  color: #111827;
+  text-decoration: underline;
+}
+
+/* Optional: align right numeric columns */
+.order-table .text-right {
+  text-align: right;
+}
+
+/* ============================
+   Mobile tweaks
+   ============================ */
+
+@media (max-width: 749px) {
+  .customer-page {
+    padding-top: 20px;
+    padding-bottom: 24px;
+  }
+
+  .order-table thead {
+    display: none;
+  }
+
+  .order-table tbody tr,
+  .order-table tfoot tr {
+    display: block;
+    padding: 10px 10px;
+    margin-bottom: 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+  }
+
+  .order-table tbody td,
+  .order-table tbody th[scope="row"],
+  .order-table tfoot th,
+  .order-table tfoot td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: none;
+    padding: 4px 0;
+  }
+
+  .order-table tbody td[data-label]::before,
+  .order-table tfoot td[data-label]::before {
+    content: attr(data-label);
+    font-weight: 500;
+    font-size: 12px;
+    color: #6b7280;
+    margin-right: 8px;
+  }
+
+  .order-table__product {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .order-table__product div {
+    width: 100%;
+  }
+}

@@ -1,4 +1,4 @@
-{%- liquid 
+{%- liquid
   assign media         = product.featured_media | default: product.featured_image
   assign second_media  = product.media[1] | default: product.images[1]
   assign available     = product.available
@@ -13,6 +13,10 @@
     assign is_range = true
   endif
 
+  assign rating_count = product.metafields.reviews.rating_count.value | default: product.metafields.okendo.review_count | default: 0
+  assign rating_val_obj = product.metafields.reviews.rating.value
+  assign rating_val = rating_val_obj.rating | default: rating_val_obj | default: product.metafields.okendo.average_rating | default: 0
+
   assign compare_val = 0
   assign pct_save    = 0
   assign save_amt    = 0
@@ -22,20 +26,24 @@
     assign pct_save    = save_amt | times: 100.0 | divided_by: compare_val | floor
   endif
 
-  assign min_no_dec     = price_min | money_without_currency | split: '.' | first
-  assign max_no_dec     = price_max | money_without_currency | split: '.' | first
-  assign range_compact  = '₱' | append: min_no_dec | append: '<wbr>–<wbr>' | append: max_no_dec
-
-  assign current_min_text = price_min | money_without_trailing_zeros
-  assign current_price_text = current_min_text
-
-  assign compare_text_long  = ''
-  assign compare_text_short = ''
-  if compare_val > 0
-    assign compare_text_long  = compare_val | money_without_trailing_zeros
-    assign compare_text_short = compare_text_long | split: '.' | first
+  assign vendor_clean = product.vendor | strip
+  assign title_clean  = product.title  | strip
+  if vendor_clean != blank
+    assign vendor_space = vendor_clean | append: ' '
+    assign vendor_dash  = vendor_clean | append: ' - '
+    assign vendor_mdash = vendor_clean | append: ' — '
+    assign vendor_colon = vendor_clean | append: ': '
+    assign vendor_pipe  = vendor_clean | append: ' | '
+    assign title_clean = title_clean | replace_first: vendor_space, '' | replace_first: vendor_dash, '' | replace_first: vendor_mdash, '' | replace_first: vendor_colon, '' | replace_first: vendor_pipe, '' | strip
   endif
 
+  assign current_price_text = price_min | money_without_trailing_zeros
+  assign compare_text_long  = ''
+  if compare_val > 0
+    assign compare_text_long = compare_val | money_without_trailing_zeros
+  endif
+
+  # ---- misc flags from tags / metafields ----
   assign badge_forced = product.metafields.camerahaus.badge | default: ''
   assign tag_str      = product.tags | join: ',' | downcase
   assign has_bundle   = false
@@ -51,46 +59,7 @@
     assign has_best = true
   endif
 
-  assign badge_label = ''
-  if badge_forced != ''
-    assign badge_label = badge_forced
-  elsif compare_val > 0
-    assign badge_label = '-' | append: pct_save | append: '%'
-  elsif has_bundle
-    assign badge_label = 'Bundle'
-  elsif has_new
-    assign badge_label = 'New'
-  elsif has_best
-    assign badge_label = 'Bestseller'
-  endif
-
-  assign vendor_norm   = product.vendor | to_s | strip | downcase
-  assign vendor_len    = vendor_norm | size
-  assign clean_title   = product.title | to_s | strip
-  assign title_prefix  = clean_title | downcase | slice: 0, vendor_len
-  assign display_title = clean_title
-  if vendor_len > 0 and title_prefix == vendor_norm
-    assign display_title = clean_title | slice: vendor_len, 9999 | lstrip
-    assign display_title = display_title | remove_first: ': ' | remove_first: '– ' | remove_first: '- '
-  endif
-  assign paren_vendor        = '(' | append: product.vendor
-  assign paren_vendor_lower  = '(' | append: vendor_norm
-  assign display_title       = display_title | replace: paren_vendor, '(' | replace: paren_vendor_lower, '('
-
-  assign qv_id = 'qv-template-' | append: product.id
-
-  assign gallery_images = product.images
-  assign gallery_count  = gallery_images | size
-  assign has_second = false
-  if second_media
-    assign has_second = true
-  endif
-
-  assign save_money_str = ''
-  if compare_val > 0
-    assign save_money_str = save_amt | money_without_trailing_zeros
-  endif
-
+  # ---- inventory info ----
   assign inv_tracked = false
   assign inv_qty     = 0
   if v and v.inventory_management and v.inventory_management != ''
@@ -98,438 +67,480 @@
     assign inv_qty     = v.inventory_quantity | default: 0
   endif
 
-  assign stock_str = ''
+  # ===========================================================
+  # BADGE DECISION: choose the most attractive pill to show
+  # - sale pill when discount is attractive enough
+  # - stock pill when low quantity is more persuasive
+  # ===========================================================
+  assign MIN_SALE_PCT = 8     
+  assign THRESH_3LEFT = 15 
+  assign THRESH_2LEFT = 25   
+  assign THRESH_1LEFT = 40    
+
+  assign badge_kind = ''       
+  assign badge_text = ''
+  assign stock_state = ''   
+
   if available == false
-    assign badge_label = 'Sold out'
+    assign badge_kind = 'stock'
+    assign badge_text = 'Out of stock'
+    assign stock_state = 'is-out'
   else
-    if inv_tracked and inv_qty > 0 and inv_qty <= 5
-      assign stock_str = inv_qty | append: ' stocks left'
-    endif
-    assign badge_combined = badge_label
-    if badge_combined == '' and stock_str != ''
-      assign badge_combined = stock_str
-    elsif badge_combined != '' and stock_str != ''
-      assign badge_combined = badge_combined | append: ' | ' | append: stock_str
-    endif
-    if badge_combined != ''
-      assign tmp_badge = badge_combined
-      assign tmp_len = tmp_badge | size
-      if tmp_len > 28
-        assign tmp_badge = tmp_badge | replace: ' stocks left', ' left'
+    if inv_tracked and inv_qty > 0 and inv_qty <= 3
+      assign stock_threshold = THRESH_3LEFT
+      if inv_qty == 2
+        assign stock_threshold = THRESH_2LEFT
       endif
-        assign badge_label = tmp_badge
+      if inv_qty == 1
+        assign stock_threshold = THRESH_1LEFT
+      endif
+
+      if pct_save >= stock_threshold
+        assign badge_kind = 'sale'
+        assign badge_text = '−' | append: pct_save | append: '%'
+      else
+        assign badge_kind = 'stock'
+        assign badge_text = inv_qty | append: ' left'
+        assign stock_state = 'is-crit'
+      endif
+    else
+      if pct_save >= MIN_SALE_PCT
+        assign badge_kind = 'sale'
+        assign badge_text = '−' | append: pct_save | append: '%'
+      endif
     endif
   endif
 
-  assign rating_val = 0
-  assign rating_count = 0
-  if product.metafields.reviews.rating.value
-    assign rating_val = product.metafields.reviews.rating.value | round: 1
-  elsif product.metafields.reviews.rating
-    assign rating_val = product.metafields.reviews.rating | round: 1
+  # ---- (compat) legacy variables so existing markup won't break ----
+  assign show_stock_badge = false
+  assign stock_badge = ''
+  if badge_kind == 'stock'
+    assign show_stock_badge = true
+    assign stock_badge = badge_text
   endif
-  if product.metafields.reviews.rating_count
-    assign rating_count = product.metafields.reviews.rating_count | plus: 0
-  endif
-  assign rating_full = rating_val | floor
+
+  assign product_url = product.url
+
 -%}
 
-<article class="ch-card ch-card--elev" data-product-id="{{ product.id }}">
-  <a class="ch-card__overlay" href="{{ product.url }}" aria-label="View {{ product.title | escape }}"></a>
+
+
+
+<article class="ch-card ch-card--elev"
+  data-product-id="{{ product.id }}"
+  data-product-url="{{ product_url }}"
+  data-product-title="{{ title_clean | escape }}">
+
+  
+  <a
+    class="ch-card__overlay"
+    href="{{ product_url }}"
+    data-product-url="{{ product_url }}"
+    aria-label="View {{ product.title | escape }}">
+  </a>
 
   <!-- MEDIA -->
   <div class="ch-card__mediawrap">
-    <a class="ch-card__media {% if has_second %}has-hover{% endif %}" href="{{ product.url }}" aria-label="{{ product.title | escape }}" data-media-link>
+    <a
+      class="ch-card__media{% if second_media %} has-alt{% endif %}"
+      href="{{ product_url }}"
+      data-product-url="{{ product_url }}"
+      aria-label="{{ product.title | escape }}"
+      data-media-link>
+      
       {% if media %}
-        <img class="ch-card__img ch-card__img--base"
-             src="{{ media | image_url: width: 900 }}"
-             srcset="{{ media | image_url: width: 540 }} 540w, {{ media | image_url: width: 720 }} 720w, {{ media | image_url: width: 900 }} 900w, {{ media | image_url: width: 1200 }} 1200w"
+        <!-- Primary -->
+        <img class="ch-card__img"
+             src="{{ media | image_url: width: 600 }}"
+             srcset="{{ media | image_url: width: 160 }} 160w, {{ media | image_url: width: 240 }} 240w, {{ media | image_url: width: 300 }} 300w, {{ media | image_url: width: 400 }} 400w, {{ media | image_url: width: 600 }} 600w"
              sizes="(min-width:1100px) 22vw, (min-width:768px) 30vw, 46vw"
              alt="{{ product.title | escape }}"
-             loading="lazy" decoding="async" width="{{ media.width }}" height="{{ media.height }}" data-img-base>
-        {% if has_second %}
-          <img class="ch-card__img ch-card__img--hover"
-               src="{{ second_media | image_url: width: 900 }}"
-               srcset="{{ second_media | image_url: width: 540 }} 540w, {{ second_media | image_url: width: 720 }} 720w, {{ second_media | image_url: width: 900 }} 900w, {{ second_media | image_url: width: 1200 }} 1200w"
+             loading="lazy" decoding="async"
+             width="{{ media.width }}" height="{{ media.height }}"
+             data-img-main
+             onload="this.closest('.ch-card__media')?.setAttribute('data-loaded','true')"
+             onerror="this.closest('.ch-card__media')?.setAttribute('data-loaded','true')">
+
+        {% if second_media %}
+          <!-- Secondary: shows on hover (desktop only) -->
+          <img class="ch-card__img ch-card__img--alt"
+               src="{{ second_media | image_url: width: 600 }}"
+               srcset="{{ second_media | image_url: width: 160 }} 160w, {{ second_media | image_url: width: 240 }} 240w, {{ second_media | image_url: width: 300 }} 300w, {{ second_media | image_url: width: 400 }} 400w, {{ second_media | image_url: width: 600 }} 600w"
                sizes="(min-width:1100px) 22vw, (min-width:768px) 30vw, 46vw"
-               alt="{{ product.title | escape }}"
-               loading="lazy" decoding="async" data-img-hover>
-        {% endif %}
-
-        {% if badge_label != '' %}
-          <span class="ch-badge ch-badge--ribbon" aria-hidden="true" title="{{ badge_label | escape }}">{{ badge_label }}</span>
-        {% endif %}
-
-        {% if gallery_count > 1 %}
-          <div class="ch-media-scrim" aria-hidden="true"></div>
-          <div class="ch-thumbs ch-thumbs--overlay" role="radiogroup" aria-label="Browse photos" data-thumbs>
-            {% for im in gallery_images limit: 6 %}
-              <button type="button"
-                      class="ch-thumb"
-                      role="radio"
-                      aria-checked="{% if forloop.first %}true{% else %}false{% endif %}"
-                      data-gallery-src="{{ im | image_url: width: 900 }}"
-                      data-gallery-srcset="{{ im | image_url: width: 540 }} 540w, {{ im | image_url: width: 720 }} 720w, {{ im | image_url: width: 900 }} 900w, {{ im | image_url: width: 1200 }} 1200w"
-                      data-gallery-sizes="(min-width:1100px) 22vw, (min-width:768px) 30vw, 46vw">
-                <img src="{{ im | image_url: width: 120 }}" alt="Image {{ forloop.index }}">
-                <span class="sr-only">Image {{ forloop.index }}</span>
-              </button>
-            {% endfor %}
-            {% if gallery_count > 4 %}
-              <a href="{{ product.url }}"
-                 class="ch-thumb ch-thumb--more"
-                 aria-label="See {{ gallery_count | minus: 4 }} more images">
-                <span>+{{ gallery_count | minus: 4 }}</span>
-              </a>
-            {% endif %}
-          </div>
+               alt="{{ product.title | escape }} — alternate view"
+               loading="lazy" decoding="async" aria-hidden="true">
         {% endif %}
       {% else %}
         {{ 'image' | placeholder_svg_tag: 'ch-card__ph' }}
       {% endif %}
     </a>
-  </div>
+
+
+<!-- BADGES (top-left) – unified -->
+<div class="ch-badgestack-left">
+  {% if badge_kind != '' %}
+    <span class="ch-badge ch-badge--pill {% if badge_kind == 'stock' %}is-stock{% else %}is-sale{% endif %} {{ stock_state }}">
+      {{ badge_text }}
+    </span>
+  {% endif %}
+</div>
+
+
+    <!-- ACTIONS (fixed top-right:quick view) -->
+    <div class="ch-actions-tr">
+      <button
+        type="button"
+        class="ch-iconbtn ch-iconbtn--qv"
+        data-standalone-qv
+        data-product-handle="{{ product.handle }}"
+        data-product-url="{{ product_url }}"
+        aria-label="Quick view {{ product.title | escape }}"
+        aria-describedby="tt-qv-{{ product.id }}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+             viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        <span id="tt-qv-{{ product.id }}" class="ch-pop" role="tooltip">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+               stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span>Quick view</span>
+        </span>
+      </button>
+    </div>
+  </div> <!-- /mediawrap -->
 
   <!-- BODY -->
   <div class="ch-card__body">
-    <h3 class="ch-card__title" title="{{ display_title | escape }}">
-      <a class="ch-card__titlelink" href="{{ product.url }}" data-title-link>
-        {{ product.vendor }} {{ display_title }}
-      </a>
-    </h3>
-
-    <!-- Rating -->
-    <div class="ch-rating" itemprop="aggregateRating" itemscope itemtype="https://schema.org/AggregateRating" aria-label="Rating">
-      <meta itemprop="ratingValue" content="{{ rating_val }}">
-      <meta itemprop="ratingCount" content="{{ rating_count }}">
-      <div class="ch-stars" aria-hidden="true">
-        {% assign filled = rating_full %}
-        {% if rating_count == 0 or rating_val == 0 %}
-          {% assign filled = 0 %}
-        {% endif %}
-        {% for i in (1..5) %}
-          <svg class="ch-star {% if i <= filled %}is-full{% else %}is-empty{% endif %}" viewBox="0 0 24 24" width="16" height="16">
-            <path d="m12 17.3-5.46 3.28 1.45-6.23L3 9.76l6.36-.54L12 3.5l2.64 5.72 6.36.54-5 4.59 1.45 6.23z"/>
-          </svg>
-        {% endfor %}
-      </div>
+    <div class="ch-card__vendor-row">
+      <div class="ch-card__vendor" aria-label="Brand">{{ product.vendor }}</div>
       {% if rating_count > 0 %}
-        <span class="ch-rating__count">({{ rating_count }})</span>
+        <div class="ch-card-rating-custom">
+          <svg width="14" height="13" viewBox="0 0 14 13" fill="none">
+            <path d="M7 0L8.5716 4.83688H13.6574L9.5429 7.82624L11.1145 12.6631L7 9.67376L2.8855 12.6631L4.4571 7.82624L0.342604 4.83688H5.4284L7 0Z" fill="#D12F24"/>
+          </svg>
+          <span class="ch-rating-avg">{{ rating_val | round: 1 }}</span>
+          <span class="ch-rating-count">({{ rating_count }})</span>
+        </div>
       {% endif %}
     </div>
 
-    <!-- Price row -->
+    <h3 class="ch-card__title" title="{{ title_clean | escape }}">
+      <a class="ch-card__titlelink"
+         href="{{ product_url }}"
+         data-title-link>
+        {{ title_clean }}
+      </a> 
+    </h3>
+
+
+    <!-- PRICE -->
     <div class="ch-price" itemprop="offers" itemscope itemtype="https://schema.org/Offer" aria-label="Price" data-range="{% if is_range %}true{% else %}false{% endif %}">
       <meta itemprop="priceCurrency" content="{{ cart.currency.iso_code }}">
       <meta itemprop="availability" content="https://schema.org/{% if available %}InStock{% else %}OutOfStock{% endif %}">
-      <span class="ch-price__cur" itemprop="price">{{ current_price_text }}</span>
+      <div class="ch-price__row">
+        <span class="ch-price__cur" itemprop="price">{{ current_price_text }}</span>
+       {% if compare_val > 0 %}
+  <span class="ch-price__compare" data-compare-cents="{{ compare_val }}">{{ compare_text_long }}</span>
+{% endif %}
 
-      <!-- Compare price only (labels hidden on mobile via CSS) -->
-      <span class="ch-price__side">
-        {% if compare_val > 0 %}
-          <span class="ch-price__compare ch-price__compare--long"><span class="ch-compare-label">Was </span>{{ compare_text_long }}</span>
-          <span class="ch-price__compare ch-price__compare--short"><span class="ch-compare-label">Was </span>{{ compare_text_short }}</span>
-        {% endif %}
-      </span>
-
-      <!-- Save line (always renders so card heights match) -->
-      <span class="ch-price__save">
-        {% if compare_val > 0 %}
-          Save {{ save_money_str }}<span class="ch-save__pct"> ({{ pct_save }}%)</span>
-        {% endif %}
-      </span>
+      </div>
     </div>
 
-    <!-- CTAs -->
-    <div class="ch-cta">
-      {% if available %}
-        {% if only_default and v %}
-          <form method="post" action="/cart/add" class="ch-atc" aria-label="Add {{ product.title | escape }} to cart">
-            <input type="hidden" name="id" value="{{ v.id }}">
-            <button type="submit" class="ch-cta__btn ch-cta__btn--cart">
-              <!-- Outlined 24x24 cart icon -->
-              <svg class="ch-icon ch-icon--cart" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M3 3h2l2 11.5a2 2 0 0 0 2 1.5h8.2a2 2 0 0 0 2-1.5L21 8H6.2" />
-                <circle cx="9.5" cy="19.5" r="1.6" />
-                <circle cx="18"   cy="19.5" r="1.6" />
-              </svg>
-              <span class="ch-cta__txt">Add to cart</span>
-            </button>
-          </form>
-        {% else %}
-          <a class="ch-cta__btn ch-cta__btn--cart" href="{{ product.url }}" aria-label="Add to cart">
-            <!-- Outlined 24x24 cart icon -->
-            <svg class="ch-icon ch-icon--cart" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M3 3h2l2 11.5a2 2 0 0 0 2 1.5h8.2a2 2 0 0 0 2-1.5L21 8H6.2" />
-              <circle cx="9.5" cy="19.5" r="1.6" />
-              <circle cx="18"   cy="19.5" r="1.6" />
-            </svg>
-            <span class="ch-cta__txt">Add to cart</span>
-          </a>
-        {% endif %}
-      {% else %}
-        <span class="ch-cta__btn ch-cta__btn--disabled" aria-disabled="true">
-          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M7 18a2 2 0 1 0 4 0 2 2 0 0 0-4 0zm12-2H7L5.4 4H2V3h3l1.4 12H19l1.7-9H7.3l-.2-2h13.6l-2 11z"/></svg>
-          <span class="ch-cta__txt">Sold out</span>
-        </span>
-      {% endif %}
+  <div class="ch-cta">
+    {% if available %}
+{% if only_default and v %}
+  <form method="post" action="/cart/add" class="ch-atc" aria-label="Add {{ product.title | escape }} to cart">
+    <input type="hidden" name="id" value="{{ v.id }}">
+    <button
+      type="submit"
+      class="sbtn ch-atcbtn"
+      data-variant-id="{{ v.id }}"
+      {% if inv_tracked %}data-max-qty="{{ inv_qty }}"{% endif %}
+    >
+      <span class="ch-atcbtn__txt">Add to cart</span>
+    </button>
+  </form>
+{% else %}
+  <button
+    type="button"
+    class="sbtn ch-atcbtn"
+    data-standalone-qv
+    data-product-handle="{{ product.handle }}"
+    data-product-url="{{ product_url }}">
+    <span class="ch-atcbtn__txt">Select options</span>
+  </button>
+{% endif %}
 
-      <!-- Quick view (desktop only) -->
-      <button class="ch-cta__btn ch-cta__btn--qv" type="button" data-qv-target="{{ qv_id }}" aria-label="Quick view {{ product.title | escape }}">
-        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path fill="currentColor" d="M12 5c5.5 0 9.7 3.7 11 7-1.3 3.3-5.5 7-11 7S2.3 15.3 1 12c1.3-3.3 5.5-7 11-7Zm0 2C8 7 4.9 9.3 3.3 12 4.9 14.7 8 17 12 17s7.1-2.3 8.7-5C19.1 9.3 16 7 12 7Zm0 2.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z"/></svg>
-        <span class="ch-cta__txt ch-cta__txt--ghost">Quick view</span>
-      </button>
-
-      <!-- Wishlist -->
-      <button class="ch-cta__btn ch-cta__btn--wish" type="button" aria-label="Add to wishlist" data-wishlist-add="{{ product.id }}">
-        <!-- Stroke-based heart -->
-        <svg class="ch-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M20.84 4.61c-1.54-1.37-3.98-1.37-5.52 0L12 7.17l-3.32-2.56c-1.54-1.37-3.98-1.37-5.52 0-1.76 1.57-1.82 4.31-.14 5.96L12 21l9.98-10.43c1.68-1.65 1.62-4.39-.14-5.96z"/>
-        </svg>
-        <span class="ch-cta__txt ch-cta__txt--ghost">Save</span>
-      </button>
-    </div>
-
-    <script type="application/json" class="ch-desc">{{ product.description | json }}</script>
+    {% else %}
+<button
+  type="button"
+  class="sbtn ch-atcbtn ch-atcbtn--reserve"
+  data-rsv-open
+  data-rsv-title="{{ product.title | escape }}"
+  data-rsv-url="{{ product_url }}"
+  data-rsv-handle="{{ product.handle }}"
+  data-rsv-variant="{{ v.title | default: '' | escape }}"
+  aria-label="Reserve {{ product.title | escape }}">
+  <span class="ch-atcbtn__txt">Reserve</span>
+</button>
+    {% endif %}
   </div>
 
-  <template id="{{ qv_id }}">
-    {% render 'quick-view', product: product %}
-  </template>
+
+
+  </div>
 </article>
 
-<style>
-/* Colors */
-.ch-card{ --ch-accent:#E0302A; --ch-accent-700:#C2251F; --ch-accent-200:#F7C6C3; --ch-text:#0F172A; --ch-muted:#6B7280; --ch-star:#8B1C1C; }
 
-/* Equal-height card */
-.ch-card{ position:relative;background:#fff;border:1px solid #E5E7EB;border-radius:12px;box-shadow:0 1px 2px rgba(16,24,40,.04);transition:box-shadow .18s,border-color .18s,transform .18s; display:flex; flex-direction:column; height:100%; }
-@media (hover:hover){ .ch-card:hover{ border-color:#D1D5DB;box-shadow:0 6px 18px rgba(16,24,40,.08);transform:translateY(-1px); } }
-.ch-card__overlay{ position:absolute; inset:0; z-index:1; }
 
-/* Media */
-.ch-card__mediawrap{ position:relative; z-index:2; flex:0 0 auto; }
-.ch-card__media{ margin:0!important;border-radius:12px 12px 0 0!important;background:#fff;aspect-ratio:1/1;position:relative;display:block;overflow:hidden; }
-.ch-card__img{ width:100%;height:100%;object-fit:contain;object-position:center;display:block;transition:opacity .22s,transform .18s; }
-.ch-card__img--hover{ position:absolute;inset:0;opacity:0; }
-@media (hover:hover){
-  .ch-card__media.has-hover:hover .ch-card__img--base{ opacity:0; }
-  .ch-card__media.has-hover:hover .ch-card__img--hover{ opacity:1; }
-  .ch-card__media:hover .ch-card__img{ transform:scale(1.01); }
-}
-
-/* Badge */
-.ch-badge--ribbon{ position:absolute;top:10px;left:10px;z-index:5;background:#FFE8B3;color:#B22A25;font-weight:900;font-size:11px;line-height:1;padding:6px 10px;border-radius:4px 2px 2px 4px;box-shadow:0 2px 8px rgba(0,0,0,.10);clip-path:polygon(0 0,calc(100% - 8px) 0,100% 50%,calc(100% - 8px) 100%,0 100%);max-width:min(75%, 240px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-@media (min-width:900px){ .ch-badge--ribbon{ font-size:13px;padding:8px 12px; } }
-
-/* Mini-gallery overlay */
-.ch-media-scrim{ position:absolute;left:0;right:0;bottom:0;height:46px;background:linear-gradient(to top, rgba(15,23,42,.28), rgba(15,23,42,0)); z-index:3; border-radius:0 0 12px 12px; opacity:1; }
-.ch-thumbs--overlay{ position:absolute; left:10px; right:auto; bottom:10px; z-index:4; display:flex; gap:6px; justify-content:flex-start; opacity:1; pointer-events:auto; }
-.ch-thumbs--overlay .ch-thumb{ width:28px;height:28px;border-radius:6px;border:1px solid #E5E7EB;background:#fff;display:inline-grid;place-items:center; }
-.ch-thumbs--overlay .ch-thumb img{ max-width:100%;max-height:100%;object-fit:cover;border-radius:5px;pointer-events:none; }
-.ch-thumbs--overlay .ch-thumb[aria-checked="true"]{ border-color:var(--ch-accent); box-shadow:0 0 0 2px var(--ch-accent-200) inset; }
-@media (min-width:900px){ .ch-thumbs--overlay .ch-thumb{ width:36px; height:36px; border-radius:8px; } .ch-thumbs--overlay .ch-thumb img{ border-radius:7px; } }
-
-/* "+N" more tile (mobile only) */
-.ch-thumb--more{ display:none; font-weight:800; font-size:12px; }
-.ch-thumb--more span{ pointer-events:none; }
-
-/* MOBILE: scrollable thumbs, show max 4 + "+N" */
-@media (max-width: 899.98px){
-  .ch-media-scrim{ opacity:1; }
-  .ch-thumbs--overlay{
-    gap:8px; left:6px; right:6px; bottom:6px;
-    justify-content:flex-start;
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-    padding:0 2px;
-  }
-  .ch-thumbs--overlay .ch-thumb{ width:34px; height:34px; border-radius:8px; }
-  .ch-thumbs--overlay .ch-thumb img{ border-radius:7px; }
-  .ch-thumbs--overlay .ch-thumb:nth-child(n+5):not(.ch-thumb--more){ display:none; }
-  .ch-thumb--more{ display:inline-grid; border:1px dashed #E5E7EB; border-radius:8px; place-items:center; width:34px; height:34px; background:#fff; }
-}
-
-/* Body */
-.ch-card__body{ position:relative; z-index:2; padding:10px 12px 12px!important;display:flex;flex-direction:column;gap:8px; flex:1; }
-.ch-card__title{ margin:0;line-height:1.3;font-size:14px;font-weight:700;min-height:2.6em; }
-.ch-card__titlelink{ color:#111;text-decoration:none;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden; }
-
-/* Rating */
-.ch-rating{ display:flex; align-items:center; gap:6px; }
-.ch-stars{ display:flex; gap:2px; }
-.ch-star{ display:block; }
-.ch-star path{ stroke:var(--ch-star); stroke-width:1.2; }
-.ch-star.is-full path{ fill:var(--ch-star); }
-.ch-star.is-empty path{ fill:transparent; }
-.ch-rating__count{ color:var(--ch-muted); font-size:12px; }
-
-/* Price — desktop: in-line; mobile: 2-row grid (price+compare, then Save) */
-.ch-price{ display:grid;grid-template-columns:auto 1fr;align-items:baseline;column-gap:8px;min-height:24px; }
-.ch-price__cur{ color:var(--ch-accent);font-weight:800;font-size:17px;white-space:nowrap; }
-.ch-price__side{ display:flex;align-items:baseline;gap:8px;min-width:0;flex-wrap:nowrap;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
-.ch-price__compare{ color:var(--ch-muted);text-decoration:line-through;white-space:nowrap; }
-.ch-price__compare--short{ display:none; }
-@media (max-width:767.98px){ .ch-price__compare--long{display:none}.ch-price__compare--short{display:inline} }
-.ch-price__save{ color:#B22A25;font-size:12px;font-weight:700;white-space:nowrap; }
-
-/* Add "From " on desktop only when product has a range */
-@media (min-width:481px){
-  .ch-price[data-range="true"] .ch-price__cur::before{ content:'From '; }
-}
-
-/* Mobile layout: remove "Was" label, no truncation, force two rows */
-@media (max-width:480px){
-  .ch-compare-label{ display:none; }
-  .ch-price{
-    grid-template-areas:
-      "cur side"
-      "save save";
-    grid-template-columns:auto 1fr;
-    row-gap:2px;
-  }
-  .ch-price__cur{ grid-area: cur; }
-  .ch-price__side{ grid-area: side; flex-wrap:wrap; white-space:normal; overflow:visible; text-overflow:clip; gap:6px; }
-  .ch-price__save{ grid-area: save; min-height: 1.2em; }
-}
-
-/* Ultra-narrow: hide % to save space */
-@media (max-width:360px){
-  .ch-save__pct{ display:none; }
-}
-
-/* CTAs */
-.ch-cta{ display:flex; gap:10px; align-items:center; margin-top:auto; z-index:3; min-height:48px; border-top:1px solid #E5E7EB; padding-top:10px; flex-wrap:nowrap; }
-
-/* Base button now neutral (prevents ghost/wish from turning red) */
-.ch-cta__btn{ position:relative; display:inline-flex; align-items:center; gap:8px; border-radius:999px; padding:10px; line-height:1; text-decoration:none; transition:background .14s,border-color .14s,color .14s; background:#fff; color:#111; border:1px solid #E5E7EB; }
-.ch-cta__btn:hover{ background:#fff; border-color:#D1D5DB; color:#111; }
-
-/* Icon system: crisp strokes on 24×24 grid */
-.ch-cta__btn svg{ width:24px; height:24px; display:block; }
-.ch-icon{ fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round; vector-effect:non-scaling-stroke; shape-rendering:geometricPrecision; }
-
-/* PRIMARY: Cart (outlined red, subtle hover wash) */
-.ch-cta__btn--cart{ background:#fff; color:var(--ch-accent); border-color:var(--ch-accent); }
-.ch-cta__btn--cart:hover{ background:var(--ch-accent-200); color:var(--ch-accent); border-color:var(--ch-accent); }
-.ch-cta__btn--cart .ch-icon{ stroke:var(--ch-accent); }
-
-/* SECONDARY: Quick view (muted ghost, never turns red) */
-.ch-cta__btn--qv{ color:#6B7280; border-color:#E5E7EB; }
-.ch-cta__btn--qv:hover{ color:#374151; border-color:#D1D5DB; }
-.ch-cta__btn--qv .ch-cta__txt{ display:none !important; } /* keep icon-only to avoid resizing */
-
-/* TERTIARY: Wishlist (muted outline, icon grey) */
-.ch-cta__btn--wish{ color:#6B7280; border-color:#E5E7EB; }
-.ch-cta__btn--wish .ch-icon{ stroke:#9CA3AF; }
-.ch-cta__btn--wish:hover{ color:#374151; border-color:#D1D5DB; }
-.ch-cta__btn--wish .ch-cta__txt{ display:none !important; } /* icon-only */
-
-/* Reveal label ONLY for the cart on desktop */
-.ch-cta__txt{ max-width:0; opacity:0; overflow:hidden; white-space:nowrap; transition:max-width .2s ease, opacity .2s ease; }
-@media (hover:hover){ .ch-cta__btn--cart:hover .ch-cta__txt{ max-width:120px; opacity:1; } }
-@media (max-width:899px){ .ch-cta__txt{ max-width:0!important; opacity:0!important; } .ch-cta__btn--qv{ display:none; } }
-
-/* Disabled */
-.ch-cta__btn--disabled{ background:#F3F4F6; color:#6B7280; border-color:#E5E7EB; cursor:not-allowed; }
-
-/* a11y */
-.sr-only{ position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0; }
-</style>
-
+<!-- ✅ CARD INIT -->
 <script>
-/* Mini-gallery (delegated) */
 (function(){
-  if (window.CHMiniGalleryOverlay) return; window.CHMiniGalleryOverlay = true;
-  const FALLBACK_SIZES='(min-width:1100px) 22vw, (min-width:768px) 30vw, 46vw';
-  function applyImg(el,src,set,sizes){ if(!el||!src) return; el.src=src; set? (el.setAttribute('srcset',set), el.setAttribute('sizes',sizes||FALLBACK_SIZES)) : (el.removeAttribute('srcset'), el.removeAttribute('sizes')); }
-  function selectByIndex(card,idx){
-    const thumbsC=card.querySelector('[data-thumbs]'); if(!thumbsC) return;
-    const btns=Array.from(thumbsC.querySelectorAll('.ch-thumb:not(.ch-thumb--more)')); if(!btns.length) return;
-    const i=(idx+btns.length)%btns.length; btns.forEach(b=>b.setAttribute('aria-checked','false')); const btn=btns[i]; btn.setAttribute('aria-checked','true');
-    const base=card.querySelector('[data-img-base]'); const hover=card.querySelector('[data-img-hover]'); const media=card.querySelector('.ch-card__media');
-    const baseSrc=btn.getAttribute('data-gallery-src'); const baseSet=btn.getAttribute('data-gallery-srcset'); const baseSizes=btn.getAttribute('data-gallery-sizes')||FALLBACK_SIZES; applyImg(base,baseSrc,baseSet,baseSizes);
-    if(!hover) return;
-    if(btns.length>1){
-      const next=btns[(i+1)%btns.length];
-      const hSrc=next.getAttribute('data-gallery-src'); const hSet=next.getAttribute('data-gallery-srcset'); const hSizes=next.getAttribute('data-gallery-sizes')||FALLBACK_SIZES;
-      applyImg(hover,hSrc||baseSrc,hSet||'',hSizes); media&&media.classList.add('has-hover');
-    }else{
-      hover.removeAttribute('src'); hover.removeAttribute('srcset'); hover.removeAttribute('sizes'); media&&media.classList.remove('has-hover');
-    }
+  if(window.CHCARD_LOCAL_INIT_V3) return; window.CHCARD_LOCAL_INIT_V3=true;
+  function init(scope){
+    (scope||document).querySelectorAll('.ch-card').forEach(card=>{
+      const img=card.querySelector('[data-img-main]'); const wrap=card.querySelector('.ch-card__media');
+      if(img && wrap){ if(img.complete) wrap.setAttribute('data-loaded','true'); }
+    });
   }
-  function init(scope){ (scope||document).querySelectorAll('.ch-card').forEach(card=>{ if(card.querySelectorAll('[data-thumbs] .ch-thumb').length){ selectByIndex(card,0); } }); }
   document.addEventListener('DOMContentLoaded', ()=>init());
   document.addEventListener('shopify:section:load', e=>init(e.target));
-  document.addEventListener('shopify:section:reorder', e=>init(e.target));
-  document.addEventListener('click', function(e){
-    const t=e.target.closest('[data-thumbs] .ch-thumb'); if(!t) return;
-    if(t.classList.contains('ch-thumb--more')) return; /* let "+N" link go to PDP */
-    e.preventDefault(); e.stopPropagation();
-    const card=t.closest('.ch-card'); const btns=Array.from(t.parentElement.querySelectorAll('.ch-thumb:not(.ch-thumb--more)'));
-    selectByIndex(card, btns.indexOf(t));
-  }, false);
-  document.addEventListener('keydown', function(e){
-    if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft') return;
-    const active=document.activeElement?.closest?.('[data-thumbs] .ch-thumb'); if(!active || active.classList.contains('ch-thumb--more')) return;
-    e.preventDefault(); e.stopPropagation();
-    const card=active.closest('.ch-card'); const btns=Array.from(active.parentElement.querySelectorAll('.ch-thumb:not(.ch-thumb--more)'));
-    let i=btns.indexOf(active); i=e.key==='ArrowRight'?(i+1)%btns.length:(i-1+btns.length)%btns.length;
-    btns[i].focus(); selectByIndex(card,i);
-  });
 })();
 
-/* AJAX Add-to-Cart + Quick View */
+
+<!-- Quick View Data Logic -->
+
+
 (function(){
-  if(window.CH_ATC_BIND_V4) return; window.CH_ATC_BIND_V4=true;
-  document.addEventListener('submit', async function(e){
-    const form=e.target.closest('.ch-atc'); if(!form) return;
-    e.preventDefault();
-    const btn=form.querySelector('button[type="submit"]');
-    if(btn){ btn.disabled=true; btn.dataset.prev=btn.textContent; btn.textContent='Adding…'; }
-    const fd=new FormData(form);
-    const payload={ id: fd.get('id'), quantity: Number(fd.get('quantity')||1) };
-    try{
-      const r=await fetch('/cart/add.js',{ method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'}, body:JSON.stringify(payload), credentials:'same-origin', cache:'no-store' });
-      if(!r.ok) throw 0;
-      try{
-        const cart=await (await fetch('/cart.js',{headers:{'Accept':'application/json'},cache:'no-store'})).json();
-        const bubble=document.querySelector('[data-cart-count]'); if(bubble) bubble.textContent=String(cart.item_count||0);
-        const live=document.querySelector('[data-cart-live]');  if(live)   live.textContent=(cart.item_count||0)+' items in cart';
-      }catch(_){}
-      document.dispatchEvent(new Event('open-mini-cart'));
-      if(btn){ btn.textContent='Added!'; setTimeout(()=>{ btn.textContent=btn.dataset.prev||'Add to cart'; btn.disabled=false; }, 900); }
-    }catch(_){
-      if(btn){ btn.disabled=false; btn.textContent='View cart'; }
-      location.href='/cart';
-    }
-  }, false);
-})();
-(function(){
-  if(!window.CHQV){
-    window.CHQV=(function(){
-      const el=document.createElement('div');
-      el.className='ch-qv';
-      el.innerHTML='<div class="ch-qv__ov" data-qv-close></div><aside class="ch-qv__pn" role="dialog" aria-modal="true" aria-label="Quick view"><div data-qv-body></div></aside>';
-      document.body.appendChild(el);
-      const body=el.querySelector('[data-qv-body]');
-      function openFromTemplate(id){
-        const tpl=document.getElementById(id);
-        if(!tpl){ console.warn('[QV] Missing template', id); return; }
-        body.innerHTML = tpl.innerHTML;
-        el.setAttribute('data-open','true');
-        document.documentElement.style.overflow='hidden';
+  if(window.CH_BIND_CARD_V11) return; window.CH_BIND_CARD_V11=true;
+
+  function chApplyMaxStateFromCart(cart) {
+    if (!cart || !cart.items) return;
+
+    // Build map: variantId -> qty in cart
+    const qtyMap = {};
+    cart.items.forEach(item => {
+      const id = String(item.id);
+      qtyMap[id] = (qtyMap[id] || 0) + Number(item.quantity || 0);
+    });
+
+    document.querySelectorAll('.ch-atc .ch-atcbtn').forEach(btn => {
+      const form = btn.closest('.ch-atc');
+      if (!form) return;
+
+      const idInput = form.querySelector('input[name="id"]');
+      if (!idInput) return;
+
+      const variantId = String(idInput.value || '');
+      const maxQty = parseInt(btn.dataset.maxQty || '0', 10);
+
+      // Store original label once
+      const labelEl = btn.querySelector('.ch-atcbtn__txt');
+      if (labelEl && !labelEl.dataset.originalLabel) {
+        labelEl.dataset.originalLabel = labelEl.textContent.trim();
       }
-      function close(){ el.removeAttribute('data-open'); document.documentElement.style.overflow=''; body.innerHTML=''; }
-      el.addEventListener('click',e=>{ if(e.target.matches('[data-qv-close], .ch-qv__ov')) close(); });
-      document.addEventListener('keydown',e=>{ if(e.key==='Escape' && el.getAttribute('data-open')==='true') close(); });
-      return { openFromTemplate, close };
-    })();
-    document.addEventListener('click', function(e){
-      const t=e.target.closest('[data-qv-target]'); if(!t) return;
-      e.preventDefault();
-      window.CHQV.openFromTemplate(t.getAttribute('data-qv-target'));
-    }, false);
+
+      // If no max qty (inventory not tracked), always keep clickable
+      if (!maxQty || maxQty <= 0) {
+        btn.disabled = false;
+        btn.removeAttribute('aria-disabled');
+        btn.dataset.maxed = 'false';
+        if (labelEl && labelEl.dataset.originalLabel) {
+          labelEl.textContent = labelEl.dataset.originalLabel;
+        }
+        return;
+      }
+
+      const inCart = qtyMap[variantId] || 0;
+
+      if (inCart >= maxQty) {
+        // 🔒 Maxed: lock button
+        btn.disabled = true;
+        btn.setAttribute('aria-disabled', 'true');
+        btn.dataset.maxed = 'true';
+        if (labelEl) labelEl.textContent = 'Max in cart';
+      } else {
+        // Still allow adding
+        btn.disabled = false;
+        btn.removeAttribute('aria-disabled');
+        btn.dataset.maxed = 'false';
+        if (labelEl && labelEl.dataset.originalLabel) {
+          labelEl.textContent = labelEl.dataset.originalLabel;
+        }
+      }
+    });
   }
+
+  async function chFetchCartAndApplyMax() {
+    try {
+      const res = await fetch('/cart.js', {
+        headers: { 'Accept': 'application/json' },
+        cache: 'no-store',
+        credentials: 'same-origin'
+      });
+      if (!res.ok) return;
+      const cart = await res.json();
+      chApplyMaxStateFromCart(cart);
+    } catch (e) {
+      // fail silently; no hard break
+    }
+  }
+
+  /* ATC */
+document.addEventListener('click', async function(e){
+  const btn = e.target.closest('.ch-atcbtn');
+  if (!btn) return;
+
+  const form = btn.closest('.ch-atc');
+  if (!form) return; // skips "Select options" buttons
+
+  // 🔒 If this card ATC is maxed, do nothing
+  if (btn.dataset.maxed === 'true' || btn.disabled) {
+    return;
+  }
+
+  e.preventDefault();
+
+  btn.classList.add('is-adding');
+  btn.setAttribute('aria-busy','true');
+  if ('disabled' in btn) btn.disabled = true;
+
+  const fd      = new FormData(form);
+  const payload = {
+    id: fd.get('id'),
+    quantity: Number(fd.get('quantity') || 1)
+  };
+
+  try{
+    const r = await fetch('/cart/add.js',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify(payload),
+      credentials:'same-origin',
+      cache:'no-store'
+    });
+    if(!r.ok) throw 0;
+
+    try{
+      const cartRes = await fetch('/cart.js', {
+        headers:{'Accept':'application/json'},
+        cache:'no-store'
+      });
+      const cart = await cartRes.json();
+
+      const bubble = document.querySelector('[data-cart-count]');
+      if (bubble) bubble.textContent = String(cart.item_count || 0);
+      const live = document.querySelector('[data-cart-live]');
+      if (live) live.textContent = (cart.item_count || 0) + ' items in cart';
+
+      // 🔒 Re-apply max logic after this add
+      chApplyMaxStateFromCart(cart);
+    }catch(_){}
+
+
+    document.dispatchEvent(new Event('open-mini-cart'));
+
+    btn.classList.remove('is-adding');
+    btn.classList.add('is-added');
+    btn.removeAttribute('aria-busy');
+    if ('disabled' in btn) btn.disabled = false;
+    setTimeout(()=>{ btn.classList.remove('is-added'); }, 800);
+  }catch(_){
+    btn.classList.remove('is-adding');
+    btn.removeAttribute('aria-busy');
+    if ('disabled' in btn) btn.disabled = false;
+    location.href='/cart';
+  }
+}, false);
+
+
+  /* Hide fallback stars once Okendo paints */
+  document.addEventListener('DOMContentLoaded', function(){
+    document.querySelectorAll('.ch-rating').forEach(function(r){
+      const oke=r.querySelector('.ch-rating__oke'); 
+      if(!oke) return;
+      
+      const check=()=>{ 
+        // If innerHTML is empty, hide the WHOLE rating container
+        if(!oke.innerHTML || oke.innerHTML.trim().length === 0){
+             r.style.display = 'none';
+        } else {
+             r.style.display = '';
+             // If we have content, hide the fallback star if it existed (though we removed it)
+             const fb=r.querySelector('.ch-rating__fallback');
+             if(fb) fb.style.display='none';
+        }
+      };
+      
+      new MutationObserver(check).observe(oke,{childList:true,subtree:true}); 
+      setTimeout(check,600);
+    });
+    chFetchCartAndApplyMax();
+  });
+
+  /* Mini gallery */
+  /* Mini gallery */
+    document.addEventListener('click', function(e){
+      const t = e.target.closest('.ch-mini__thumb'); if(!t) return;
+      const card = t.closest('.ch-card');
+      const main = card?.querySelector('[data-img-main]'); if(!main) return;
+
+      const src    = t.getAttribute('data-src');
+      const srcset = t.getAttribute('data-srcset');
+      if(srcset) main.setAttribute('srcset', srcset);
+      if(src)    main.setAttribute('src', src);
+
+      const group = t.closest('[data-mini]');
+      const all   = group?.querySelectorAll('.ch-mini__thumb') || [];
+      all.forEach(b=>{
+        const on = b === t;
+        b.classList.toggle('is-active', on);
+        b.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+
+      // NEW: reflect active state on dots (mobile)
+      updateDots(card, Array.from(all).indexOf(t));
+    }, false);
+
+    document.addEventListener('mouseover', function(e){
+      const t = e.target.closest('.ch-mini__thumb'); if(!t) return;
+      if(window.matchMedia('(hover:hover)').matches){ t.click(); }
+    }, false);
+
+    // NEW: helper to update dots
+    function updateDots(card, idx){
+      const dotsWrap = card?.querySelector('[data-dots]'); if(!dotsWrap) return;
+      const dots = dotsWrap.querySelectorAll('.ch-dot');
+      dots.forEach((d,i)=> d.classList.toggle('is-active', i === idx));
+    }
+
+    // NEW: Listen for global cart updates to sync standard cards
+    document.addEventListener('cart:refresh', (e) => {
+       if(e.detail) chApplyMaxStateFromCart(e.detail);
+    });
+    document.addEventListener('cart:refreshed', (e) => {
+       if(e.detail) chApplyMaxStateFromCart(e.detail);
+    });
+
 })();
 </script>
+<script>
+document.addEventListener('open-mini-cart', () => {
+  // Dawn / cart-drawer custom element
+  const drawer = document.querySelector('cart-drawer');
+  if (drawer && typeof drawer.open === 'function') { drawer.open(); return; }
+
+  // Generic drawer toggle (adapt selectors to your theme)
+  const mini = document.querySelector('[data-mini-cart], .mini-cart, #mini-cart');
+  if (mini) mini.classList.add('is-open');
+});
+</script>
+
+
+
+<!-- Standalone QV Logic moved to assets/ch-quick-view-api.js -->

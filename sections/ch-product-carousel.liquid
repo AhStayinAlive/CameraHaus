@@ -1,0 +1,569 @@
+<style>
+  #chpc-{{ section.id }}{ --tab-fade: 18px; padding-top:var(--pad-top); padding-bottom:var(--pad-bottom); }
+
+  /* Aspect Ratio Logic */
+  #chpc-{{ section.id }}[data-card-ratio="4:3"] .ch-card__media { aspect-ratio: 4/3 !important; }
+  #chpc-{{ section.id }}[data-card-ratio="3:4"] .ch-card__media { aspect-ratio: 3/4 !important; }
+  #chpc-{{ section.id }}[data-card-ratio="square"] .ch-card__media { aspect-ratio: 1/1 !important; }
+
+  .chpc .page-width{ max-width:1440px; margin:0 auto; padding:0 28px; position:relative; }
+  .chpc .chpc__header--havit{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin:0 0 10px; flex-wrap:wrap; }
+  .chpc .chpc__sub{ margin:0; color:#6B7280; font-size:.95rem; }
+
+  /* tabs left, and hidden when only 1 collection (handled in markup) */
+  .chpc .chpc__tabs{
+    display:grid; grid-template-columns:auto 1fr auto; align-items:center;
+    column-gap:6px; position:relative; max-width:100%; margin-left:0;
+  }
+  .chpc .chpc__tablist{ display:flex; gap:clamp(24px, 5vw, 44px); overflow:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:0 2px; list-style:none; margin:0; scroll-snap-type:x proximity; scroll-behavior:smooth; overscroll-behavior-inline:contain; }
+  .chpc .chpc__tablist::-webkit-scrollbar{ display:none; }
+  .chpc .chpc__tab{ background:transparent; border:0; padding:6px 0 8px; cursor:pointer; font-family:var(--font-sans); font-weight:500; color:#6B7280; white-space:nowrap; transition:color .18s ease; }
+  .chpc .chpc__tab.is-active{ color:var(--brand); }
+  .chpc .chpc__tabs-nudge{ border:0; background:none; padding:0 6px; font:700 18px/1 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; color:#6B7280; cursor:pointer; opacity:0; transform:translateY(2px); transition:opacity .22s ease, transform .22s ease; pointer-events:none; min-width:28px; }
+  .chpc .chpc__tabs[data-overflow="true"] .chpc__tabs-nudge{ opacity:.95; transform:translateY(0); pointer-events:auto; }
+  .chpc .chpc__tabs-nudge.is-disabled{ opacity:.25; pointer-events:none; }
+
+  @media (min-width:740px){
+    .chpc .chpc__tabs-nudge{ display:none !important; }
+  }
+
+  @media (max-width:739.98px){
+    .chpc .page-width{ padding-left:16px; padding-right:16px; }
+    .chpc .chpc__tablist{
+      padding-left: var(--tab-fade); padding-right: var(--tab-fade); scroll-padding-inline: var(--tab-fade);
+      -webkit-mask-image: linear-gradient(to right, transparent 0, black var(--tab-fade), black calc(100% - var(--tab-fade)), transparent 100%);
+              mask-image: linear-gradient(to right, transparent 0, black var(--tab-fade), black calc(100% - var(--tab-fade)), transparent 100%);
+    }
+  }
+
+  .chpc .chpc__viewport{ position:relative; overflow:visible; padding-bottom:28px; }
+  .chpc .chpc__track{ position:relative; display:flex; gap:var(--chpc-gap, 16px); overflow-x:auto; -webkit-overflow-scrolling:touch; padding:6px 6px 8px 6px; align-items:stretch; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  .chpc .chpc__track::-webkit-scrollbar{ display:none; }
+  .chpc .chpc__slide{ min-width:0; flex:0 0 calc((100% - (var(--chpc-gap, 16px) * (var(--chpc-items) - 1))) / var(--chpc-items)); scroll-snap-align:start; display:flex; }
+
+  /* animation states */
+  .chpc.chpc--pre .chpc__slide{
+    opacity:0;
+    transform:translateY(22px);
+  }
+  .chpc.chpc--animating .chpc__slide{
+    opacity:0;
+    transform:translateY(22px);
+    animation: ch-fade-up .6s cubic-bezier(.22,.61,.36,1) forwards;
+    will-change: transform, opacity;
+  }
+  .chpc.chpc--animating .chpc__slide:nth-child(2){ animation-delay:.05s; }
+  .chpc.chpc--animating .chpc__slide:nth-child(3){ animation-delay:.10s; }
+  .chpc.chpc--animating .chpc__slide:nth-child(4){ animation-delay:.15s; }
+  .chpc.chpc--animating .chpc__slide:nth-child(5){ animation-delay:.20s; }
+  .chpc.chpc--animating .chpc__slide:nth-child(6){ animation-delay:.25s; }
+
+
+  /* Shared Slider Animation Class */
+  .chpc__slide.chpc-slide--intro {
+    opacity: 0;
+    animation: ch-fade-up 0.6s cubic-bezier(.22,.61,.36,1) forwards;
+    will-change: transform, opacity;
+  }
+
+  .chpc.chpc--done .chpc__slide{
+    opacity:1;
+    transform:none;
+    animation:none;
+    will-change:auto;
+  }
+
+  @media (min-width:1100px){
+    #chpc-{{ section.id }}{ --chpc-items: {{ section.settings.items_per_view_desktop | default: 5 }}; --chpc-gap: 16px; }
+  }
+  @media (min-width:740px) and (max-width:1099.98px){
+    #chpc-{{ section.id }}{ --chpc-items: {{ section.settings.items_per_view_tablet | default: 3 }}; --chpc-gap: 14px; }
+  }
+  @media (max-width:739.98px){
+    #chpc-{{ section.id }}{ --chpc-items: {{ section.settings.items_per_view_mobile | default: 4 }}; --chpc-gap: 12px; }
+    .chpc .chpc__track{
+      display:grid; grid-auto-flow:column;
+      grid-auto-columns: calc(100vw - (max(var(--mobile-gutter), env(safe-area-inset-left)) + max(var(--mobile-gutter), env(safe-area-inset-right)) ));
+      column-gap:var(--chpc-gap, 12px); padding:6px max(var(--mobile-gutter), env(safe-area-inset-right)) 8px max(var(--mobile-gutter), env(safe-area-inset-left));
+    }
+    .chpc .chpc__page{
+      width:100%; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; scroll-snap-align:start; align-items:stretch;
+    }
+  }
+
+  .chpc .chpc__arrows{ position:absolute; inset:0; pointer-events:none; }
+  .chpc .chpc__arrow{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    pointer-events:auto;
+
+    width:38px;
+    height:38px;
+    display:grid;
+    place-items:center;
+
+    background:transparent;
+    color:var(--brand);
+    border:1.5px solid var(--brand);
+    border-radius:9999px;
+
+    transition: background .15s ease, color .15s ease, transform .08s ease;
+    cursor:pointer;
+  }
+
+  .chpc .chpc__arrow:hover{
+    background:var(--brand);
+    color:#fff;
+  }
+  .chpc .chpc__arrow:active{
+    transform:translateY(-50%) scale(.96);
+  }
+  .chpc .chpc__arrow[disabled]{
+    opacity:.35;
+    filter:grayscale(1);
+    pointer-events:none;
+  }
+  .chpc .chpc__arrow--prev{ left:-24px; }
+  .chpc .chpc__arrow--next{ right:-24px; }
+
+  @media (max-width:739.98px){
+    .chpc .chpc__arrows[data-hide-mobile="true"]{ display:none !important; }
+  }
+
+  .chpc.chpc--outlined .chpc--proxy .ch-card,
+  .chpc.chpc--outlined .chpc--proxy .chcard{
+    background:#fff; border-radius:12px; box-shadow:0 6px 20px rgba(17,17,17,.06); outline:1px solid rgba(17,17,17,.06);
+  }
+
+  .chpc h2.pcar__heading{
+    all: unset; display: block;
+    font-family: var(--font-heading-family, var(--font-sans)) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    line-height: 1.15 !important;
+    font-size: clamp(24px, 3vw + 8px, 32px) !important;
+    color: var(--heading-color, inherit) !important;
+    margin: 0 0 8px !important;
+    font-optical-sizing: auto !important;
+    font-synthesis-weight: none !important;
+    font-variation-settings: "wght" 700 !important;
+    text-transform: none !important;
+  }
+
+  /* SKELETON VIEW LOGIC */
+  .chpc__skeleton-view { display: none; padding-bottom: 28px; overflow: hidden; }
+  .chpc.chpc--pre .chpc__skeleton-view { 
+      display: block; 
+      /* Overlay skeletons so they don't push content down, but occupy the space visually */
+      position: absolute; inset: 0; z-index: 2;
+  }
+  
+  /* Hide shadows/outlines during pre-loading to avoid double-borders */
+  .chpc.chpc--pre.chpc--outlined .chpc--proxy .ch-card,
+  .chpc.chpc--pre.chpc--outlined .chpc--proxy .chcard {
+    box-shadow: none !important;
+    outline: none !important;
+    background: transparent !important;
+  }
+
+  /* When animation STARTS, hide skeletons immediately so animating cards are visible */
+  .chpc.chpc--pre.is-animating .chpc__skeleton-view {
+      display: none !important;
+  }
+  
+  /* Hide real content VISUALLY but keep it in layout for measurements (IntersectionObserver needs dims) */
+  .chpc.chpc--pre .chpc__viewport { 
+      visibility: hidden; 
+      opacity: 0; 
+  }
+  /* When animation STARTS, reveal the viewport (so the animating cards are seen) */
+  .chpc.chpc--pre.is-animating .chpc__viewport {
+      visibility: visible;
+      opacity: 1;
+  }
+  
+  /* Ensure skeletons match track layout */
+  .chpc__skeleton-view .chpc__track { 
+     display: flex; gap: var(--chpc-gap, 16px); 
+     overflow: hidden; /* No scroll for skeletons, just locked grid */
+  }
+  @media (max-width: 739.98px){
+     .chpc__skeleton-view .chpc__track {
+        display: grid; grid-auto-flow: column; 
+        grid-auto-columns: calc(100vw - (max(var(--mobile-gutter), env(safe-area-inset-left)) + max(var(--mobile-gutter), env(safe-area-inset-right))));
+        column-gap: var(--chpc-gap, 12px);
+        padding: 6px max(var(--mobile-gutter), env(safe-area-inset-right)) 8px max(var(--mobile-gutter), env(safe-area-inset-left));
+     }
+  }
+
+</style>
+<section id="chpc-{{ section.id }}"
+  class="chpc chpc--compact chpc--pre{% if section.settings.mobile_full_bleed %} chpc--bleed-mobile{% endif %}{% if section.settings.show_card_outline %} chpc--outlined{% endif %}"
+  style="--pad-top:{{ section.settings.padding_top | default: 12 }}px;--pad-bottom:{{ section.settings.padding_bottom | default: 16 }}px;--mobile-bleed:{{ section.settings.mobile_bleed_px | default: 0 }}px;--mobile-gutter:{{ section.settings.mobile_side_gutter | default: 16 }}px;--brand:#E0302A;"
+  data-per-desktop="{{ section.settings.items_per_view_desktop | default: 5 }}"
+  data-per-tablet="{{ section.settings.items_per_view_tablet  | default: 3 }}"
+  data-per-mobile="{{ section.settings.items_per_view_mobile  | default: 4 }}"
+  data-card-ratio="{{ section.settings.card_ratio | default: 'square' }}"
+  data-fit="{{ section.settings.image_fit  | default: 'contain' }}"
+  data-loop="{{ section.settings.enable_loop }}"
+  data-autoplay="{{ section.settings.enable_autoplay }}"
+  data-autoplay-ms="{{ section.settings.autoplay_ms | default: 5000 }}"
+  data-show-arrows="{{ section.settings.show_arrows }}"
+  data-show-dots="{{ section.settings.show_dots }}">
+
+  <div class="page-width">
+    <!-- Heading + tabs -->
+    <header class="chpc__header chpc__header--havit">
+      <div class="chpc__titles">
+        <h2 class="pcar__heading">{{ section.settings.heading | default: 'Featured Products' }}</h2>
+        {% assign sub = section.settings.subheading %}
+        {% if sub != blank %}<p class="chpc__sub">{{ sub | escape }}</p>{% endif %}
+      </div>
+
+      {%- if section.blocks.size > 1 -%}
+      <nav class="chpc__tabs" data-tabs aria-label="{{ section.settings.heading | escape }}">
+        <button class="chpc__tabs-nudge chpc__tabs-nudge--prev" type="button" data-tab-prev aria-label="Scroll tabs left">‹</button>
+
+        <ul class="chpc__tablist" role="tablist" data-tablist>
+          {%- for block in section.blocks -%}
+            {%- assign bs = block.settings -%}
+            {%- assign handle = bs.collection.handle | default: bs.collection -%}
+            {%- assign cobj = blank -%}
+            {%- if handle != blank -%}{%- assign cobj = collections[handle] -%}{%- endif -%}
+            {%- assign lbl = bs.tab_label -%}
+            {%- if lbl == blank and cobj != blank -%}{%- assign lbl = cobj.title -%}{%- endif -%}
+            {%- if lbl == blank -%}{%- assign lbl = 'Tab ' | append: forloop.index -%}{%- endif -%}
+            <li role="presentation">
+              <button class="chpc__tab{% if forloop.first %} is-active{% endif %}"
+                      type="button" role="tab"
+                      aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"
+                      data-tab="{{ block.id }}">{{ lbl | escape }}</button>
+            </li>
+          {%- endfor -%}
+        </ul>
+
+        <button class="chpc__tabs-nudge chpc__tabs-nudge--next" type="button" data-tab-next aria-label="Scroll tabs right">›</button>
+      </nav>
+      {%- endif -%}
+    </header>
+
+    <!-- Content Wrapper for correct overlay positioning -->
+    <div class="chpc__content-wrapper" style="position:relative; min-height: 100px;">
+      <!-- Skeletons (Visible only during pre-load) -->
+      <div class="chpc__skeleton-view" aria-hidden="true">
+        <div class="chpc__track">
+          {%- assign d_count = section.settings.items_per_view_desktop | default: 5 -%}
+          {%- for i in (1..d_count) -%}
+             <div class="chpc__slide">
+               <div class="chpc__card chpc--proxy">{% render 'ch-skeleton-card' %}</div>
+             </div>
+          {%- endfor -%}
+        </div>
+      </div>
+  
+      <!-- Viewport -->
+      <div class="chpc__viewport" data-viewport>
+        <div class="chpc__track" id="chpc-track-{{ section.id }}" tabindex="0" aria-label="Product slides" data-track>
+          {%- if section.blocks.size > 0 -%}
+            {%- assign ibs = section.blocks.first.settings -%}
+            {%- assign icol_handle = ibs.collection.handle | default: ibs.collection -%}
+            {%- if icol_handle != blank -%}
+              {%- assign icol = collections[icol_handle] -%}
+              {%- if icol != blank -%}
+                {%- assign list = icol.products -%}
+                {%- case ibs.collection_sort -%}
+                  {%- when 'price-asc'  -%}{%- assign list = list | sort: 'price' -%}
+                  {%- when 'price-desc' -%}{%- assign list = list | sort: 'price' | reverse -%}
+                  {%- when 'title-asc'  -%}{%- assign list = list | sort: 'title' -%}
+                  {%- when 'title-desc' -%}{%- assign list = list | sort: 'title' | reverse -%}
+                  {%- when 'date-desc'  -%}{%- assign list = list | sort: 'published_at' | reverse -%}
+                  {%- when 'date-asc'   -%}{%- assign list = list | sort: 'published_at' -%}
+                {%- endcase -%}
+                {%- for product in list limit: section.settings.max_items -%}
+                  {%- if product == blank -%}{% continue %}{%- endif -%}
+                  <article class="chpc__slide" data-slide="{{ forloop.index }}" data-position="{{ forloop.index0 }}" data-product-id="{{ product.id }}">
+                    <div class="chpc__card chpc--proxy">{% render 'product-card', product: product %}</div>
+                  </article>
+                {%- endfor -%}
+              {%- endif -%}
+            {%- elsif ibs.products != blank -%}
+              {%- for product in ibs.products limit: section.settings.max_items -%}
+                {%- if product == blank -%}{% continue %}{%- endif -%}
+                <article class="chpc__slide" data-slide="{{ forloop.index }}" data-position="{{ forloop.index0 }}" data-product-id="{{ product.id }}">
+                  <div class="chpc__card chpc--proxy">{% render 'product-card', product: product %}</div>
+                </article>
+              {%- endfor -%}
+            {%- endif -%}
+          {%- endif -%}
+        </div>
+  
+        {% render 'chpc-controls',
+          id: section.id,
+          show_dots: section.settings.show_dots,
+          show_arrows: section.settings.show_arrows,
+          mobile_hide_arrows: true %}
+      </div>
+  
+      <div class="chpc__toast" role="status" aria-live="polite" aria-atomic="true" data-toast></div>
+    </div>
+  </div>
+
+  {%- comment -%} templates per tab {%- endcomment -%}
+  {%- for block in section.blocks -%}
+    {%- assign bs = block.settings -%}
+    {%- assign handle2 = bs.collection.handle | default: bs.collection -%}
+    <template id="tpl-{{ block.id }}">
+      {%- if handle2 != blank -%}
+        {%- assign cc = collections[handle2] -%}
+        {%- if cc != blank -%}
+          {%- assign list2 = cc.products -%}
+          {%- case bs.collection_sort -%}
+            {%- when 'price-asc'  -%}{%- assign list2 = list2 | sort: 'price' -%}
+            {%- when 'price-desc' -%}{%- assign list2 = list2 | sort: 'price' | reverse -%}
+            {%- when 'title-asc'  -%}{%- assign list2 = list2 | sort: 'title' -%}
+            {%- when 'title-desc' -%}{%- assign list2 = list2 | sort: 'title' | reverse -%}
+            {%- when 'date-desc'  -%}{%- assign list2 = list2 | sort: 'published_at' | reverse -%}
+            {%- when 'date-asc'   -%}{%- assign list2 = list2 | sort: 'published_at' -%}
+          {%- endcase -%}
+          {%- for product in list2 limit: section.settings.max_items -%}
+            {%- if product == blank -%}{% continue %}{%- endif -%}
+            <article class="chpc__slide" data-slide="{{ forloop.index }}" data-position="{{ forloop.index0 }}" data-product-id="{{ product.id }}">
+              <div class="chpc__card chpc--proxy">{% render 'product-card', product: product %}</div>
+            </article>
+          {%- endfor -%}
+        {%- endif -%}
+      {%- elsif bs.products != blank -%}
+        {%- for product in bs.products limit: section.settings.max_items -%}
+          {%- if product == blank -%}{% continue %}{%- endif -%}
+          <article class="chpc__slide" data-slide="{{ forloop.index }}" data-position="{{ forloop.index0 }}" data-product-id="{{ product.id }}">
+            <div class="chpc__card chpc--proxy">{% render 'product-card', product: product %}</div>
+          </article>
+        {%- endfor -%}
+      {%- endif -%}
+    </template>
+  {%- endfor -%}
+
+
+
+<script>
+(function(){
+  function initProductSlider(){
+    var root = document.getElementById("chpc-{{ section.id }}");
+    if(!root){ return; }
+
+    if(typeof ChHorizontalSlider === 'undefined'){
+       console.warn("ChHorizontalSlider not loaded");
+       return;
+    }
+
+    // Shared Slider
+    var slider = new ChHorizontalSlider(root, {
+      trackSel: '[data-track]',
+      prevSel: '.chpc__arrow--prev',
+      nextSel: '.chpc__arrow--next',
+      dotsSel: '[data-controls] .chpc__dots'
+    });
+    
+    // OLD: Removed uncloak immediately. We rely on ChHorizontalSlider IntersectionObserver (runIntro)
+    // to remove .chpc--pre when it scrolls into view.
+    // const uncloak = () => {
+    //   root.classList.remove('chpc--pre');
+    //   slider.refresh(); 
+    // };
+    // requestAnimationFrame(uncloak);
+
+    // TABS LOGIC (Specific to this section)
+    var track   = root.querySelector("[data-track]");
+    var tabs    = root.querySelector("[data-tabs]");
+    var tablist = root.querySelector("[data-tablist]");
+    var btnPrev = root.querySelector("[data-tab-prev]");
+    var btnNext = root.querySelector("[data-tab-next]");
+
+    function setActiveTab(btn){
+      if(!tablist) return;
+      tablist.querySelectorAll(".chpc__tab").forEach(function(b){
+        var active = (b === btn);
+        b.classList.toggle("is-active", active);
+        b.setAttribute("aria-selected", active ? "true" : "false");
+      });
+    }
+
+    function loadTab(blockId){
+      var tpl = document.getElementById("tpl-" + blockId);
+      if(!tpl){ console.warn("[chpc] Missing template for", blockId); return; }
+
+      track.innerHTML = tpl.innerHTML;
+      
+      // layout fix for mobile
+      groupMobilePages();
+      
+      // Refresh slider (re-calc width, pages, arrows)
+      slider.refresh();
+      
+      // Re-run intro animation
+      slider.hasIntro = false;
+      slider.runIntro();
+    }
+
+    // Handlers
+    window.addEventListener("resize", function(){ 
+        groupMobilePages();
+        slider.refresh();
+        updateTabOverflow();
+    });
+    
+    // Initial setup
+    groupMobilePages();
+    slider.refresh();
+    updateTabOverflow();
+     
+    // Auto-load first tab if present
+    var firstTab = root.querySelector('.chpc__tab.is-active');
+    if(firstTab){
+      // content already loaded by liquid; do not force loadTab which triggers intro
+    } else {
+      // Fallback: try first available tab
+      var anyTab = root.querySelector('.chpc__tab');
+      if(anyTab) {
+         setActiveTab(anyTab);
+         loadTab(anyTab.getAttribute('data-tab'));
+      }
+    }
+
+    // Mobile layout grouping
+    function groupMobilePages(){
+      // Unwrap first
+      var pages = Array.prototype.slice.call(track.querySelectorAll(".chpc__page"));
+      if(pages.length){
+          var frag = document.createDocumentFragment();
+          pages.forEach(function(p){ 
+              Array.prototype.slice.call(p.children).forEach(function(c){ frag.appendChild(c); });
+          });
+          track.innerHTML = "";
+          track.appendChild(frag);
+      }
+      
+      if(window.innerWidth < 740){
+          var slides = Array.prototype.slice.call(track.querySelectorAll(".chpc__slide"));
+          var frag = document.createDocumentFragment();
+          for(var i=0; i<slides.length; i+=2){
+              var page = document.createElement("div");
+              page.className = "chpc__page";
+              if(slides[i]) page.appendChild(slides[i]);
+              if(slides[i+1]) page.appendChild(slides[i+1]);
+              frag.appendChild(page);
+          }
+          track.innerHTML = "";
+          track.appendChild(frag);
+      }
+    }
+
+    // TABS SCROLLING
+    function updateTabOverflow(){
+      if(!tabs || !tablist) return;
+      var hasOverflow = tablist.scrollWidth > tablist.clientWidth + 1;
+      tabs.setAttribute("data-overflow", hasOverflow ? "true" : "false");
+    }
+    
+    if(tabs && tablist){
+        tabs.addEventListener("click", function(e){
+          var t = e.target.closest(".chpc__tab"); if(!t) return;
+          setActiveTab(t);
+          loadTab(t.getAttribute("data-tab"));
+        });
+        
+        if(btnPrev){
+          btnPrev.addEventListener("click", function(){
+            tablist.scrollBy({ left: -200, behavior: 'smooth' });
+          });
+        }
+        if(btnNext){
+          btnNext.addEventListener("click", function(){
+            tablist.scrollBy({ left: 200, behavior: 'smooth' });
+          });
+        }
+        
+        function updateTabArrows(){
+          if(!btnPrev || !btnNext) return;
+          var isAtStart = tablist.scrollLeft <= 1;
+          var isAtEnd = tablist.scrollLeft >= (tablist.scrollWidth - tablist.clientWidth - 1);
+          btnPrev.classList.toggle('is-disabled', isAtStart);
+          btnNext.classList.toggle('is-disabled', isAtEnd);
+        }
+        tablist.addEventListener('scroll', updateTabArrows);
+        updateTabArrows();
+    }
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initProductSlider);
+  } else {
+    initProductSlider();
+  }
+})();
+</script>
+</section>
+
+{% schema %}
+{
+  "name": "productcarousel",
+  "class": "section",
+  "settings": [
+    { "type": "range", "id": "padding_top", "label": "Padding top", "min": 0, "max": 120, "step": 4, "default": 12 },
+    { "type": "range", "id": "padding_bottom", "label": "Padding bottom", "min": 0, "max": 120, "step": 4, "default": 16 },
+
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Featured Products" },
+    { "type": "text", "id": "subheading", "label": "Subheading", "default": "Shop Camerahaus’ trending picks" },
+
+    { "type": "range", "id": "max_items", "label": "Max items", "min": 4, "max": 24, "step": 1, "default": 12 },
+
+    { "type": "range", "id": "items_per_view_desktop", "label": "Items per view (desktop)", "min": 3, "max": 5, "step": 1, "default": 5 },
+    { "type": "range", "id": "items_per_view_tablet",  "label": "Items per view (tablet)",  "min": 2, "max": 4, "step": 1, "default": 3 },
+    { "type": "range", "id": "items_per_view_mobile",  "label": "Items per view (mobile)",  "min": 1, "max": 6, "step": 1, "default": 4 },
+
+    { "type": "checkbox", "id": "enable_loop", "label": "Loop pages", "default": false },
+    { "type": "checkbox", "id": "enable_autoplay", "label": "Autoplay", "default": false },
+    { "type": "range", "id": "autoplay_ms", "label": "Autoplay interval (ms)", "min": 3000, "max": 9000, "step": 500, "default": 5000 },
+
+    { "type": "checkbox", "id": "show_arrows", "label": "Show arrows (desktop/tablet)", "default": true },
+    { "type": "checkbox", "id": "show_dots", "label": "Show pagination dots", "default": true },
+
+    { "type": "select", "id": "card_ratio", "label": "Card image ratio", "default": "square", "options": [
+      { "value": "square", "label": "1:1 (Square)" },
+      { "value": "4:3", "label": "4:3" },
+      { "value": "3:4", "label": "3:4" }
+    ]},
+    { "type": "select", "id": "image_fit", "label": "Image fit", "default": "contain", "options": [
+      { "value": "contain", "label": "Contain (recommended)" },
+      { "value": "cover",   "label": "Cover" }
+    ]},
+
+    { "type": "range", "id": "mobile_bleed_px", "label": "Mobile bleed (px)", "min": 0, "max": 48, "step": 1, "default": 0 },
+    { "type": "checkbox", "id": "mobile_full_bleed", "label": "Force 100vw full-bleed on mobile", "default": false },
+    { "type": "range", "id": "mobile_side_gutter", "label": "Mobile side gutter (px)", "min": 8, "max": 24, "step": 2, "default": 16 },
+    { "type": "checkbox", "id": "show_card_outline", "label": "Show card outline/shadow", "default": true }
+  ],
+  "blocks": [
+    {
+      "type": "tabs",
+      "name": "tabs",
+      "settings": [
+        { "type": "text", "id": "tab_label", "label": "Tab label", "default": "Speakers" },
+        { "type": "collection", "id": "collection", "label": "Collection" },
+        { "type": "product_list", "id": "products", "label": "Products (fallback)", "limit": 24 },
+        { "type": "select", "id": "collection_sort", "label": "Sort (client-side)", "default": "default", "options": [
+          { "value": "default",   "label": "Collection default" },
+          { "value": "price-asc", "label": "Price, low to high" },
+          { "value": "price-desc","label": "Price, high to low" },
+          { "value": "title-asc",  "label": "Title A–Z" },
+          { "value": "title-desc", "label": "Title Z–A" },
+          { "value": "date-desc", "label": "Newest first" },
+          { "value": "date-asc",  "label": "Oldest first" }
+        ]}
+      ]
+    }
+  ],
+  "presets": [{ "name": "productcarousel" }]
+}
+{% endschema %}

@@ -1,0 +1,530 @@
+{% comment %}
+Buying Guides / Shop by Use — Portrait Carousel
+Now: 1) one-time keyframe intro, 2) soft transition reveal on later rebuilds, 3) no re-pre on scroll
+{% endcomment %}
+
+<section id="guides-{{ section.id }}" class="guides guides--pre" role="region" aria-labelledby="guides-heading-{{ section.id }}">
+  <div class="page-width">
+    <div class="guides__top">
+      <h2 id="guides-heading-{{ section.id }}" class="guides__heading">
+        {{ section.settings.heading | default: 'Buying Guides' }}
+      </h2>
+    </div>
+
+    <div class="guides__viewport">
+      <ul class="guides__track" role="list" data-track tabindex="0" aria-label="{{ section.settings.heading | default: 'Buying Guides' }}">
+        {% for block in section.blocks %}
+          {% assign t = block.settings %}
+          <li role="listitem" class="guides__tile" data-tile
+              style="
+                --guide-title-color: {{ t.title_color | default: section.settings.title_color }};
+                --guide-sub-color:   {{ t.sub_color   | default: section.settings.sub_color   }};"
+              {{ block.shopify_attributes }}>
+
+            <a class="guide-card guide-card--loading"
+               href="{{ t.link | default: '#' }}"
+               aria-label="{{ t.title | escape }}">
+
+              <span class="guide-photo" aria-hidden="true">
+                {% if t.image != blank %}
+                  {%- comment -%}Activity cards: ~290px mobile, ~320px desktop. Use 480-900px for retina.{%- endcomment -%}
+                  {{ t.image
+                    | image_url: width: 900
+                    | image_tag:
+                        widths: '480,640,900',
+                        sizes: '(max-width: 739px) 80vw, (max-width: 1099px) 42vw, 320px',
+                        loading: 'lazy',
+                        decoding: 'async',
+                        alt: t.title }}
+                {% else %}
+                  {{ 'image' | placeholder_svg_tag: 'guide-ph' }}
+                {% endif %}
+              </span>
+
+              <div class="guide-text">
+                <h3 class="guide-title">{{ t.title | escape }}</h3>
+                {% if t.eyebrow != blank %}
+                  <p class="guide-sub">{{ t.eyebrow | escape }}</p>
+                {% endif %}
+              </div>
+
+              <span class="guide-go" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="M8 5l8 7-8 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+
+      {% render 'chpc-controls',
+          id: section.id,
+          show_dots: false,
+          show_arrows: true,
+          mobile_hide_arrows: true,
+          placement: 'inside' %}
+    </div>
+  </div>
+
+  <style>
+    #guides-{{ section.id }}{
+      --brand: {{ section.settings.brand | default: '#D12F24' }};
+      --gap: 14px;
+      --heading-color: {{ section.settings.heading_color | default: 'inherit' }};
+      --radius: {{ section.settings.corner_radius | default: 18 }}px;
+      --cols-d: {{ section.settings.cols_desktop | default: 4 }};
+      --cols-t: {{ section.settings.cols_tablet  | default: 2 }};
+      --mobile-peek: {{ section.settings.mobile_peek | default: 12 }}%;
+      --mobile-width: calc(100% - var(--mobile-peek));
+      --ratio: {% if section.settings.aspect_ratio == '3x4' %}3/4{% else %}4/5{% endif %};
+      --min-h: {{ section.settings.min_height | default: 520 }}px;
+
+      --title-size-d: {{ section.settings.title_size_desktop | default: 28 }}px;
+      --title-size-m: {{ section.settings.title_size_mobile  | default: 22 }}px;
+      --sub-size-d:   {{ section.settings.sub_size_desktop   | default: 14 }}px;
+      --sub-size-m:   {{ section.settings.sub_size_mobile    | default: 13 }}px;
+
+      --title-weight: {{ section.settings.title_weight | default: 600 }};
+      --sub-weight:   {{ section.settings.sub_weight   | default: 500 }};
+
+      --title-color: {{ section.settings.title_color | default: '#ffffff' }};
+      --sub-color:   {{ section.settings.sub_color   | default: '#f3f4f6' }};
+      padding-top: 24px;
+      padding-bottom: 24px;
+    }
+
+    #guides-{{ section.id }} .page-width{ max-width:1440px; margin:0 auto; padding:0 28px; }
+    @media (max-width:739.98px){ #guides-{{ section.id }} .page-width{ padding:0 16px; } }
+
+    .guides__top{ display:flex; align-items:center; justify-content:space-between; margin:0 0 12px; }
+    .guides__heading{
+      margin:0; font-weight:700; letter-spacing:-.01em; line-height:1.15;
+      font-size:clamp(24px, 3vw + 8px, 32px);
+      color: var(--heading-color);
+    }
+
+    .guides__viewport{ position:relative; }
+    .guides__track{
+      display:flex; gap:var(--gap);
+      overflow-x:auto; padding:4px 8px 12px;
+      scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+      scrollbar-width:none; align-items:stretch;
+    }
+    .guides__track::-webkit-scrollbar{ display:none; }
+
+    .guides__tile{
+      list-style:none;
+      flex: 0 0 calc( (100% - (var(--cols-d) - 1)*var(--gap)) / var(--cols-d) );
+      scroll-snap-align:start;
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+      transform: translateZ(0);
+    }
+    @media (max-width:1099.98px){
+      .guides__tile{ flex-basis: calc( (100% - (var(--cols-t) - 1)*var(--gap)) / var(--cols-t) ); }
+    }
+
+    @media (max-width:739.98px){
+      #guides-{{ section.id }} .guides__viewport{
+        width: calc(100vw - (env(safe-area-inset-left) + env(safe-area-inset-right)));
+        margin-left: calc(50% - 50vw + env(safe-area-inset-left));
+        margin-right: calc(50% - 50vw + env(safe-area-inset-right));
+      }
+      .guides__track{
+        padding-left: max(16px, env(safe-area-inset-left));
+        padding-right: calc(max(16px, env(safe-area-inset-right)) + var(--mobile-peek));
+        scroll-padding-inline: max(16px, env(safe-area-inset-left));
+        scroll-snap-stop: always;
+      }
+      .guides__tile{
+        flex: 0 0 var(--mobile-width) !important;
+        min-width: var(--mobile-width);
+        max-width: var(--mobile-width);
+      }
+    }
+
+    .guide-card{
+      position:relative; display:block; width:100%;
+      aspect-ratio: var(--ratio);
+      min-height: var(--min-h);
+      border-radius: var(--radius); overflow:hidden;
+      background:#0a0a0a; color:#fff; text-decoration:none;
+      box-shadow:0 6px 18px rgba(16,24,40,.10);
+    }
+
+    /* image layer fills the entire card */
+    .guide-photo{
+      position:absolute;
+      inset:0;
+      display:block;
+      z-index:1;
+    }
+
+    .guide-photo img,
+    .guide-ph{
+      width:100%; height:100%; object-fit:cover; display:block;
+      transform:translateZ(0) scale(1.001);
+      transition:transform .35s ease;
+      will-change: transform;
+    }
+    .guide-card:hover .guide-photo img{ transform:translateZ(0) scale(1.02); }
+
+    .guide-text{
+      position:absolute; left:18px; right:18px; top:18px; z-index:2;
+      display:flex; flex-direction:column; gap:6px; align-items:flex-start;
+    }
+    .guide-title{
+      margin:0; letter-spacing:-.01em; line-height:1.15;
+      font-weight: var(--title-weight);
+      font-size: clamp(var(--title-size-m), 2.6vw, var(--title-size-d));
+      color: var(--guide-title-color, var(--title-color));
+    }
+    .guide-sub{
+      margin:0; font-weight: var(--sub-weight);
+      font-size: clamp(var(--sub-size-m), 1.8vw, var(--sub-size-d));
+      color: var(--guide-sub-color, var(--sub-color));
+      opacity:.95;
+    }
+
+    .guide-go{
+      position:absolute; right:14px; bottom:14px; z-index:2;
+      width:42px; height:42px; display:grid; place-items:center;
+      border-radius:999px; background:#fff; color:var(--brand);
+      box-shadow:0 8px 20px rgba(0,0,0,.18);
+      transition: transform .15s ease, background .15s ease, color .15s ease;
+      will-change: transform, background, color;
+    }
+    .guide-card:hover .guide-go{ background:var(--brand); color:#fff; transform:translateY(-1px); }
+
+    .guide-card:focus-visible{
+      outline:3px solid transparent;
+      box-shadow:0 0 0 3px color-mix(in srgb, var(--brand) 42%, transparent), 0 16px 36px rgba(0,0,0,.18);
+    }
+
+    /* text shows only once image has loaded */
+    .guide-card--loading .guide-text,
+    .guide-card--loading .guide-go{
+      opacity:0;
+      transform:translate3d(0,4px,0);
+    }
+    .guide-card--ready .guide-text,
+    .guide-card--ready .guide-go{
+      opacity:1;
+      transform:translate3d(0,0,0);
+      transition:opacity .22s ease-out, transform .22s ease-out;
+    }
+
+    #guides-{{ section.id }} .guides__viewport > .chpc__arrows{ position:absolute; inset:0; pointer-events:none; z-index:6; }
+    #guides-{{ section.id }} .guides__viewport .chpc__arrow{
+      position:absolute; top:50%; transform:translateY(-50%); pointer-events:auto;
+      width:40px; height:40px; display:grid; place-items:center;
+      background:transparent; color:var(--brand);
+      border:1.5px solid var(--brand); border-radius:9999px;
+      transition: background .15s ease, color .15s ease, transform .08s ease; cursor:pointer;
+    }
+    #guides-{{ section.id }} .guides__viewport .chpc__arrow:hover{ background:var(--brand); color:#fff; }
+    #guides-{{ section.id }} .guides__viewport .chpc__arrow:active{ transform:translateY(-50%) scale(.96); }
+    #guides-{{ section.id }} .guides__viewport .chpc__arrow[disabled]{ opacity:.35; pointer-events:none; }
+    #guides-{{ section.id }} .guides__viewport .chpc__arrow--prev{ left:-24px; }
+    #guides-{{ section.id }} .guides__viewport .chpc__arrow--next{ right:-24px; }
+    @media (max-width:1099.98px){
+      #guides-{{ section.id }} .guides__viewport > .chpc__arrows,
+      #guides-{{ section.id }} .guides__viewport .chpc__arrow{ display:none !important; }
+    }
+
+    /* initial intro (GPU-friendly, no filter) */
+    #guides-{{ section.id }}.guides--pre .guides__tile{
+      opacity:0;
+      transform:translate3d(0,18px,0);
+    }
+    #guides-{{ section.id }} .guides__tile--intro{
+      animation: guides-float-in .42s cubic-bezier(.22,.61,.36,1) forwards;
+    }
+    @keyframes guides-float-in{
+      0%{ opacity:0; transform:translate3d(0,18px,0); }
+      100%{ opacity:1; transform:translate3d(0,0,0); }
+    }
+    #guides-{{ section.id }}.guides--done .guides__tile{
+      opacity:1;
+      transform:none;
+      animation:none;
+    }
+
+    /* soft reveal */
+    #guides-{{ section.id }}.guides--soft .guides__tile{
+      transition: opacity .35s ease-out, transform .35s ease-out;
+    }
+
+    /* reduced motion */
+    @media (prefers-reduced-motion: reduce){
+      #guides-{{ section.id }} .guides__tile--intro{ animation:none !important; }
+      #guides-{{ section.id }}.guides--pre .guides__tile{ opacity:1; transform:none; }
+      #guides-{{ section.id }}.guides--soft .guides__tile{ transition:none; }
+    }
+  </style>
+
+  <script>
+  (function(){
+    var root = document.getElementById('guides-{{ section.id }}');
+    if(!root) return;
+
+    var track     = root.querySelector('[data-track]');
+    var tiles     = root.querySelectorAll('[data-tile]');
+    var cards     = root.querySelectorAll('.guide-card');
+    var btnPrev   = root.querySelector('.chpc__arrow--prev');
+    var btnNext   = root.querySelector('.chpc__arrow--next');
+    var mqDesktop = window.matchMedia('(min-width:1100px)');
+    var currentPage = 0;
+
+    var isReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var isMobile = window.matchMedia('(max-width: 739.98px)').matches;
+
+    /* show text only once image has fully loaded */
+    function initGuideCardImages(){
+      if (!cards || !cards.length) return;
+
+      Array.prototype.forEach.call(cards, function(card){
+        var img = card.querySelector('img');
+
+        function markReady(){
+          if (card.classList.contains('guide-card--ready')) return;
+          card.classList.remove('guide-card--loading');
+          card.classList.add('guide-card--ready');
+        }
+
+        if (!img){
+          // placeholder or missing image
+          markReady();
+          return;
+        }
+
+        if (img.complete && img.naturalWidth > 0){
+          requestAnimationFrame(markReady);
+        } else {
+          img.addEventListener('load', markReady, { once:true });
+          img.addEventListener('error', markReady, { once:true });
+        }
+      });
+    }
+
+    function softRevealGuides(){
+      if(isReduced) return;
+      root.classList.add('guides--soft');
+      var visible = Array.prototype.filter.call(tiles, function(t){ return !t.hidden; });
+      // pre-style in a separate frame to avoid layout thrash
+      requestAnimationFrame(function(){
+        visible.forEach(function(t, i){
+          t.style.opacity = '0';
+          t.style.transform = 'translate3d(0,16px,0)';
+          t.style.transitionDelay = (i * 70) + 'ms';
+        });
+        requestAnimationFrame(function(){
+          visible.forEach(function(t){
+            t.style.opacity = '1';
+            t.style.transform = 'translate3d(0,0,0)';
+          });
+        });
+      });
+      setTimeout(function(){
+        visible.forEach(function(t){
+          t.style.transitionDelay = '';
+        });
+        root.classList.remove('guides--soft');
+      }, 650);
+    }
+
+    function runIntroGuides(){
+      if(didIntro) return;
+      didIntro = true;
+
+      var visible = Array.prototype.filter.call(tiles, function(t){ return !t.hidden; });
+
+      // Clear any previous inline delays if present
+      visible.forEach(function(t){
+        t.classList.remove('guides__tile--intro');
+        t.style.animationDelay = '';
+      });
+
+      // Stagger only on non-mobile; on mobile make it zero to avoid jank
+      visible.forEach(function(t, i){
+        t.style.animationDelay = isMobile ? '0ms' : (i * 70) + 'ms';
+      });
+
+      // Defer class flips to next frame to avoid mid-layout jank
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){
+          visible.forEach(function(t){
+            t.classList.add('guides__tile--intro');
+          });
+
+          // Mark done on the last visible tile's animation end (more robust than timeout)
+          var last = visible[visible.length - 1];
+          var onDone = function(){
+            root.classList.remove('guides--pre');
+            root.classList.add('guides--done');
+            visible.forEach(function(t){ t.style.animationDelay = ''; });
+            last && last.removeEventListener('animationend', onDone, { once:true });
+          };
+          if(last){
+            last.addEventListener('animationend', onDone, { once:true });
+            // Fallback in case events don't fire
+            setTimeout(function(){
+              if(!root.classList.contains('guides--done')){
+                onDone();
+              }
+            }, 900);
+          }else{
+            root.classList.remove('guides--pre');
+            root.classList.add('guides--done');
+          }
+        });
+      });
+    }
+
+    function pageWidth(){ return track ? track.clientWidth : 1; }
+    function pagesCount(){
+      if(!track) return 1;
+      var w = pageWidth() || 1;
+      return Math.max(1, Math.ceil((track.scrollWidth - 1) / w));
+    }
+
+    function updateArrows(){
+      if (!btnPrev || !btnNext || !track) return;
+
+      // Hide arrows completely on tablet/mobile – swipe only
+      if (!mqDesktop.matches) {
+        btnPrev.style.display = 'none';
+        btnNext.style.display = 'none';
+        return;
+      }
+
+      var viewport  = pageWidth() || 1;
+      var total     = track.scrollWidth || viewport;
+      var x         = track.scrollLeft || 0;
+      var maxScroll = Math.max(0, total - viewport - 1);
+
+      // Do we actually need arrows?
+      var need = total > (viewport + 1);
+      btnPrev.style.display = need ? 'grid' : 'none';
+      btnNext.style.display = need ? 'grid' : 'none';
+
+      btnPrev.disabled = (x <= 0);
+      btnNext.disabled = (x >= maxScroll);
+    }
+
+    function scrollToPage(idx, smooth){
+      if(!track) return;
+      var total = pagesCount();
+      if(idx < 0) idx = 0;
+      if(idx > total - 1) idx = total - 1;
+      var left = idx * (pageWidth() || 1);
+      track.scrollTo({ left:left, behavior: smooth ? 'smooth' : 'auto' });
+      currentPage = idx;
+      updateArrows();
+    }
+    function onScroll(){
+      updateArrows();
+    }
+
+    root.addEventListener('click', function(e){
+      var prev = e.target.closest('.chpc__arrow--prev');
+      var next = e.target.closest('.chpc__arrow--next');
+      if(!prev && !next) return;
+      e.preventDefault();
+      var dir = next ? 1 : -1;
+      var w = pageWidth();
+      var target = Math.round((track.scrollLeft + dir * w) / w);
+      scrollToPage(target, true);
+    });
+
+    if(track){
+      track.addEventListener('scroll', onScroll, { passive:true });
+      window.addEventListener('resize', function(){
+        updateArrows();
+      }, { passive:true });
+      (mqDesktop.addEventListener ? mqDesktop.addEventListener('change', updateArrows) : mqDesktop.addListener(updateArrows));
+      updateArrows();
+    }
+
+    initGuideCardImages();
+
+    // Animate once, slightly before fully in view to pre-warm decoding
+    var didIntro = false;
+    if('IntersectionObserver' in window){
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if(entry.isIntersecting){
+            runIntroGuides();
+            io.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.2,
+        rootMargin: '0px 0px -20% 0px'
+      });
+      io.observe(root);
+    } else {
+      root.classList.remove('guides--pre');
+      root.classList.add('guides--done');
+    }
+  })();
+  </script>
+</section>
+
+{% schema %}
+{
+  "name": "Shop by Use",
+  "settings": [
+    { "type": "text",  "id": "heading", "label": "Heading", "default": "Buying Guides" },
+    { "type": "color", "id": "brand",   "label": "Brand color (CTA/arrows)", "default": "#D12F24" },
+    { "type": "range", "id": "corner_radius", "label": "Card corner radius (px)", "min": 0, "max": 28, "step": 1, "default": 18 },
+    { "type": "select", "id": "aspect_ratio", "label": "Card aspect ratio", "default": "4x5",
+      "options": [
+        { "value": "4x5", "label": "4 : 5 (tall)" },
+        { "value": "3x4", "label": "3 : 4 (taller)" }
+      ]
+    },
+    { "type": "range", "id": "min_height", "label": "Minimum card height (px)", "min": 420, "max": 720, "step": 10, "default": 520 },
+    { "type": "range", "id": "cols_desktop", "label": "Desktop cards per view", "min": 2, "max": 5, "step": 1, "default": 4 },
+    { "type": "range", "id": "cols_tablet",  "label": "Tablet cards per view",  "min": 1, "max": 3, "step": 1, "default": 2 },
+    { "type": "range", "id": "mobile_peek", "label": "Peek next card (%)", "min": 0, "max": 30, "step": 1, "default": 12 },
+    { "type": "range", "id": "title_size_desktop", "label": "Title size — desktop (px)", "min": 18, "max": 40, "step": 1, "default": 28 },
+    { "type": "range", "id": "title_size_mobile",  "label": "Title size — mobile (px)",  "min": 16, "max": 28, "step": 1, "default": 22 },
+    { "type": "range", "id": "sub_size_desktop",   "label": "Eyebrow size — desktop (px)", "min": 12, "max": 20, "step": 1, "default": 14 },
+    { "type": "range", "id": "sub_size_mobile",    "label": "Eyebrow size — mobile (px)",  "min": 11, "max": 18, "step": 1, "default": 13 },
+    { "type": "select", "id": "title_weight", "label": "Title weight", "default": "600",
+      "options": [
+        { "value":"400","label":"Regular (400)" },
+        { "value":"500","label":"Medium (500)" },
+        { "value":"600","label":"Semibold (600)" },
+        { "value":"700","label":"Bold (700)" }
+      ]
+    },
+    { "type": "select", "id": "sub_weight",   "label": "Eyebrow weight", "default": "500",
+      "options": [
+        { "value":"400","label":"Regular (400)" },
+        { "value":"500","label":"Medium (500)" },
+        { "value":"600","label":"Semibold (600)" }
+      ]
+    },
+    { "type": "color", "id": "title_color", "label": "Default title color", "default": "#ffffff" },
+    { "type": "color", "id": "sub_color",   "label": "Default eyebrow color", "default": "#f3f4f6" }
+  ],
+  "blocks": [
+    {
+      "type": "guide",
+      "name": "Guide card",
+      "settings": [
+        { "type": "text", "id": "title", "label": "Title", "default": "Which Drone Is Right for Me?" },
+        { "type": "text", "id": "eyebrow", "label": "Eyebrow (subtitle)", "default": "5 things to know" },
+        { "type": "image_picker", "id": "image", "label": "Image" },
+        { "type": "url", "id": "link", "label": "Link" },
+        { "type": "color", "id": "title_color", "label": "Title color (override)" },
+        { "type": "color", "id": "sub_color",   "label": "Eyebrow color (override)" }
+      ]
+    }
+  ],
+  "presets": [{ "name": "Shop By Use" }]
+}
+{% endschema %}

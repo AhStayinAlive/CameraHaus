@@ -16,52 +16,37 @@ Notes
 - The cart wiring works out of the box for standard add-to-cart forms. If your theme uses custom endpoints, hook them where noted.
 {% endcomment %}
 
-<!-- ===== GENERIC SIDE PANEL WRAPPER (same Liquid API) ===== -->
-<div class="ch-panel {{ theme | default: 'light' }}{% if is_open %} is-open{% endif %}"
-     id="ch-panel-{{ id }}"
-     aria-hidden="{% if is_open %}false{% else %}true{% endif %}"
-     data-ch-panel="{{ id }}">
-  <div class="ch-panel__ov" data-ch-panel-close></div>
-  <aside class="ch-panel__pn" role="dialog" aria-modal="true" aria-label="{{ aria_label | default: title | default: id }}">
-    <div class="ch-panel__hd">
-      <div class="ch-panel__title">{{ title }}</div>
-      <button type="button" class="btn btn-icon" aria-label="Close" data-ch-panel-close>
-        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3L16.9 4.3z"/></svg>
-      </button>
-    </div>
-    <div class="ch-panel__body">
-      {{ body }}
-    </div>
-  </aside>
-</div>
-
 <style>
 /* ===== Camerahaus Sleek Panel Styles (scoped per instance via ID) ===== */
 #ch-panel-{{ id }}{
+  /* Havit-style token map */
   --bg: #ffffff;
-  --ink: #161616;
-  --muted:#6f6f6f;
-  --line:#e8e8e8;
+  --bg-soft:#F8FAFC;
+  --ink: #111111;
+  --muted:#6B7280;
+  --line:#E5E7EB;
   --brand:#E0302A;
-  --radius: 16px;
-  --shadow-lg: 0 24px 60px rgba(17,17,17,.16);
-  --shadow-md: 0 10px 30px rgba(17,17,17,.12);
+  --success:#16A34A;
+  --danger:#DC2626;
+  --radius: 14px;
+  --shadow-lg: 0 28px 80px rgba(17,17,17,.18);
+  --shadow-md: 0 12px 32px rgba(17,17,17,.12), 0 2px 8px rgba(17,17,17,.06);
   --ease-out: cubic-bezier(.22,1,.36,1);
   --ease-in: cubic-bezier(.5,0,.7,.2);
   position:fixed; inset:0; z-index:1400; pointer-events:none; font-family: var(--font-body, ui-sans-serif);
 }
 #ch-panel-{{ id }}.is-open{ pointer-events:auto; }
 #ch-panel-{{ id }} .ch-panel__ov{
-  position:absolute; inset:0; background:rgba(0,0,0,.35);
-  -webkit-backdrop-filter:saturate(120%) blur(6px); backdrop-filter:saturate(120%) blur(6px);
-  opacity:0; transition:opacity .24s var(--ease-out);
+  position:absolute; inset:0; background:rgba(17,17,17,.48);
+  -webkit-backdrop-filter:saturate(120%) blur(8px); backdrop-filter:saturate(120%) blur(8px);
+  opacity:0; transition:opacity .28s var(--ease-out);
 }
 #ch-panel-{{ id }}.is-open .ch-panel__ov{ opacity:1; }
 #ch-panel-{{ id }} .ch-panel__pn{
-  position:absolute; top:0; right:0; height:100%; width:min(520px,94vw);
+  position:absolute; top:0; right:0; height:100%; width:min(560px,96vw);
   background:var(--bg); color:var(--ink);
   transform: translateX(104%) scale(.995);
-  transition: transform .44s var(--ease-out), box-shadow .2s ease;
+  transition: transform .42s var(--ease-out), box-shadow .24s ease;
   display:flex; flex-direction:column; border-left:1px solid var(--line);
   box-shadow: var(--shadow-md);
   border-top-left-radius: var(--radius); border-bottom-left-radius: var(--radius);
@@ -73,11 +58,14 @@ Notes
   padding:16px 16px; border-bottom:1px solid var(--line); background:linear-gradient(#fff, #fdfdfd);
   position:sticky; top:0; z-index:2; border-top-left-radius: var(--radius);
 }
-#ch-panel-{{ id }} .ch-panel__title{ font: 800 15px/1.2 var(--font-body, ui-sans-serif); letter-spacing:.2px; }
-#ch-panel-{{ id }} .ch-panel__body{ padding:14px 16px 18px; display:grid; gap:12px; overflow:auto; min-height:0; }
-#ch-panel-{{ id }} .btn{ background:#111; color:#fff; border:0; height:42px; padding:0 16px; border-radius:999px; font:800 14px/1 var(--font-body, ui-sans-serif); cursor:pointer; }
+#ch-panel-{{ id }} .ch-panel__title{ font: 800 16px/1.2 var(--font-body, ui-sans-serif); letter-spacing:.2px; }
+#ch-panel-{{ id }} .ch-panel__body{ padding:16px 18px 20px; display:grid; gap:12px; overflow:auto; min-height:0; }
+#ch-panel-{{ id }} .btn{ background:#111; color:#fff; border:0; height:44px; padding:0 18px; border-radius:999px; font:800 14px/1 var(--font-body, ui-sans-serif); cursor:pointer; transition:background-color .18s ease, box-shadow .18s ease, transform .02s ease; }
+#ch-panel-{{ id }} .btn:hover{ background:#0b0b0b; }
+#ch-panel-{{ id }} .btn:active{ transform:translateY(1px); }
 #ch-panel-{{ id }} .btn:focus-visible{ outline:0; box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--brand); }
 #ch-panel-{{ id }} .btn.btn-outline{ background:#fff; color:#111; border:1px solid var(--line); }
+#ch-panel-{{ id }} .btn.btn-outline:hover{ background:#F9FAFB; }
 #ch-panel-{{ id }} .btn.btn-icon{ background:transparent; color:inherit; height:44px; min-width:44px; padding:0; }
 #ch-panel-{{ id }} .ico{ width:20px; height:20px; fill:currentColor; }
 
@@ -88,21 +76,25 @@ Notes
 
 /* ===== Cart (Camerahaus compact) ===== */
 #ch-panel-{{ id }} [data-mc-list]{ display:grid; gap:10px; }
-#ch-panel-{{ id }} .mci{ display:grid; grid-template-columns:72px 1fr auto; gap:12px; padding:10px; border:1px solid var(--line); border-radius:12px; background:#fff; box-shadow:0 1px 0 rgba(0,0,0,.02); }
-#ch-panel-{{ id }} .mci .pic{ width:72px; height:72px; border-radius:10px; object-fit:cover; background:#f6f6f6; }
+#ch-panel-{{ id }} .mci{ display:grid; grid-template-columns:80px 1fr auto; gap:12px; padding:12px; border:1px solid var(--line); border-radius:12px; background:#fff; box-shadow:0 1px 0 rgba(0,0,0,.02); }
+#ch-panel-{{ id }} .mci .pic{ width:80px; height:80px; border-radius:10px; object-fit:cover; background:#fff; border:1px solid #F1F5F9; }
 #ch-panel-{{ id }} .mci .name{ font:700 13px/1.35 var(--font-body, ui-sans-serif); color:var(--ink); text-decoration:none; }
-#ch-panel-{{ id }} .mci .meta{ color:#6b7280; font:600 11px/1.2 var(--font-body, ui-sans-serif); margin-top:4px; }
+#ch-panel-{{ id }} .mci .name:hover{ text-decoration:underline; text-underline-offset:2px; }
+#ch-panel-{{ id }} .mci .meta{ color:var(--muted); font:600 11px/1.2 var(--font-body, ui-sans-serif); margin-top:4px; }
 #ch-panel-{{ id }} .mci .price{ font:800 13px/1 var(--font-body, ui-sans-serif); white-space:nowrap; text-align:right; }
-#ch-panel-{{ id }} .mci .qty{ display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:10px; padding:6px; margin-top:6px; }
-#ch-panel-{{ id }} .mci .qty button{ width:26px; height:26px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer; }
-#ch-panel-{{ id }} .mci .qty input{ width:38px; text-align:center; border:0; outline:0; background:transparent; font:700 13px/1 var(--font-body, ui-sans-serif); }
-#ch-panel-{{ id }} .mc-ft{ padding:14px 0 10px; border-top:1px solid var(--line); margin-top:auto; background:inherit; position:sticky; bottom:0; }
-#ch-panel-{{ id }} .mc-sub{ display:flex; align-items:center; justify-content:space-between; font-weight:800; margin-bottom:10px; }
+#ch-panel-{{ id }} .mci .qty{ display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:10px; padding:6px; margin-top:8px; background:#fff; }
+#ch-panel-{{ id }} .mci .qty button{ width:28px; height:28px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer; transition:background-color .12s ease, border-color .12s ease; }
+#ch-panel-{{ id }} .mci .qty button:hover{ background:#F9FAFB; border-color:#D1D5DB; }
+#ch-panel-{{ id }} .mci .qty input{ width:40px; text-align:center; border:0; outline:0; background:transparent; font:700 13px/1 var(--font-body, ui-sans-serif); }
+#ch-panel-{{ id }} .mc-ft{ padding:16px 18px 14px; border-top:1px solid var(--line); margin-top:auto; background:inherit; position:sticky; bottom:0; }
+#ch-panel-{{ id }} .mc-sub{ display:flex; align-items:center; justify-content:space-between; font-weight:800; margin-bottom:12px; }
 #ch-panel-{{ id }} .mc-cta{ display:flex; gap:10px; }
-#ch-panel-{{ id }} .mc-cta a{ flex:1 1 0; height:44px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; text-decoration:none; font:800 14px/1 var(--font-body, ui-sans-serif); }
+#ch-panel-{{ id }} .mc-cta a{ flex:1 1 0; height:46px; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; text-decoration:none; font:800 14px/1 var(--font-body, ui-sans-serif); transition:background-color .18s ease, box-shadow .18s ease; }
 #ch-panel-{{ id }} .mc-cta .btn-view{ background:#fff; border:1px solid var(--line); color:#111; }
+#ch-panel-{{ id }} .mc-cta .btn-view:hover{ background:#F9FAFB; }
 #ch-panel-{{ id }} .mc-cta .btn-checkout{ background:#111; color:#fff; }
-#ch-panel-{{ id }} .mc-note{ color:#6b7280; font:600 11px/1.2 var(--font-body, ui-sans-serif); margin-top:8px; }
+#ch-panel-{{ id }} .mc-cta .btn-checkout:hover{ background:#0b0b0b; }
+#ch-panel-{{ id }} .mc-note{ color:var(--muted); font:600 11px/1.2 var(--font-body, ui-sans-serif); margin-top:8px; }
 
 /* Skeleton shimmer */
 #ch-panel-{{ id }} .skeleton{ background:linear-gradient(90deg,#eee,#f7f7f7,#eee); animation:ch-sk 1.2s infinite; }
@@ -164,12 +156,51 @@ Notes
   opacity: .9;
 }
 
+/* ===== Havit visual overrides for Search panel inside side panel ===== */
+.ch-panel[data-ch-panel="search"] .sh-inp{
+  height:48px; background:#fff; border:1px solid var(--line); border-radius:999px;
+  padding:0 14px; box-shadow: inset 0 0 0 1px transparent; transition:border-color .15s ease, box-shadow .15s ease;
+}
+.ch-panel[data-ch-panel="search"] .sh-inp:focus-within{ border-color:var(--brand); box-shadow: inset 0 0 0 1px var(--brand); }
+.ch-panel[data-ch-panel="search"] .sh-inp input{ font:600 16px/1.35 var(--font-body); color:var(--ink); }
+.ch-panel[data-ch-panel="search"] .chips{ gap:8px; }
+.ch-panel[data-ch-panel="search"] .chip{ height:32px; padding:0 12px; border-radius:999px; border:1px solid var(--line); background:#fff; color:#111; font-weight:700; font-size:12px; }
+.ch-panel[data-ch-panel="search"] .chip:hover{ background:#FFF4F3; border-color:var(--brand); }
+.ch-panel[data-ch-panel="search"] .srow{ border:1px solid var(--line); border-radius:12px; background:#fff; }
+.ch-panel[data-ch-panel="search"] .it{ grid-template-columns:64px 1fr auto; border:1px solid var(--line); border-radius:12px; background:#fff; padding:10px; gap:10px; }
+.ch-panel[data-ch-panel="search"] .mthumb{ width:64px; height:64px; border-radius:10px; background:#fff; border:1px solid #F1F5F9; object-fit:contain; }
+.ch-panel[data-ch-panel="search"] .mtitle{ font:600 13px/1.35 var(--font-body); color:#111; }
+.ch-panel[data-ch-panel="search"] .mprice{ font:800 13px/1 var(--font-body); color:var(--brand); }
+.ch-panel[data-ch-panel="search"] .price-was{ color:#6B7280; text-decoration:line-through; margin-left:6px; font-weight:700; }
+
+/* ===== Wishlist panel typography & empty state ===== */
+.ch-panel[data-ch-panel="wishlist"] .ch-panel__body{ color:var(--ink); }
+.ch-panel[data-ch-panel="wishlist"] .wl-empty, .ch-panel[data-ch-panel="wishlist"] .empty{
+  text-align:center; color:var(--muted); padding:24px 8px; font:500 13px/1.5 var(--font-body);
+}
+
 </style>
 
-{% comment %}
-======== MINI-CART WIRING (DATA + RENDER) ========
-- Safe to include once per page. If you use multiple panels, this script detects the cart by data-ch-panel="cart".
-{% endcomment %}
+<!-- ===== GENERIC SIDE PANEL WRAPPER (same Liquid API) ===== -->
+<div class="ch-panel {{ theme | default: 'light' }}{% if is_open %} is-open{% endif %}"
+     id="ch-panel-{{ id }}"
+     aria-hidden="{% if is_open %}false{% else %}true{% endif %}"
+     data-ch-panel="{{ id }}">
+  <div class="ch-panel__ov" data-ch-panel-close></div>
+  <aside class="ch-panel__pn" role="dialog" aria-modal="true" aria-label="{{ aria_label | default: title | default: id }}">
+    <div class="ch-panel__hd">
+      <div class="ch-panel__title">{{ title }}</div>
+      <button type="button" class="btn btn-icon" aria-label="Close" data-ch-panel-close>
+        <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3L16.9 4.3z"/></svg>
+      </button>
+    </div>
+
+    <div class="ch-panel__body">
+      {{ body }}
+    </div>
+  </aside>
+</div>
+
 <script>
 (() => {
   const rootDoc = document;

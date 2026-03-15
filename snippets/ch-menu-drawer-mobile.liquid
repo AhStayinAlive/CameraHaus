@@ -1,189 +1,441 @@
 {%- comment -%}
-Mobile Menu Drawer (left slide)
-Usage: {% render 'ch-menu-drawer-mobile', is_open: false %}
-Triggers supported out of the box:
-- [data-open-drawer]  (legacy)
-- [data-drawer-open]
-- [data-panel-open="menu"]
+Mobile Menu Drawer — lines to edges, darker active cats, slide animations, inside black X (refined position & styling)
 {%- endcomment -%}
 
-<div class="ch-drawer only-m{% if is_open %} is-open{% endif %}"
-     id="ch-menu-drawer"
-     aria-hidden="{% if is_open %}false{% else %}true{% endif %}"
-     data-ch-drawer="menu">
-  <div class="ch-drawer__ov" data-close></div>
-  <aside class="ch-drawer__pn" role="dialog" aria-modal="true" aria-label="Menu">
-    <div class="ch-drawer__hd">
-      <div class="title">Menu</div>
-      <button type="button" class="btn" aria-label="Close" data-close>
-        <svg class="ico" viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3L16.9 4.3z"/></svg>
-      </button>
+{%- assign _is_open = is_open | default: false -%}
+{%- assign _main_handle = main_handle | default: 'main-menu-copy' -%}
+{%- assign _store_url = store_locator_url | default: '/pages/store-locator' -%}
+{%- assign _main_menu = linklists[_main_handle] -%}
+
+<style>
+#ch-menu-drawer{
+  --brand:#D12F24;
+  --line:#e2e2e2;
+  --ink:#111; --muted:#6b7280;
+  --tab-idle:#ededed; --tab-active:#e0e0e0; /* darker when active */
+  --icon-size:18px;
+  --ch-topbar-h: 60px;
+  position:fixed; inset:0; pointer-events:none; z-index:1300;
+  font-family: var(--font-sans, ui-sans-serif, system-ui), sans-serif;
+}
+#ch-menu-drawer.is-open{ pointer-events:auto; }
+
+/* overlay */
+#ch-menu-drawer .ch-mdrawer__overlay{
+  position:absolute; inset:0; background:rgba(0,0,0,.45);
+  opacity:0; visibility:hidden; pointer-events:none;
+  transition:opacity .22s, visibility .22s; z-index:10;
+}
+#ch-menu-drawer.is-open .ch-mdrawer__overlay{ opacity:1; visibility:visible; pointer-events:auto; }
+
+/* panel */
+#ch-menu-drawer .ch-mdrawer__panel{
+  --panel-w: min(90vw, 400px);
+  position:absolute;
+  top:0;
+  left:0;
+  width:var(--panel-w);
+  height:100%;  background:#fff;
+  color:var(--ink);
+  border-right:1px solid var(--line);
+  transform:translateX(-104%);
+  /* SMOOTHER: 0.4s with custom ease */
+  transition:transform .4s cubic-bezier(0.25, 1, 0.5, 1);
+  z-index:11;
+  display:flex;
+  flex-direction:column;
+  padding-top:0 !important; /* prevent inheriting body padding */
+  margin-top:0 !important; /* prevent inherited margin */
+}
+
+#ch-menu-drawer.is-open .ch-mdrawer__panel{ 
+  transform:translateX(0); 
+}
+
+
+/* tabs */
+#ch-menu-drawer .ch-topbar{
+  position:absolute;
+  top:0 !important;
+  left:0;
+  right:0;
+  width:100%; /* force width */
+  height:var(--ch-topbar-h);
+  margin:0 !important;
+  padding-top:0 !important;
+
+  background:#f6f6f6;
+  border-bottom:1px solid var(--line);
+  padding-right:56px; /* space for the X button */
+  z-index:12;
+  display: flex;
+  align-items: stretch;
+}
+
+
+#ch-menu-drawer .ch-tabs{ display:grid; grid-template-columns:1fr 1fr; flex:1; height:100%; }
+#ch-menu-drawer .ch-tab{
+  padding:0 16px; height:100%; display:flex; align-items:center; justify-content:center;
+  font-weight:700; font-size:14px; color:#2b2b2b;
+  background:var(--tab-idle); border:0; border-bottom:2px solid transparent;
+  border-radius:0; cursor:pointer; position:relative; text-transform:uppercase; letter-spacing:.02em;
+  transition: border-color .2s ease, background .2s ease;
+}
+#ch-menu-drawer .ch-tab + .ch-tab{ border-left:1px solid var(--line); }
+#ch-menu-drawer .ch-tab.is-active{ 
+  background:var(--tab-active); 
+  border-bottom-color:var(--brand);
+}
+
+/* INSIDE black “X” — nicer, top-right placement */
+
+#ch-menu-drawer .ch-close-outer svg{ width:22px; height:22px; display:block; margin:auto; }
+#ch-menu-drawer.is-open .ch-close-outer{ display:block; }
+#ch-menu-drawer .ch-close-outer:hover{
+  background:#f3f3f3; border-color:#cfcfcf; color:#000;
+  box-shadow:0 2px 6px rgba(0,0,0,.12); transform:translateZ(0) scale(1.02);
+}
+#ch-menu-drawer .ch-close-outer:active{ transform:scale(.98); }
+#ch-menu-drawer .ch-close-outer:focus-visible{
+  outline:2px solid #111; outline-offset:2px;
+}
+
+/* panes + tab slide animation */
+#ch-menu-drawer .ch-tabpanes{flex:1; overflow:auto; -webkit-overflow-scrolling:touch; padding-top:var(--ch-topbar-h);}
+#ch-menu-drawer .ch-pane{padding:0 0 22px;}
+#ch-menu-drawer .ch-pane[data-anim="slide-left"]{animation:slideLeft .22s ease both;}
+#ch-menu-drawer .ch-pane[data-anim="slide-right"]{animation:slideRight .22s ease both;}
+@keyframes slideLeft{from{opacity:0; transform:translateX(14px)}to{opacity:1; transform:translateX(0)}}
+@keyframes slideRight{from{opacity:0; transform:translateX(-14px)}to{opacity:1; transform:translateX(0)}}
+
+/* lists — full-bleed lines */
+#ch-menu-drawer .ch-list{list-style:none; margin:0; padding:0; background:#fff;}
+#ch-menu-drawer .ch-list--lines > li{border-top:1px solid var(--line); margin:0;}
+#ch-menu-drawer .ch-list--lines > li:first-child{border-top:0;}
+#ch-menu-drawer .ch-row{
+  position:relative; display:flex; align-items:center; gap:10px;
+  min-height:56px; padding:0 16px; text-decoration:none; color:inherit;
+}
+#ch-menu-drawer .ch-row:hover{ background:#fafafa; }
+#ch-menu-drawer .tx{font-weight:500; font-size:14.5px; flex:1 1 auto;}
+
+/* icons smaller (menu only) */
+#ch-menu-drawer .ico{ width:var(--icon-size); height:var(--icon-size); display:inline-flex; align-items:center; justify-content:center; color:#4b5563; }
+#ch-menu-drawer .ico svg{ width:100%; height:100%; }
+
+/* CATEGORIES: parent rows darker when open; end-to-end borders  */
+#ch-menu-drawer .ch-list--cats > .ch-cat-card{ border-top:1px solid var(--line); }
+#ch-menu-drawer .ch-list--cats > .ch-cat-card:last-child{ border-bottom:1px solid var(--line); }
+#ch-menu-drawer .ch-list--cats .ch-row{ padding-right:56px; }
+#ch-menu-drawer .ch-cat-card.is-open > .ch-row{ background:#e9e9e9; }
+
+/* plus toggle */
+#ch-menu-drawer .ch-cat-toggle{
+  position:absolute; right:12px; top:50%; transform:translateY(-50%);
+  width:28px; height:28px; border:1px solid rgba(209,47,36,.55); border-radius:8px;
+  background:#fff; color:var(--brand); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:background .16s, border-color .16s, transform .18s ease;
+}
+#ch-menu-drawer .ch-cat-toggle::before{
+  content:""; width:14px; height:14px; background:currentColor;
+  -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>') center/14px 14px no-repeat;
+          mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>') center/14px 14px no-repeat;
+}
+#ch-menu-drawer .ch-cat-card.is-open .ch-cat-toggle{
+  background:rgba(209,47,36,.08); border-color:rgba(209,47,36,.75); transform:translateY(-50%) rotate(180deg);
+}
+#ch-menu-drawer .ch-cat-card.is-open .ch-cat-toggle::before{
+  -webkit-mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5 12h14" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>') center/14px 14px no-repeat;
+          mask:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M5 12h14" stroke="black" stroke-width="2" stroke-linecap="round"/></svg>') center/14px 14px no-repeat;
+}
+
+/* SUBLIST */
+#ch-menu-drawer .ch-sub{
+  --indent: 18px;
+  list-style:none; margin:0; padding:0 0 8px var(--indent);
+  max-height:0; opacity:0; overflow:hidden;
+  transition:max-height .28s ease, opacity .22s ease;
+}
+#ch-menu-drawer .ch-sub.show{ max-height:600px; opacity:1; }
+#ch-menu-drawer .ch-sub li{
+  border-top:1px solid var(--line);
+  margin-left:calc(-1 * var(--indent));
+  width:calc(100% + var(--indent));
+}
+#ch-menu-drawer .ch-sub li:first-child{ border-top:1px solid var(--line); }
+#ch-menu-drawer .ch-sub li a{
+  display:block; min-height:48px; padding:0 16px 0 calc(var(--indent) + 8px);
+  line-height:48px; font-size:13.5px; color:#4b5563; text-decoration:none;
+}
+#ch-menu-drawer .ch-sub li a:hover{ background:#f7f7f7; }
+#ch-menu-drawer .ch-close-outer{
+  display:none;
+  position:absolute;
+  right:12px;
+  top:10px;
+  z-index:12;
+  width:44px;
+  height:44px;
+  padding:0;
+  border:none;
+  border-radius:0;
+  background:transparent;
+  box-shadow:none;
+  color:#111;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  appearance:none;
+  -webkit-appearance:none;
+  transition:color .12s ease;
+}
+
+#ch-menu-drawer.is-open .ch-close-outer{
+  display:flex;
+}
+
+#ch-menu-drawer .ch-close-outer svg{
+  width:22px;
+  height:22px;
+}
+
+/* make sure hover has NO box / bg */
+#ch-menu-drawer .ch-close-outer:hover,
+#ch-menu-drawer .ch-close-outer:active{
+  background:transparent;
+  box-shadow:none;
+  border:none;
+  color:#D12F24; /* red X on hover/click */
+}
+
+#ch-menu-drawer .ch-close-outer:focus-visible{
+  outline:2px solid #111;
+  outline-offset:2px;
+}
+#ch-menu-drawer .ch-tab:focus{ outline:none; }
+
+</style>
+
+<div id="ch-menu-drawer"
+     class="ch-mdrawer"
+     aria-hidden="true">
+  <div class="ch-mdrawer__overlay" data-close></div>
+
+  <aside class="ch-mdrawer__panel" role="dialog" aria-modal="true" aria-label="Menu">
+
+    <!-- Tabs -->
+    <div class="ch-topbar">
+      <div class="ch-tabs" role="tablist" aria-label="Main navigation tabs">
+        <button id="ch-tab-menu" class="ch-tab is-active" role="tab"
+                aria-selected="true" aria-controls="ch-panel-menu">Menu</button>
+        <button id="ch-tab-cats" class="ch-tab" role="tab"
+                aria-selected="false" aria-controls="ch-panel-cats">Categories</button>
+      </div>
     </div>
 
-    <div class="grid">
-      <div class="col">
-        <nav aria-label="Primary">
-          <ul class="list">
-            <li><a href="{{ routes.root_url }}">Home</a></li>
-            <li><a href="{{ section.settings.store_locator_url | default: '/pages/store-locator' }}">Find a store near you</a></li>
+    <div class="ch-tabpanes">
+      <!-- MENU -->
+      <section id="ch-panel-menu" class="ch-pane is-on" role="tabpanel"
+               aria-labelledby="ch-tab-menu" aria-hidden="false" style="display:block;">
+        <ul class="ch-list ch-list--lines">
+          <li>
+            <a class="ch-row" href="/pages/brands">
+              <span class="ico" aria-hidden="true">
+                <!-- brands -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.997 4a2 2 0 0 1 1.76 1.05l.486.9A2 2 0 0 0 18.003 7H20a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h1.997a2 2 0 0 0 1.759-1.048l.489-.904A2 2 0 0 1 10.004 4z"/><circle cx="12" cy="13" r="3"/></svg>
+              </span>
+              <span class="tx">Brands</span>
+            </a>
+          </li>
+          <li>
+            <a class="ch-row" href="/pages/store-branches">
+              <span class="ico" aria-hidden="true">
+                <!-- store locator -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></svg>
+              </span>
+              <span class="tx">Store locator</span>
+            </a>
+          </li>
+          <li>
+            <a class="ch-row" href="{{ routes.search_url }}" data-panel-open="search">
+              <span class="ico" aria-hidden="true">
+                <!-- search -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+              </span>
+              <span class="tx">Search</span>
+            </a>
+          </li>
+          <li>
+            <a class="ch-row" href="{{ routes.account_login_url }}">
+              <span class="ico" aria-hidden="true">
+                <!-- login -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+              </span>
+              <span class="tx">Login / Register</span>
+            </a>
+          </li>
+          <li>
+            <a class="ch-row" href="{{ routes.cart_url }}">
+              <span class="ico" aria-hidden="true">
+                <!-- cart -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></svg>
+              </span>
+              <span class="tx">Cart</span>
+            </a>
+          </li>
+        </ul>
+      </section>
 
-            {% if section.settings.links_secondary %}
-              {% assign links_obj = linklists[section.settings.links_secondary] %}
-              {% if links_obj and links_obj.links.size > 0 %}
-                {% for l in links_obj.links %}
-                  <li><a href="{{ l.url }}">{{ l.title }}</a></li>
-                {% endfor %}
-              {% endif %}
-            {% endif %}
+      {%- assign _cats_index = -1 -%}
+      {%- if _main_menu and _main_menu.links.size > 0 -%}
+        {%- for top in _main_menu.links -%}
+          {%- assign _t = top.title | strip | downcase -%}
+          {%- if _t == 'category' or _t == 'categories' -%}
+            {%- assign _cats_index = forloop.index0 -%}{%- break -%}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endif -%}
 
-            <li><a href="{{ routes.search_url }}">Search</a></li>
-            <li><a href="/pages/wishlist">Wishlist</a></li>
-
-            {% if shop.customer_accounts_enabled %}
-              {% if customer %}
-                <li><a href="{{ routes.account_url }}">Account</a></li>
-              {% else %}
-                <li><a href="{{ routes.account_login_url }}">Login / Register</a></li>
-              {% endif %}
-            {% endif %}
-          </ul>
-        </nav>
-      </div>
-
-      <div class="col">
-        <div class="sec">
-          <button class="sec__head" type="button" data-acc aria-expanded="true">
-            <span>Categories</span>
-            <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-          </button>
-          <div class="sec__body">
-            <ul class="list">
-              {% assign main_handle = section.settings.menu_main %}
-              {% assign parent_title = section.settings.categories_parent_title | default: 'Category' %}
-              {% assign menu_obj = linklists[main_handle] %}
-              {% assign categories_parent_index = -1 %}
-              {% if menu_obj %}
-                {% for l in menu_obj.links %}
-                  {% assign t_norm = l.title | strip | downcase %}
-                  {% assign p_norm = parent_title | strip | downcase %}
-                  {% if t_norm == p_norm %}{% assign categories_parent_index = forloop.index0 %}{% endif %}
-                {% endfor %}
-              {% endif %}
-
-              {% if menu_obj and categories_parent_index > -1 %}
-                {% assign cats_parent = menu_obj.links[categories_parent_index] %}
-                {% if cats_parent.links and cats_parent.links.size > 0 %}
-                  {% for c in cats_parent.links %}<li><a href="{{ c.url }}">{{ c.title }}</a></li>{% endfor %}
-                {% else %}
-                  <li><a href="{{ section.settings.categories_fallback_url | default: '/collections/all' }}">All Categories</a></li>
+      <!-- CATEGORIES -->
+      <section id="ch-panel-cats" class="ch-pane" role="tabpanel"
+               aria-labelledby="ch-tab-cats" aria-hidden="true" hidden style="display:none;">
+        <ul class="ch-list ch-list--lines ch-list--cats">
+          {%- if _main_menu and _cats_index > -1 -%}
+            {%- assign cats_parent = _main_menu.links[_cats_index] -%}
+            {%- for l in cats_parent.links -%}
+              {%- assign n = l.title | strip | downcase -%}
+              {%- unless n == 'brands' -%}
+              <li class="ch-cat-card">
+                <a class="ch-row has-toggle" href="{{ l.url }}">
+                  <span class="tx">{{ l.title }}</span>
+                  {% if l.links.size > 0 %}
+                    <button class="ch-cat-toggle" type="button"
+                            aria-label="Expand {{ l.title }}" aria-expanded="false"
+                            aria-controls="sub-{{ forloop.index }}"></button>
+                  {% endif %}
+                </a>
+                {% if l.links.size > 0 %}
+                  <ul id="sub-{{ forloop.index }}" class="ch-sub">
+                    {% for s in l.links %}
+                      <li><a href="{{ s.url }}">{{ s.title }}</a></li>
+                    {% endfor %}
+                  </ul>
                 {% endif %}
-              {% else %}
-                <li><a href="{{ section.settings.categories_fallback_url | default: '/collections/all' }}">All Categories</a></li>
-              {% endif %}
-            </ul>
-          </div>
-        </div>
-
-        <div class="sec">
-          <button class="sec__head" type="button" data-acc aria-expanded="false">
-            <span>Brands</span>
-            <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-          </button>
-          <div class="sec__body" hidden>
-            <div class="chips">
-              {% assign brands = section.settings.brands_list | default: "Canon\nNikon\nSony\nFujifilm\nPanasonic\nSigma" | split: '\n' %}
-              {% for b in brands %}
-                {% assign v = b | strip %}
-                {% if v != '' %}
-                  <a class="chip" href="/search?type=product&q={{ 'vendor:"' | append: v | append: '"' | url_encode }}"><span>{{ v }}</span></a>
-                {% endif %}
-              {% endfor %}
-              {% if section.settings.brands_fallback_url %}
-                <a class="chip" href="{{ section.settings.brands_fallback_url }}"><span>All brands</span></a>
-              {% endif %}
-            </div>
-          </div>
-        </div>
-      </div>
+              </li>
+              {%- endunless -%}
+            {%- endfor -%}
+          {%- else -%}
+            <li><a class="ch-row" href="/collections/all"><span class="tx">All Categories</span></a></li>
+          {%- endif -%}
+        </ul>
+      </section>
     </div>
+
+    <!-- INSIDE black “X”; only visible when open -->
+    <button type="button" class="ch-close-outer" aria-label="Close" data-close>
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M18 6 6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+    </button>
+
   </aside>
 </div>
 
-<style>
-/* ===== Drawer-only styles (scoped) ===== */
-#ch-menu-drawer{ position:fixed; inset:0; z-index:1300; pointer-events:none; }
-#ch-menu-drawer.is-open{ pointer-events:auto; }
-#ch-menu-drawer .ch-drawer__ov{ position:absolute; inset:0; background:rgba(0,0,0,.45); opacity:0; transition:opacity .24s; }
-#ch-menu-drawer.is-open .ch-drawer__ov{ opacity:1; }
-
-#ch-menu-drawer .ch-drawer__pn{
-  position:absolute; top:0; left:0; width:min(720px,92vw); height:100%;
-  background:var(--brand, #E0302A); color:#fff; transform:translateX(-104%);
-  transition:transform .36s cubic-bezier(.22,.61,.36,1); padding:14px; overflow:auto;
-}
-#ch-menu-drawer.is-open .ch-drawer__pn{ transform:translateX(0); }
-
-#ch-menu-drawer .ch-drawer__hd{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding-bottom:10px; border-bottom:1px solid rgba(255,255,255,.18); }
-#ch-menu-drawer .title{ font:800 14px/1.2 var(--font-body, ui-sans-serif); }
-#ch-menu-drawer .btn{ background:transparent; border:0; min-width:44px; min-height:44px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
-#ch-menu-drawer .ico{ width:20px; height:20px; fill:currentColor; }
-
-#ch-menu-drawer .grid{ display:grid; grid-template-columns:1fr; gap:12px; padding-top:12px; }
-@media(min-width:480px){ #ch-menu-drawer .grid{ grid-template-columns:1fr 1fr; } }
-#ch-menu-drawer .col{ background:#fff; color:#111; border-radius:12px; padding:10px; border:1px solid #e5e7eb; }
-
-#ch-menu-drawer .list{ list-style:none; margin:0; padding:0; display:grid; gap:4px; }
-#ch-menu-drawer .list a{ display:block; padding:12px 10px; border-radius:8px; text-decoration:none; color:#111; font-weight:700; min-height:44px; }
-#ch-menu-drawer .list a:hover{ background:#f6f6f6; }
-
-#ch-menu-drawer .sec + .sec{ margin-top:10px; }
-#ch-menu-drawer .sec__head{ width:100%; display:flex; align-items:center; justify-content:space-between; padding:10px; border-radius:10px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; font-weight:800; }
-#ch-menu-drawer .sec__head:focus-visible{ outline:0; box-shadow:0 0 0 1.5px var(--brand, #E0302A); }
-#ch-menu-drawer .sec__body{ padding:10px 0 0; }
-#ch-menu-drawer .chev{ width:18px; height:18px; transition:transform .18s ease; }
-#ch-menu-drawer [aria-expanded="true"] .chev{ transform:rotate(180deg); }
-
-#ch-menu-drawer .chips{ display:flex; flex-wrap:wrap; gap:8px; }
-#ch-menu-drawer .chip{
-  display:inline-flex; align-items:center; height:32px; padding:0 12px; border-radius:999px;
-  border:1px solid #e5e7eb; background:#fff; color:#111; text-decoration:none; font-weight:700; font-size:12px;
-}
-#ch-menu-drawer .chip:hover{ background:#FFF4F3; border-color:var(--brand, #E0302A); }
-</style>
-
 <script>
-(() => {
-  const drawer  = document.getElementById('ch-menu-drawer');
-  if(!drawer) return;
+(function(){
+  const root = document.getElementById('ch-menu-drawer'); if(!root) return;
+  const html = document.documentElement;
+  const overlay = root.querySelector('.ch-mdrawer__overlay');
+
+  let opener = null;
+  let currentPane = 'menu';
 
   const setOpen = (open) => {
-    drawer.classList.toggle('is-open', !!open);
-    drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
-    document.documentElement.style.overflow = open ? 'hidden' : '';
-    if(open){
-      const first = drawer.querySelector('button, a, [href], [tabindex]:not([tabindex="-1"])');
-      first && first.focus();
+    root.classList.toggle('is-open', !!open);
+    root.setAttribute('aria-hidden', open ? 'false' : 'true');
+    html.style.overflow = open ? 'hidden' : '';
+
+    if (open) {
+      opener = document.activeElement;
+      (root.querySelector('button, a[href]') || root).focus();
+    } else {
+      opener && opener.focus && opener.focus({ preventScroll: true });
     }
   };
 
-  // open/close triggers (legacy + new)
+
   document.addEventListener('click', (e)=>{
-    if(e.target.closest('[data-open-drawer],[data-drawer-open],[data-panel-open="menu"]')){ e.preventDefault(); setOpen(true); }
-    if(e.target.closest('#ch-menu-drawer [data-close], #ch-menu-drawer .ch-drawer__ov')){ e.preventDefault(); setOpen(false); }
-    const link = e.target.closest('#ch-menu-drawer a[href]');
-    if(link && !link.getAttribute('href').startsWith('#')) setOpen(false);
+    if(e.target.closest('[data-panel-open="menu"],[data-open-drawer],[data-drawer-open]')){ e.preventDefault(); setOpen(true); }
+    if(e.target.closest('#ch-menu-drawer [data-close]') || e.target === overlay){ e.preventDefault(); setOpen(false); }
   }, true);
 
-  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') setOpen(false); }, true);
+  document.addEventListener('keydown', (e)=>{
+    if(!root.classList.contains('is-open')) return;
+    if(e.key === 'Escape'){ e.preventDefault(); setOpen(false); }
+  }, true);
 
-  // simple accordion
-  drawer.addEventListener('click', (e)=>{
-    const head = e.target.closest('#ch-menu-drawer [data-acc]');
-    if(!head) return;
-    const open = head.getAttribute('aria-expanded') === 'true';
-    head.setAttribute('aria-expanded', open ? 'false' : 'true');
-    const body = head.parentElement.querySelector('.sec__body');
-    if(body) body.hidden = open;
-  });
+  // tabs
+  const btnMenu  = root.querySelector('#ch-tab-menu');
+  const btnCats  = root.querySelector('#ch-tab-cats');
+  const paneMenu = root.querySelector('#ch-panel-menu');
+  const paneCats = root.querySelector('#ch-panel-cats');
+
+  function showPane(showCats){
+    const next = showCats ? 'cats' : 'menu';
+    if(next === currentPane) return;
+
+    const entering = showCats ? paneCats : paneMenu;
+    const leaving  = showCats ? paneMenu : paneCats;
+
+    btnMenu.classList.toggle('is-active', !showCats);
+    btnMenu.setAttribute('aria-selected', (!showCats).toString());
+    btnCats.classList.toggle('is-active', showCats);
+    btnCats.setAttribute('aria-selected', showCats.toString());
+
+    leaving.hidden = true; leaving.style.display = 'none';
+    entering.hidden = false; entering.style.display = 'block';
+    entering.setAttribute('data-anim', next === 'cats' ? 'slide-left' : 'slide-right');
+    setTimeout(()=>entering.removeAttribute('data-anim'), 250);
+
+    currentPane = next;
+  }
+  btnMenu && btnMenu.addEventListener('click', (e)=>{ e.preventDefault(); showPane(false); });
+  btnCats && btnCats.addEventListener('click', (e)=>{ e.preventDefault(); showPane(true); });
+
+  // start with all subcats CLOSED
+  root.querySelectorAll('.ch-sub').forEach(ul=>ul.classList.remove('show'));
+  root.querySelectorAll('.ch-cat-toggle').forEach(btn=>btn.setAttribute('aria-expanded','false'));
+
+  // accordion with slide animation
+  root.addEventListener('click', (e)=>{
+    const tg = e.target.closest('.ch-cat-toggle'); if(!tg) return;
+    e.preventDefault();
+    const id = tg.getAttribute('aria-controls');
+    const sub = id && root.querySelector('#'+id);
+    const open = tg.getAttribute('aria-expanded') === 'true';
+
+    // close others
+    root.querySelectorAll('.ch-cat-toggle[aria-expanded="true"]').forEach(btn=>{
+      if(btn !== tg){
+        btn.setAttribute('aria-expanded','false');
+        const sib = root.querySelector('#'+btn.getAttribute('aria-controls'));
+        if(sib){ sib.classList.remove('show'); }
+        btn.closest('.ch-cat-card')?.classList.remove('is-open');
+      }
+    });
+
+    tg.setAttribute('aria-expanded', (!open).toString());
+    if(sub){ sub.classList.toggle('show', !open); }
+    tg.closest('.ch-cat-card')?.classList.toggle('is-open', !open);
+  }, true);
+
+  // expose if needed
+  window.CHMenuDrawer = {
+    open: ()=>setOpen(true),
+    close: ()=>setOpen(false),
+    showCategories:()=>showPane(true),
+    showMenu:()=>showPane(false)
+  };
 })();
 </script>

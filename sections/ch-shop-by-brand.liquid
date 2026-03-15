@@ -1,0 +1,480 @@
+{% comment %}
+Shop by Brands — Carousel (poster-style, desktop-only arrows, CTA button instead of search)
+{% endcomment %}
+
+<section id="ch-brands-{{ section.id }}" class="ch-brands ch-brands--photo chb--pre" role="region" aria-labelledby="ch-brands-heading-{{ section.id }}">
+  {%- assign heading_tag = section.settings.heading_level | default: 'h2' -%}
+  {%- if heading_tag != 'h2' and heading_tag != 'h3' and heading_tag != 'h4' -%}{% assign heading_tag = 'h2' %}{%- endif -%}
+
+  <div class="page-width">
+
+    {%- if section.blocks.size > 0 -%}
+      {%- assign letters = '|' -%}
+      {%- for block in section.blocks -%}
+        {%- assign L = block.settings.brand_name | strip | slice: 0, 1 | upcase -%}
+        {%- assign key = '|' | append: L | append: '|' -%}
+        {%- unless letters contains key -%}{%- assign letters = letters | append: L | append: '|' -%}{%- endunless -%}
+      {%- endfor -%}
+
+      <div class="chb-top">
+        <{{ heading_tag }} id="ch-brands-heading-{{ section.id }}" class="chb-heading">
+          {{ section.settings.heading_text | default: 'Brands We Love' }}
+        </{{ heading_tag }}>
+
+        {%- if section.settings.cta_link != blank or section.settings.cta_text != blank -%}
+          <a
+            class="chb-search-btn chb-cta-btn"
+            href="{{ section.settings.cta_link | default: '#' }}"
+            aria-label="Browse brands">
+            <span class="chb-search-text" data-mobile="View brands">
+              {{ section.settings.cta_text | default: 'Browse all brands' }}
+            </span>
+            <svg class="chb-search-icon lucide lucide-arrow-right-icon lucide-arrow-right" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>
+            </svg>
+          </a>
+        {%- endif -%}
+      </div>
+
+      {%- if section.settings.enable_az_filter -%}
+        {%- assign letters_arr = letters | split: '|' -%}
+        <div class="chb-az" data-az aria-label="Filter by first letter">
+          <ul role="list" class="chb-az-list">
+            <li role="listitem"><button type="button" class="chb-chip is-active" data-letter="all" aria-pressed="true">All</button></li>
+            {%- for L in letters_arr -%}{% if L != '' %}
+              <li role="listitem"><button type="button" class="chb-chip" data-letter="{{ L }}" aria-pressed="false">{{ L }}</button></li>
+            {% endif %}{% endfor %}
+          </ul>
+        </div>
+      {%- endif -%}
+
+      <!-- Viewport (arrows live INSIDE here so they center on cards) -->
+      <div class="chb-viewport">
+        <ul role="list" class="chb-track" data-track tabindex="0" aria-label="{{ section.settings.heading_text | default: 'Brands We Love' }}">
+          {%- for block in section.blocks -%}
+            {%- if block.settings.pin_to_top -%}
+              {%- assign bname = block.settings.brand_name | strip -%}
+              {%- assign bname_down = bname | downcase -%}
+              {%- assign bletter = bname | slice: 0, 1 | upcase -%}
+              {%- assign alt_text = block.settings.alt_text | default: bname -%}
+              {%- assign link_url = block.settings.brand_url | default: '#' -%}
+              <li role="listitem" class="chb-tile" data-tile data-brand="{{ bname_down | escape }}" data-letter="{{ bletter }}" data-featured="true">
+                <a class="chb-photo-card" href="{{ link_url }}" aria-label="Shop {{ bname | escape }}" data-cta="Shop {{ bname | escape }}">
+                  <span class="chb-photo-wrap" aria-hidden="true">
+                    {%- if block.settings.brand_photo -%}
+                      {%- assign src_180  = block.settings.brand_photo | image_url: width: 180 -%}
+                      {%- assign src_240  = block.settings.brand_photo | image_url: width: 240 -%}
+                      {%- assign src_360  = block.settings.brand_photo | image_url: width: 360 -%}
+                      {%- assign src_480  = block.settings.brand_photo | image_url: width: 480 -%}
+                      {%- assign src_600  = block.settings.brand_photo | image_url: width: 600 -%}
+                      <img class="chb-photo" loading="lazy" decoding="async" alt=""
+                           src="{{ src_480 }}"
+                           srcset="{{ src_180 }} 180w, {{ src_240 }} 240w, {{ src_360 }} 360w, {{ src_480 }} 480w, {{ src_600 }} 600w"
+                           sizes="(min-width:1100px) 300px, (min-width:740px) 44vw, 50vw">
+                    {%- endif -%}
+                  </span>
+                  <span class="chb-gradient" aria-hidden="true"></span>
+                  <span class="chb-logo-wrap" aria-hidden="true">
+                    {%- if block.settings.brand_logo -%}
+                      {%- assign lg_96  = block.settings.brand_logo | image_url: width: 96 -%}
+                      {%- assign lg_160 = block.settings.brand_logo | image_url: width: 160 -%}
+                      <img class="chb-logo" loading="lazy" decoding="async" alt="{{ alt_text | escape }}"
+                           src="{{ lg_96 }}" 
+                           srcset="{{ lg_96 }} 96w, {{ lg_160 }} 160w" 
+                           sizes="(min-width: 740px) 72px, 56px"
+                           width="96" height="96">
+                    {%- else -%}
+                      <span class="chb-text-logo">{{ bname }}</span>
+                    {%- endif -%}
+                  </span>
+                  <span class="chb-badge" aria-hidden="true">Featured</span>
+                </a>
+              </li>
+            {%- endif -%}
+          {%- endfor -%}
+
+          {%- for block in section.blocks -%}
+            {%- unless block.settings.pin_to_top -%}
+              {%- assign bname = block.settings.brand_name | strip -%}
+              {%- assign bname_down = bname | downcase -%}
+              {%- assign bletter = bname | slice: 0, 1 | upcase -%}
+              {%- assign alt_text = block.settings.alt_text | default: bname -%}
+              {%- assign link_url = block.settings.brand_url | default: '#' -%}
+              <li role="listitem" class="chb-tile" data-tile data-brand="{{ bname_down | escape }}" data-letter="{{ bletter }}" data-featured="false">
+                <a class="chb-photo-card" href="{{ link_url }}" aria-label="Shop {{ bname | escape }}" data-cta="Shop {{ bname | escape }}">
+                  <span class="chb-photo-wrap" aria-hidden="true">
+                    {%- if block.settings.brand_photo -%}
+                      {%- assign src_180  = block.settings.brand_photo | image_url: width: 180 -%}
+                      {%- assign src_240  = block.settings.brand_photo | image_url: width: 240 -%}
+                      {%- assign src_360  = block.settings.brand_photo | image_url: width: 360 -%}
+                      {%- assign src_600  = block.settings.brand_photo | image_url: width: 600 -%}
+                      {%- assign src_800  = block.settings.brand_photo | image_url: width: 800 -%}
+                      <img class="chb-photo" loading="lazy" decoding="async" alt=""
+                           src="{{ src_600 }}"
+                           srcset="{{ src_180 }} 180w, {{ src_240 }} 240w, {{ src_360 }} 360w, {{ src_600 }} 600w, {{ src_800 }} 800w"
+                           sizes="(min-width:1100px) 300px, (min-width:740px) 44vw, 50vw">
+                    {%- endif -%}
+                  </span>
+                  <span class="chb-gradient" aria-hidden="true"></span>
+                  <span class="chb-logo-wrap" aria-hidden="true">
+                    {%- if block.settings.brand_logo -%}
+                      {%- assign lg_96  = block.settings.brand_logo | image_url: width: 96 -%}
+                      {%- assign lg_160 = block.settings.brand_logo | image_url: width: 160 -%}
+                      <img class="chb-logo" loading="lazy" decoding="async" alt="{{ alt_text | escape }}"
+                           src="{{ lg_96 }}" 
+                           srcset="{{ lg_96 }} 96w, {{ lg_160 }} 160w" 
+                           sizes="(min-width: 740px) 72px, 56px"
+                           width="96" height="96">
+                    {%- else -%}
+                      <span class="chb-text-logo">{{ bname }}</span>
+                    {%- endif -%}
+                  </span>
+                </a>
+              </li>
+            {%- endunless -%}
+          {%- endfor -%}
+        </ul>
+
+        {% render 'chpc-controls',
+            id: section.id,
+            show_dots: false,
+            show_arrows: true,
+            mobile_hide_arrows: true,
+            placement: 'inside' %}
+      </div><!-- /.chb-viewport -->
+
+      <!-- dots live outside so arrows center on cards -->
+      <div class="chpc__dots chb-dots" data-dots></div>
+
+    {%- else -%}
+      <{{ heading_tag }} id="ch-brands-heading-{{ section.id }}" class="chb-heading">{{ section.settings.heading_text | default: 'Brands We Love' }}</{{ heading_tag }}>
+      <p class="chb-empty">No brands to show.</p>
+    {%- endif -%}
+  </div><!-- /.page-width -->
+
+
+<style>
+#ch-brands-{{ section.id }}{
+  padding-top:{{ section.settings.padding_top | default: 24 }}px;
+  padding-bottom:{{ section.settings.padding_bottom | default: 24 }}px;
+  --brand:#D12F24;
+  --gap: {{ section.settings.tile_gap | default: 14 }}px;
+  --radius: {{ section.settings.tile_radius | default: 16 }}px;
+}
+
+
+  #ch-brands-{{ section.id }} .page-width{ max-width:1440px; margin:0 auto; padding:0 28px; }
+  @media (max-width:739.98px){ #ch-brands-{{ section.id }} .page-width{ padding:0 16px; } }
+
+  .sr-only{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+
+  #ch-brands-{{ section.id }} .chb-top{
+    display:flex; align-items:center; justify-content:space-between; gap:16px; margin:0 0 10px; flex-wrap:wrap;
+  }
+  #ch-brands-{{ section.id }} .chb-heading{
+    margin:0; font-weight:700; letter-spacing:-.01em; line-height:1.15;
+    font-size:clamp(24px, 3vw + 8px, 32px);
+    color: var(--heading-color, inherit);
+  }
+
+  #ch-brands-{{ section.id }} .chb-cta-btn{
+    display:inline-flex; align-items:center;
+    min-width:40px; height:36px; padding:0 14px;
+    border:0; border-radius:8px; cursor:pointer; color:#fff; background:var(--brand);
+    font-weight:700; line-height:1; text-decoration:none; position:relative;
+    gap: 8px; /* space between text and icon */
+  }
+  #ch-brands-{{ section.id }} .chb-cta-btn::before,
+  #ch-brands-{{ section.id }} .chb-cta-btn *::before,
+  #ch-brands-{{ section.id }} .chb-cta-btn::after { content:none !important; display:none !important; }
+  
+  #ch-brands-{{ section.id }} .chb-search-icon{
+    display:block !important;
+    transition: transform .22s ease;
+  }
+  
+  @media (hover:hover){
+    #ch-brands-{{ section.id }} .chb-cta-btn:hover{
+      background: color-mix(in srgb, var(--brand) 88%, white 12%);
+      box-shadow: 0 6px 18px rgba(0,0,0,.18);
+    }
+    #ch-brands-{{ section.id }} .chb-cta-btn:hover .chb-search-icon{
+      transform: translateX(3px);
+    }
+  }
+  #ch-brands-{{ section.id }} .chb-cta-btn:focus-visible{
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 35%, transparent), 0 6px 16px rgba(0,0,0,.18);
+  }
+  #ch-brands-{{ section.id }} .chb-cta-btn:active::after{
+    transform: translateY(-50%) translateX(1px) rotate(45deg);
+  }
+
+  .chb-viewport{ position:relative; }
+  .chb-track{
+    display:flex; gap:var(--gap);
+    overflow-x:auto; padding:4px 8px 12px;
+    scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; align-items:stretch;
+  }
+  .chb-track::-webkit-scrollbar{ display:none; }
+
+  .chb-track > .chb-tile{ flex:0 0 min(360px, 33.33%); scroll-snap-align:start; }
+  @media (max-width:1099.98px){ .chb-track > .chb-tile{ flex-basis:44%; } }
+
+  @media (max-width:739.98px){
+    #ch-brands-{{ section.id }} .chb-viewport{
+      width: calc(100vw - (env(safe-area-inset-left) + env(safe-area-inset-right)));
+      margin-left: calc(50% - 50vw + env(safe-area-inset-left));
+      margin-right: calc(50% - 50vw + env(safe-area-inset-right));
+    }
+    #ch-brands-{{ section.id }} .chb-track{
+      padding-left: max(16px, env(safe-area-inset-left));
+      padding-right: max(16px, env(safe-area-inset-right));
+      scroll-padding-inline: max(16px, env(safe-area-inset-left));
+    }
+    #ch-brands-{{ section.id }} .chb-track > .chb-tile{
+      flex-basis: calc((100% - var(--gap)) / 2);
+      min-width: 0;
+    }
+    #ch-brands-{{ section.id }} .chb-photo-card{ aspect-ratio: 4/3; }
+    #ch-brands-{{ section.id }} .chb-logo{ max-height: clamp(48px, 9vw, 72px); }
+  }
+
+  .chb-tile{ list-style:none; }
+
+  .chb-photo-card{ position:relative; display:block; width:100%; aspect-ratio:16/9; border-radius:var(--radius); overflow:hidden; background:#f3f4f6; box-shadow:0 6px 18px rgba(0,0,0,.10); text-decoration:none; color:inherit; transform:translateZ(0); }
+  .chb-photo{ width:100%; height:100%; object-fit:cover; display:block; transform:scale(1.001); transition:transform .35s ease; }
+  .chb-photo-card:hover .chb-photo{ transform:scale(1.03); }
+  .chb-gradient{ position:absolute; inset:0; z-index:1; background:linear-gradient(180deg, rgba(0,0,0,0.00) 45%, rgba(0,0,0,0.40) 100%); }
+  .chb-photo-card:focus-visible{ outline:3px solid transparent; box-shadow:0 0 0 3px color-mix(in srgb, var(--brand) 38%, transparent), 0 10px 24px rgba(0,0,0,.14); }
+  .chb-logo-wrap{ position:absolute; z-index:2; left:14px; right:14px; bottom:12px; display:flex; align-items:flex-end; gap:10px; }
+  .chb-logo{ max-width:84%; max-height:clamp(56px,10vw,96px); width:auto; height:auto; filter:drop-shadow(0 1px 6px rgba(0,0,0,.55)); }
+  .chb-text-logo{ display:inline-block; padding:6px 10px; border-radius:10px; background:rgba(0,0,0,.5); color:#fff; font-weight:700; font-size:.95rem; backdrop-filter:saturate(120%) blur(2px); }
+
+  .chb-photo-card::after{
+    content: attr(data-cta);
+    position:absolute; right:12px; bottom:12px; z-index:2;
+    padding:6px 10px; border-radius:999px; background:var(--brand); color:#fff; font-weight:700; font-size:12px;
+    box-shadow:0 2px 10px rgba(0,0,0,.18); opacity:0; transform:translateY(4px); transition:opacity .25s ease, transform .25s ease;
+  }
+  @media (hover:hover){ .chb-photo-card:hover::after{ opacity:1; transform:translateY(0); } }
+  @media (max-width:739.98px){ .chb-photo-card::after{ display:none; } }
+
+  .chb-tile[data-featured="true"] .chb-photo-card{ box-shadow:0 0 0 2px var(--brand) inset, 0 10px 24px rgba(209,47,36,.14); }
+  .chb-badge{ position:absolute; top:10px; left:10px; z-index:2; font-size:.75rem; color:#fff; background:var(--brand); border-radius:999px; padding:4px 8px; box-shadow:0 4px 10px rgba(0,0,0,.16); }
+
+  #ch-brands-{{ section.id }} .chb-viewport > .chpc__arrows{ position:absolute; top:0; right:0; bottom:0; left:0; pointer-events:none; z-index:6; }
+  #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow{
+    position:absolute; top:50%; transform:translateY(-50%); pointer-events:auto;
+    width:38px; height:38px; display:grid; place-items:center;
+    background:transparent; color:var(--brand);
+    border:1.5px solid var(--brand); border-radius:9999px;
+    transition: background .15s ease, color .15s ease, transform .08s ease; cursor:pointer;
+  }
+  #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow:hover{ background:var(--brand); color:#fff; }
+  #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow:active{ transform:translateY(-50%) scale(.96); }
+  #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow[disabled]{ opacity:.35; filter:grayscale(1); pointer-events:none; }
+  #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow--prev{ left:-24px; }
+  #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow--next{ right:-24px; }
+  @media (max-width:1099.98px){
+    #ch-brands-{{ section.id }} .chb-viewport > .chpc__arrows,
+    #ch-brands-{{ section.id }} .chb-viewport .chpc__arrow{ display:none !important; }
+  }
+
+  #ch-brands-{{ section.id }} .chb-dots{ display:none !important; }
+
+  @media (max-width:739.98px){
+    #ch-brands-{{ section.id }} .chb-top{
+      flex-direction:row; align-items:center; justify-content:space-between; gap:12px; flex-wrap:nowrap;
+    }
+    #ch-brands-{{ section.id }} .chb-heading{
+      flex:1 1 auto; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+      font-size: clamp(22px, 4.8vw, 28px);
+    }
+    #ch-brands-{{ section.id }} .chb-cta-btn{
+      height:32px; /* Increased from 28px */
+      padding:0 10px; border-radius:8px; line-height:1; white-space:nowrap;
+      font-size: 13px;
+    }
+    #ch-brands-{{ section.id }} .chb-search-text{ font-size:0; }
+    #ch-brands-{{ section.id }} .chb-search-text::after{
+      content: attr(data-mobile); font-size:13px; font-weight:700;
+    }
+    #ch-brands-{{ section.id }} .chb-cta-btn svg { width:14px; height:14px; }
+  }
+
+  /* 👇 one-time float-in intro, card by card */
+  /* 👇 one-time float-in intro, card by card */
+  /* Initial hidden state when section has .chb--pre */
+  #ch-brands-{{ section.id }}.chb--pre .chb-tile {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+
+  /* Active animation state applied by JS */
+  #ch-brands-{{ section.id }} .chb-tile--intro {
+    opacity: 0; /* Start hidden for animation */
+    animation: ch-fade-up 0.6s cubic-bezier(.22, .61, .36, 1) forwards;
+    will-change: opacity, transform;
+  }
+
+  /* Done state (fallback) */
+  #ch-brands-{{ section.id }}.chb--done .chb-tile {
+    opacity: 1;
+    transform: none;
+    animation: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #ch-brands-{{ section.id }}.chb--pre .chb-tile {
+      opacity: 1;
+      transform: none;
+    }
+    #ch-brands-{{ section.id }} .chb-tile--intro {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+    }
+  }
+
+  @keyframes ch-fade-up {
+    from { opacity: 0; transform: translate3d(0, 20px, 0); }
+    to   { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+</style>
+
+
+
+<script>
+  (function(){
+    function initBrandsSlider(){
+      var root = document.getElementById('ch-brands-{{ section.id }}');
+      if(!root) return;
+
+      var attempts = 0;
+      var interval = setInterval(function(){
+        if(typeof ChHorizontalSlider !== 'undefined'){
+          clearInterval(interval);
+          startSlider(root);
+        } else {
+          attempts++;
+          if(attempts > 50){ // 5 seconds max
+            clearInterval(interval);
+            console.warn("ChHorizontalSlider failed to load");
+            // Failsafe: show content so it's not hidden
+            root.classList.remove('chb--pre');
+            root.classList.add('chb--done');
+          }
+        }
+      }, 100);
+    }
+
+    function startSlider(root){
+      // A-Z Filter Logic (Specific to this section, kept separate)
+      var azWrap = root.querySelector('[data-az]');
+      var tiles  = root.querySelectorAll('[data-tile]');
+      
+      // Initialize shared slider
+      var slider = new ChHorizontalSlider(root, {
+        trackSel: '[data-track]',
+        prevSel: '.chpc__arrow--prev',
+        nextSel: '.chpc__arrow--next',
+        dotsSel: '[data-dots]'
+      });
+
+      function applyFilters(skipIntro){
+        var letter = root.getAttribute('data-letter') || 'all';
+        tiles.forEach(function(tile){
+          var first = tile.getAttribute('data-letter') || '';
+          var show = (letter === 'all' || first === letter);
+          tile.hidden = !show;
+        });
+        // Refresh slider logic (dots/arrows/pages) after visibility changes
+        slider.refresh();
+        
+        if(!skipIntro){
+          // Trigger intro animation (only for manual filter updates)
+          slider.hasIntro = false;
+          slider.runIntro();
+        }
+      }
+
+      if(azWrap){
+        azWrap.addEventListener('click', function(e){
+          var btn = e.target.closest('.chb-chip'); if(!btn) return;
+          var letter = btn.getAttribute('data-letter');
+          root.setAttribute('data-letter', letter);
+
+          azWrap.querySelectorAll('.chb-chip').forEach(function(b){
+            var active = b === btn;
+            b.classList.toggle('is-active', active);
+            b.setAttribute('aria-pressed', active ? 'true' : 'false');
+          });
+
+          applyFilters(false);
+        });
+      }
+
+      // Analytics
+      root.addEventListener('click', function(e){
+        var link = e.target.closest('.chb-photo-card'); if(!link) return;
+        var tile = link.closest('[data-tile]'); if(!tile) return;
+        if(typeof window.gtag === 'function'){
+          try{
+            window.gtag('event','brand_click',{
+              event_category:'Shop by Brands',
+              event_label:(tile.getAttribute('data-brand')||'').toUpperCase(),
+              location:'carousel',
+              section_id:'{{ section.id }}'
+            });
+          }catch(err){}
+        }
+      });
+
+      // Initial filter apply (WITHOUT triggering intro immediately)
+      // Let IntersectionObserver (in constructor) handle the float-in when scrolled into view.
+      applyFilters(true);
+    }
+
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', initBrandsSlider);
+    } else {
+      initBrandsSlider();
+    }
+  })();
+</script>
+</section>
+
+{% schema %}
+{
+  "name": "Shop by Brands — Carousel",
+  "settings": [
+    { "type": "text", "id": "heading_text", "label": "Heading", "default": "Brands We Love" },
+    { "type": "select", "id": "heading_level", "label": "Heading level", "default": "h2", "options": [{"value":"h2","label":"H2"},{"value":"h3","label":"H3"},{"value":"H4","label":"H4"}] },
+
+    { "type": "text", "id": "cta_text", "label": "CTA text", "default": "Browse all brands" },
+    { "type": "url",  "id": "cta_link", "label": "CTA link" },
+
+    { "type": "checkbox", "id": "enable_az_filter", "label": "Enable A–Z filter chips", "default": false },
+    { "type": "range", "id": "tile_gap", "label": "Gap (px)", "min": 6, "max": 24, "step": 2, "default": 14 },
+    { "type": "range", "id": "tile_radius", "label": "Tile corner radius (px)", "min": 8, "max": 28, "step": 2, "default": 16 },
+    { "type": "range", "id": "padding_top", "label": "Top padding (px)", "min": 0, "max": 80, "step": 4, "default": 24 },
+    { "type": "range", "id": "padding_bottom", "label": "Bottom padding (px)", "min": 0, "max": 80, "step": 4, "default": 24 }
+  ],
+  "blocks": [
+    {
+      "type": "brand",
+      "name": "Brand",
+      "settings": [
+        { "type": "text", "id": "brand_name", "label": "Brand name", "default": "Brand" },
+        { "type": "image_picker", "id": "brand_photo", "label": "Lifestyle photo (background)" },
+        { "type": "image_picker", "id": "brand_logo", "label": "Brand logo" },
+        { "type": "url", "id": "brand_url", "label": "Brand link" },
+        { "type": "text", "id": "alt_text", "label": "Logo alt text (optional)" },
+        { "type": "checkbox", "id": "pin_to_top", "label": "Mark as Featured", "default": false }
+      ]
+    }
+  ],
+  "presets": [{ "name": "Shop by Brands — Carousel" }]
+}
+{% endschema %}

@@ -1,15 +1,39 @@
 <!doctype html>
 <html class="no-js" lang="{{ shop.locale }}">
 <head>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+
+  <!-- <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..900&display=swap" rel="stylesheet"> REMOVED for Self-Hosting -->
+  <link rel="preload" href="{{ 'Inter-Regular.woff2' | asset_url }}" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="{{ 'Inter-SemiBold.woff2' | asset_url }}" as="font" type="font/woff2" crossorigin>
+
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+})(window,document,'script','dataLayer','GTM-NR64NFW9');</script>
+<!-- End Google Tag Manager -->
+
+  <style>
+    :root{
+      --font-sans: "Inter","Inter var",ui-sans-serif,system-ui,-apple-system,
+                   "Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",
+                   "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol",sans-serif;
+
+      --font-body-family: var(--font-sans);
+      --font-heading-family: var(--font-sans);
+    }
+
+    html, body, button, input, select, textarea{ font-family:var(--font-sans); }
+    html{ font-synthesis-weight:none; font-synthesis-style:none; }
+  </style>
 
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="{{ settings.color_header_bg }}">
-  {{ 'predictive-search.css' | asset_url | stylesheet_tag }}
+  <link rel="stylesheet" href="{{ 'predictive-search.css' | asset_url }}" media="print" onload="this.media='all'">
+  <noscript>{{ 'predictive-search.css' | asset_url | stylesheet_tag }}</noscript>
 
   {% if settings.favicon != blank %}
     <link rel="shortcut icon" href="{{ settings.favicon | img_url: '32x32' }}" type="image/png">
@@ -30,7 +54,21 @@
     document.documentElement.className = document.documentElement.className.replace('no-js', 'js');
   </script>
 
-  {{ 'theme.scss.css' | asset_url | stylesheet_tag }}
+  {% render 'critical-css' %}
+  
+  <link rel="preload" href="{{ 'ch-animations.css' | asset_url }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>{{ 'ch-animations.css' | asset_url | stylesheet_tag }}</noscript>
+  
+  <link rel="preload" href="{{ 'theme.scss.css' | asset_url }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>{{ 'theme.scss.css' | asset_url | stylesheet_tag }}</noscript>
+
+  <!-- Conditional Card CSS (Async) -->
+  {%- if request.page_type == 'index' or request.page_type == 'collection' or request.page_type == 'product' or request.page_type == 'search' or request.page_type == 'cart' -%}
+    <link rel="stylesheet" href="{{ 'ch-card.css' | asset_url }}" media="print" onload="this.media='all'">
+    <noscript>{{ 'ch-card.css' | asset_url | stylesheet_tag }}</noscript>
+  {%- endif -%}
+
+  <!-- Critical Hotfixes moved to snippets/critical-css.liquid -->
 
   <script>
     window.theme = window.theme || {};
@@ -68,50 +106,112 @@
   {% endif %}
 
   <script src="{{ 'theme.js' | asset_url }}" defer="defer"></script>
+  <script src="{{ 'ch-slider.js' | asset_url }}" defer="defer"></script>
 
   {{ content_for_header }}
 
+<style>
+  :root { --ch-header-h: 132px; }
+  @media (max-width: 991px){
+    :root { --ch-header-h: 104px; }
+  }
+  body { margin: 0; padding-top: var(--ch-header-h); }
+  
+  /* Hide skip-to-content link completely */
+  .skip-link,
+  a.skip-link,
+  .in-page-link {
+    display: none !important;
+    visibility: hidden !important;
+  }
+</style>
+<script>
+  (function () {
+    function setHeaderH(){
+      const h = document.querySelector('#shopify-section-header');
+      if(!h) return;
+      const px = Math.ceil(h.getBoundingClientRect().height);
+      document.documentElement.style.setProperty('--ch-header-h', px + 'px');
+    }
 
-	<style rel='text/css'>#w3-product-accessories{padding:0 5px !important;}</style>
+    // as early as possible
+    document.addEventListener('DOMContentLoaded', setHeaderH);
+    window.addEventListener('load', setHeaderH);
+    window.addEventListener('resize', setHeaderH);
 
+    // Shopify section lifecycle (helps in editor)
+    document.addEventListener('shopify:section:load', setHeaderH);
+  })();
+</script>
 
 </head>
 
 <body class="template-{{ request.page_type | handle }}" >
+
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-NR64NFW9"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+
+  <!-- Global Page Skeleton Preloader (Except Home) -->
+  {% unless request.page_type == 'index' %}
+  {% render 'ch-page-preloader' %}
+  <script>
+    (function(){
+      // Failsafe: if load takes too long, unblock anyway
+      var t = setTimeout(function(){ document.body.classList.add('site-loaded'); }, 3000);
+      
+      window.addEventListener('load', function(){
+        clearTimeout(t);
+        document.body.classList.add('site-loaded');
+      });
+      
+      // Also check if already loaded
+      if(document.readyState === 'complete'){
+        clearTimeout(t);
+        document.body.classList.add('site-loaded');
+      }
+    })();
+  </script>
+  {% endunless %}
   <script src="{{ 'predictive-search.js' | asset_url }}" defer></script>
 
   <!-- Load Facebook SDK for JavaScript -->
-      <div id="fb-root"></div>
-      <script>
-        window.fbAsyncInit = function() {
-          FB.init({
-            xfbml            : true,
-            version          : 'v8.0'
-          });
-        };
+  <div id="fb-root"></div>
+  <script>
+    window.fbAsyncInit = function() {
+      FB.init({
+        xfbml            : true,
+        version          : 'v8.0'
+      });
+    };
 
-        (function(d, s, id) {
-        var js, fjs = d.getElementsByTagName(s)[0];
-        if (d.getElementById(id)) return;
-        js = d.createElement(s); js.id = id;
-        js.src = 'https://connect.facebook.net/en_US/sdk/xfbml.customerchat.js';
-        fjs.parentNode.insertBefore(js, fjs);
-      }(document, 'script', 'facebook-jssdk'));</script>
+    (function(d, s, id) {
+      var js, fjs = d.getElementsByTagName(s)[0];
+      if (d.getElementById(id)) return;
+      js = d.createElement(s); js.id = id;
+      js.src = 'https://connect.facebook.net/en_US/sdk/xfbml.customerchat.js';
+      fjs.parentNode.insertBefore(js, fjs);
+    }(document, 'script', 'facebook-jssdk'));
+  </script>
 
-      <!-- Your Chat Plugin code -->
-      <!--<div class="fb-customerchat"
-        attribution=setup_tool
-        page_id="717783671732535">
-      </div>-->
-  
+  <!-- Your Chat Plugin code -->
+  <!--<div class="fb-customerchat"
+    attribution=setup_tool
+    page_id="717783671732535">
+  </div>-->
+
   <a class="in-page-link visually-hidden skip-link" href="#MainContent">
     {{ 'general.accessibility.skip_to_content' | t }}
   </a>
 
   {% section 'header' %}
+  {% unless request.page_type == 'collection' or request.page_type == 'search' %}
+    {% render 'ch-breadcrumbs', menu: 'main-menu' %}
+  {% endunless %}
 
   <div class="page-container page-element is-moved-by-drawer">
-    <main class="main-content" id="MainContent" role="main">
+    <main class="main-content {% unless request.page_type == 'index' %}ch-entry-anim{% endunless %}" id="MainContent" role="main">
       {{ content_for_layout }}
     </main>
 
@@ -151,8 +251,309 @@
     <li id="a11y-selection-message">{{ 'general.accessibility.selection_help' | t }}</li>
     <li id="a11y-slideshow-info">{{- 'homepage.hero.navigation_instructions' | t -}}</li>
   </ul>
- {% include 'smile-initializer' %}
- {% render 'quick-view' %}
+  {% include 'smile-initializer' %}
+
+  {%- comment -%}
+    Clean final cart styling: checkbox + TOS alignment and color
+  {%- endcomment -%}
+  <style>
+    /* Cart heading color (drawer + custom cart panel) */
+    .ch-panel[data-ch-panel="cart"] .cart-head .cart-title,
+    #CartDrawer .drawer__heading,
+    .cart-drawer .drawer__heading {
+      color: var(--heading-color, #4b5563) !important;
+    }
+
+    /* TOS wrapper: checkbox + text on one line, vertically centered */
+    form[action="/cart"] .terms-relentless,
+    form[action="/cart"] .cart__policies,
+    .ch-panel[data-ch-panel="cart"] .terms-relentless,
+    .ch-panel[data-ch-panel="cart"] .cart__policies,
+    #CartDrawer .cart__policies,
+    .cart-drawer .cart__policies,
+    #CartDrawer .ajaxcart__agree,
+    .cart-drawer .ajaxcart__agree {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      margin-top: 4px !important;
+    }
+
+    /* TOS label text: small gray, same tone as "Taxes and shipping..." */
+    form[action="/cart"] .terms-relentless label,
+    form[action="/cart"] .cart__policies label,
+    .ch-panel[data-ch-panel="cart"] .terms-relentless label,
+    .ch-panel[data-ch-panel="cart"] .cart__policies label,
+    #CartDrawer .cart__policies label,
+    .cart-drawer .cart__policies label,
+    #CartDrawer .ajaxcart__agree label,
+    .cart-drawer .ajaxcart__agree label {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      font-size: 12px !important;
+      font-weight: 400 !important;
+      color: #6B7280 !important;
+      text-transform: none !important;
+      letter-spacing: 0 !important;
+      line-height: 1.3;
+    }
+
+    /* TOS link: gray + underline, no weird casing */
+    form[action="/cart"] .terms-relentless label a,
+    form[action="/cart"] .cart__policies label a,
+    .ch-panel[data-ch-panel="cart"] .terms-relentless label a,
+    .ch-panel[data-ch-panel="cart"] .cart__policies label a,
+    #CartDrawer .cart__policies label a,
+    .cart-drawer .cart__policies label a,
+    #CartDrawer .ajaxcart__agree label a,
+    .cart-drawer .ajaxcart__agree label a {
+      color: #6B7280 !important;
+      text-decoration: underline;
+      text-transform: none !important;
+    }
+
+    /* Checkbox size + accent */
+    form[action="/cart"] .terms-relentless input[type="checkbox"],
+    form[action="/cart"] .cart__policies input[type="checkbox"],
+    .ch-panel[data-ch-panel="cart"] .terms-relentless input[type="checkbox"],
+    .ch-panel[data-ch-panel="cart"] .cart__policies input[type="checkbox"],
+    #CartDrawer .cart__policies input[type="checkbox"],
+    .cart-drawer .cart__policies input[type="checkbox"],
+    #CartDrawer .ajaxcart__agree input[type="checkbox"],
+    .cart-drawer .ajaxcart__agree input[type="checkbox"],
+    form[action="/cart"] input.rterms-checkbox,
+    .ch-panel[data-ch-panel="cart"] input.rterms-checkbox {
+      width: 14px !important;
+      height: 14px !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      flex-shrink: 0 !important;
+      accent-color: #e03a2f !important;
+      -webkit-appearance: checkbox !important;
+      appearance: checkbox !important;
+      transform: none !important;
+    }
+
+    /* Allow wrapping on very small screens so it doesn't overflow */
+    @media (max-width: 480px) {
+      form[action="/cart"] .terms-relentless label,
+      form[action="/cart"] .cart__policies label,
+      .ch-panel[data-ch-panel="cart"] .terms-relentless label,
+      .ch-panel[data-ch-panel="cart"] .cart__policies label,
+      #CartDrawer .cart__policies label,
+      .cart-drawer .cart__policies label,
+      #CartDrawer .ajaxcart__agree label,
+      .cart-drawer .ajaxcart__agree label {
+        white-space: normal !important;
+      }
+    }
+
+    /* Kill horizontal scrollbars in drawers */
+    .ch-panel[data-ch-panel="cart"],
+    .ch-panel[data-ch-panel="cart"] .ch-panel__pn,
+    .ch-panel[data-ch-panel="cart"] .cart-wrap,
+    .ch-panel[data-ch-panel="cart"] .cart-body,
+    .ch-panel[data-ch-panel="cart"] .cart-body > *,
+    .ch-panel[data-ch-panel="cart"] .items,
+    #CartDrawer .cart-drawer__scrollable,
+    .cart-drawer .cart-drawer__scrollable,
+    #CartDrawer .drawer__inner,
+    .cart-drawer .drawer__inner {
+      overflow-x: hidden !important;
+    }
+
+    /* Subtotal label gray like heading */
+    .ch-panel[data-ch-panel="cart"] .subtotal-lbl {
+      color: var(--heading-color, #4b5563) !important;
+    }
+  </style>
+
+  {%- comment -%}
+    checkoutBlocked override: use cart-page TOS checkbox first
+  {%- endcomment -%}
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (typeof window.checkoutBlocked !== 'function') return;
+
+      var originalCheckoutBlocked = window.checkoutBlocked;
+
+      window.checkoutBlocked = function () {
+        var form =
+          document.querySelector('form[action="/cart"]') ||
+          document.querySelector('form.cart');
+
+        if (form) {
+          var box =
+            form.querySelector('#rterms-1') ||
+            form.querySelector('#rterms') ||
+            form.querySelector('#agree-terms') ||
+            form.querySelector('#agree') ||
+            form.querySelector('.cart__policies input[type="checkbox"]');
+
+          if (box) {
+            // true = block checkout if box is NOT checked
+            return !box.checked;
+          }
+        }
+
+        // Fallback to original behaviour (e.g. mini-cart logic)
+        return originalCheckoutBlocked();
+      };
+    });
+  </script>
+<style>
+  /* HARD FLATTEN: make all children of the TOS label inline
+     so "I accept the terms of service." stays on one line */
+
+  form[action="/cart"] .terms-relentless label,
+  form[action="/cart"] .cart__policies label,
+  .ch-panel[data-ch-panel="cart"] .terms-relentless label,
+  .ch-panel[data-ch-panel="cart"] .cart__policies label,
+  #CartDrawer .cart__policies label,
+  .cart-drawer .cart__policies label,
+  #CartDrawer .ajaxcart__agree label,
+  .cart-drawer .ajaxcart__agree label {
+    display: inline !important;
+    white-space: normal !important;
+    word-break: normal !important;
+  }
+
+  /* Every element INSIDE the label should behave like plain inline text */
+  form[action="/cart"] .terms-relentless label *,
+  form[action="/cart"] .cart__policies label *,
+  .ch-panel[data-ch-panel="cart"] .terms-relentless label *,
+  .ch-panel[data-ch-panel="cart"] .cart__policies label *,
+  #CartDrawer .cart__policies label *,
+  .cart-drawer .cart__policies label *,
+  #CartDrawer .ajaxcart__agree label *,
+  .cart-drawer .ajaxcart__agree label * {
+    display: inline !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Just in case the theme injected <br> tags into the label, nuke them */
+  form[action="/cart"] .terms-relentless label br,
+  form[action="/cart"] .cart__policies label br,
+  .ch-panel[data-ch-panel="cart"] .terms-relentless label br,
+  .ch-panel[data-ch-panel="cart"] .cart__policies label br,
+  #CartDrawer .cart__policies label br,
+  .cart-drawer .cart__policies label br,
+  #CartDrawer .ajaxcart__agree label br,
+  .cart-drawer .ajaxcart__agree label br {
+    display: none !important;
+  }
+</style>
+
+  {%- capture cart_body -%}{% render 'ch-cart--drawer' %}{%- endcapture -%}
+  {% render 'ch-side-panel', id: 'cart', title: 'YOUR CART', aria_label: 'Your cart', body: cart_body %}
+  
+  <link rel="stylesheet" href="{{ 'ch-cart-drawer.css' | asset_url }}" media="print" onload="this.media='all'">
+  <noscript>{{ 'ch-cart-drawer.css' | asset_url | stylesheet_tag }}</noscript>
+
+  <script src="{{ 'ch-cart-drawer.js' | asset_url }}" defer="defer"></script>
+  <script src="{{ 'ch-quick-view-api.js' | asset_url }}" defer="defer"></script>
+  
+  <link rel="stylesheet" href="{{ 'ch-quick-view.css' | asset_url }}" media="print" onload="this.media='all'">
+  <noscript>{{ 'ch-quick-view.css' | asset_url | stylesheet_tag }}</noscript>
+
+  {% render 'ch-panels-controller' %}
+
+  {%- comment -%}Reserve modal for out-of-stock products{%- endcomment -%}
+  {% render 'ch-reserve-modal' %}
+  <link rel="stylesheet" href="{{ 'ch-reserve-modal.css' | asset_url }}" media="print" onload="this.media='all'">
+  <noscript>{{ 'ch-reserve-modal.css' | asset_url | stylesheet_tag }}</noscript>
+  <script src="{{ 'ch-reserve-modal.js' | asset_url }}" defer="defer"></script>
+
+  <script>
+    (function() {
+      // Option B: Target the wrapper + Body Padding + Robust Scroll Logic
+      var headerWrapper = document.getElementById('shopify-section-header');
+      if(!headerWrapper) return;
+
+      // 1. Calculate height for body padding
+      // 1. Calculate height for body padding (CSS Variable for smoother interaction)
+      // 1. Calculate height (Precise + Tight Fit)
+      function setHeight() {
+        // Use getBoundingClientRect for sub-pixel accuracy
+        var rect = headerWrapper.getBoundingClientRect();
+        // Subtract 1px to ensure overlap/flush fit, preventing hairline gaps
+        var h = rect.height > 0 ? (rect.height - 1) : headerWrapper.offsetHeight; 
+        document.body.style.setProperty('--ch-header-h', h + 'px');
+      }
+      
+      setHeight();
+      window.addEventListener('resize', setHeight);
+      window.addEventListener('scroll', function(){ if(!window.scrollY) setHeight(); }, {once:true, passive:true});
+      
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setHeight);
+      } else {
+        setTimeout(setHeight, 200);
+        setTimeout(setHeight, 1000); // Failsafe for lazy assets
+      }
+
+      var lastScrollY = window.scrollY;
+      var tick = false;
+      var threshold = 40; // Wait until below this point to start hiding
+      var tolerance = 5;  // Minimum scroll distance to trigger change
+
+      function onScroll() {
+        if (!tick) {
+          window.requestAnimationFrame(function() {
+            var currentScrollY = window.scrollY;
+            var diff = currentScrollY - lastScrollY;
+
+            // Only run logic if we are past the static threshold
+            if (currentScrollY > threshold) {
+              
+              // SCROLL DOWN (diff > tolerance)
+              if (diff > tolerance) {
+                headerWrapper.classList.add('is-shy-hidden');
+              } 
+              // SCROLL UP (diff < -tolerance) - Show immediately
+              else if (diff < -tolerance) {
+                headerWrapper.classList.remove('is-shy-hidden');
+              }
+              
+            } else {
+              // We are at the very top: Always show
+              headerWrapper.classList.remove('is-shy-hidden');
+            }
+
+            // Update lastScrollY, preventing negative values (iOS rubber banding)
+            lastScrollY = currentScrollY > 0 ? currentScrollY : 0;
+            tick = false;
+          });
+          tick = true;
+        }
+      }
+
+      window.addEventListener('scroll', onScroll, {passive: true});
+    })();
+
+    // AG Fix: Move drawers to body to solve Z-Index/Transform/Event issues
+    (function(){
+      function moveDrawers(){
+        // Selectors for Menu Drawer, Cart Drawer Panel, and Cart Drawer Wrapper
+        const drawers = document.querySelectorAll('#ch-menu-drawer, .ch-panel[data-ch-panel="cart"], #CartDrawer, .cart-drawer');
+        const header = document.getElementById('shopify-section-header');
+        
+        drawers.forEach(d => {
+          // If the drawer exists and is not a direct child of body, move it.
+          if(d && d.parentElement !== document.body){
+            document.body.appendChild(d);
+          }
+        });
+      }
+      // Run immediately (if DOM ready), on Load, and on DOMContentLoaded
+      moveDrawers();
+      if(document.readyState !== 'loading') moveDrawers();
+      document.addEventListener('DOMContentLoaded', moveDrawers);
+      window.addEventListener('load', moveDrawers);
+    })();
+  </script>
 
 </body>
 </html>

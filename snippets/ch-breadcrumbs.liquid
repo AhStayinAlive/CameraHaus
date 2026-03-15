@@ -1,0 +1,219 @@
+{%- if request.page_type != 'index' -%}
+  {%- assign menu_handle = menu | default: 'main-menu' -%}
+  {%- assign nav = linklists[menu_handle] -%}
+
+  {%- assign current_collection = nil -%}
+  {%- if request.page_type == 'product' -%}
+    {%- assign current_collection = collection -%}
+    {%- if current_collection == nil and product and product.collections.size > 0 -%}
+      {%- assign current_collection = product.collections.first -%}
+    {%- endif -%}
+  {%- endif -%}
+
+  {%- assign p1_t = '' -%}{%- assign p1_u = '' -%}
+  {%- assign p2_t = '' -%}{%- assign p2_u = '' -%}
+  {%- assign p3_t = '' -%}{%- assign p3_u = '' -%}
+  {%- assign leaf_t = '' -%}{%- assign leaf_u = '' -%}
+
+  {%- assign target_url = '' -%}
+  {%- if request.page_type == 'collection' and collection -%}
+    {%- assign target_url = collection.url -%}
+  {%- elsif request.page_type == 'product' and current_collection -%}
+    {%- assign target_url = current_collection.url -%}
+  {%- endif -%}
+
+  {%- if nav and target_url != '' -%}
+    {%- assign found = false -%}
+    {%- for l1 in nav.links -%}
+      {%- if l1.url == target_url -%}
+        {%- assign leaf_t = l1.title -%}{%- assign leaf_u = l1.url -%}{%- assign found = true -%}{%- break -%}
+      {%- endif -%}
+      {%- for l2 in l1.links -%}
+        {%- if l2.url == target_url -%}
+          {%- assign p1_t = l1.title -%}{%- assign p1_u = l1.url -%}
+          {%- assign leaf_t = l2.title -%}{%- assign leaf_u = l2.url -%}{%- assign found = true -%}{%- break -%}
+        {%- endif -%}
+        {%- for l3 in l2.links -%}
+          {%- if l3.url == target_url -%}
+            {%- assign p1_t = l1.title -%}{%- assign p1_u = l1.url -%}
+            {%- assign p2_t = l2.title -%}{%- assign p2_u = l2.url -%}
+            {%- assign leaf_t = l3.title -%}{%- assign leaf_u = l3.url -%}{%- assign found = true -%}{%- break -%}
+          {%- endif -%}
+          {%- for l4 in l3.links -%}
+            {%- if l4.url == target_url -%}
+              {%- assign p1_t = l1.title -%}{%- assign p1_u = l1.url -%}
+              {%- assign p2_t = l2.title -%}{%- assign p2_u = l2.url -%}
+              {%- assign p3_t = l3.title -%}{%- assign p3_u = l3.url -%}
+              {%- assign leaf_t = l4.title -%}{%- assign leaf_u = l4.url -%}{%- assign found = true -%}{%- break -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {%- if found -%}{%- break -%}{%- endif -%}
+        {%- endfor -%}
+        {%- if found -%}{%- break -%}{%- endif -%}
+      {%- endfor -%}
+      {%- if found -%}{%- break -%}{%- endif -%}
+    {%- endfor -%}
+  {%- endif -%}
+
+  <!-- BREADCRUMBS -->
+  <nav class="hv-bc" role="navigation" aria-label="Breadcrumbs"
+       style="background:#f7f7f8;border-bottom:1px solid #e5e7eb;width:100%;position:static;">
+    <div class="hv-bc__inner"
+         style="max-width:1200px;margin:0 auto;min-height:56px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 16px;">
+      <ol class="hv-bc__list"
+          style="display:flex;align-items:center;gap:.5rem;list-style:none;margin:0;padding:0;font-size:14px;line-height:1.45;color:#6b7280;">
+        <li class="hv-bc__item" style="display:inline-flex;align-items:center;">
+          <a class="hv-bc__link" href="{{ routes.root_url }}">Home</a>
+        </li>
+
+        {%- if request.page_type == 'collection' and collection -%}
+          {%- if p1_t != '' -%}<li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ p1_u }}">{{ p1_t }}</a></li>{%- endif -%}
+          {%- if p2_t != '' -%}<li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ p2_u }}">{{ p2_t }}</a></li>{%- endif -%}
+          {%- if p3_t != '' -%}<li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ p3_u }}">{{ p3_t }}</a></li>{%- endif -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ leaf_t | default: collection.title }}</li>
+
+        {%- elsif request.page_type == 'product' and product -%}
+          {%- if current_collection -%}
+            {%- if p1_t != '' -%}<li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ p1_u }}">{{ p1_t }}</a></li>{%- endif -%}
+            {%- if p2_t != '' -%}<li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ p2_u }}">{{ p2_t }}</a></li>{%- endif -%}
+            {%- if p3_t != '' -%}<li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ p3_u }}">{{ p3_t }}</a></li>{%- endif -%}
+            <li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ leaf_u | default: current_collection.url }}">{{ leaf_t | default: current_collection.title }}</a></li>
+          {%- else -%}
+            <li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ routes.all_products_collection_url }}">All Products</a></li>
+          {%- endif -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ product.title }}</li>
+
+        {%- elsif request.page_type == 'cart' -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">
+            {{ 'cart.general.title' | t | default: 'Cart' }}
+          </li>
+
+        {%- elsif request.page_type == 'page' and page -%}
+          {%- if template contains 'page.brands' -%}
+            <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">Brands</li>
+          {%- elsif template contains 'page.store-locator' -%}
+            <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">Store Locator</li>
+          {%- else -%}
+            <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ page.title }}</li>
+          {%- endif -%}
+
+        {%- elsif request.page_type contains 'blog' -%}
+          {%- if article and blog -%}
+            <li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ blog.url }}">{{ blog.title }}</a></li>
+            <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ article.title }}</li>
+          {%- elsif blog -%}
+            <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ blog.title }}</li>
+          {%- endif -%}
+
+        {%- elsif request.page_type == 'customers/login' -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.login.title' | t }}</li>
+
+        {%- elsif request.page_type == 'customers/account' -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.account.title' | t }}</li>
+
+        {%- elsif request.page_type == 'customers/addresses' -%}
+          <li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ routes.account_url }}">{{ 'customer.account.title' | t }}</a></li>
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.addresses.title' | t }}</li>
+
+        {%- elsif request.page_type == 'customers/order' -%}
+          <li class="hv-bc__item" style="display:inline-flex;align-items:center;"><a class="hv-bc__link" href="{{ routes.account_url }}">{{ 'customer.account.title' | t }}</a></li>
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.order.title' | t: name: order.name }}</li>
+
+        {%- elsif request.page_type == 'customers/register' -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.register.title' | t }}</li>
+
+        {%- elsif request.page_type == 'customers/activate_account' -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.activate_account.title' | t }}</li>
+
+        {%- elsif request.page_type == 'customers/reset_password' -%}
+          <li class="hv-bc__item hv-bc__item--current" style="display:inline-flex;align-items:center;">{{ 'customer.reset_password.title' | t }}</li>
+        {%- endif -%}
+      </ol>
+
+
+      <div class="hv-bc__actions" style="display:flex;align-items:center;gap:.5rem;">
+        {{ content_for_breadcrumb_actions }}
+      </div>
+    </div>
+  </nav>
+
+  <style>
+    /* chevrons */
+    .hv-bc__item:not(:last-child)::after{
+      content:"›"; margin-left:.5rem; color:#c7cbd1; font-size:16px; line-height:1;
+    }
+    /* links */
+    .hv-bc__link{ color:inherit !important; text-decoration:none; transition:color .15s ease-out; }
+    .hv-bc__link:hover, .hv-bc__link:focus-visible{ color:#D12F24 !important; }
+    .hv-bc__item--current{ color:#111827 !important; font-weight:600; }
+
+    /* wrapping */
+    .hv-bc__list, .hv-bc__item, .hv-bc__link{
+      white-space:normal !important;
+      overflow:visible !important;
+      text-overflow:clip !important;
+      word-break:break-word; overflow-wrap:anywhere; text-wrap:balance; hyphens:auto;
+    }
+
+    /* MOBILE: not sticky; auto-fit to two lines via JS */
+    @media (max-width: 991px){
+      .hv-bc{ position:static !important; margin-top: var(--bc-offset, 0); }
+      .hv-bc__inner{
+        min-height:56px; padding:12px 16px;
+        display:grid; grid-template-columns:1fr auto; row-gap:6px; column-gap:12px;
+      }
+      .hv-bc__list{
+        font-size:15px; line-height:1.5; flex-wrap:wrap; gap:.5rem .5rem;
+        max-width:100%;
+      }
+    }
+  </style>
+
+  <script>
+    (function(){
+      // If your red header floats, add top spacing so crumbs never sit under it (still NON-sticky)
+      var header = document.querySelector('[id^="ch-header-"]');
+      function setOffset(){
+        var off = (header && header.classList.contains('bar-floating'))
+          ? Math.round((header.querySelector('.bar')?.getBoundingClientRect().height) || 0)
+          : 0;
+        document.documentElement.style.setProperty('--bc-offset', off + 'px');
+      }
+      if(header){
+        new MutationObserver(setOffset).observe(header, {attributes:true, attributeFilter:['class']});
+      }
+      window.addEventListener('resize', setOffset, {passive:true});
+      window.addEventListener('load', setOffset, {passive:true});
+      setOffset();
+
+      // --- Auto shrink to 2 lines on mobile (down to 12px) ---
+      function twoLineFit(){
+        if(!window.matchMedia('(max-width: 991px)').matches) return;
+        var list = document.querySelector('.hv-bc__list');
+        if(!list) return;
+
+        // reset to base size before measuring
+        list.style.fontSize = '15px';
+
+        var cs = getComputedStyle(list);
+        var fs = parseFloat(cs.fontSize) || 15;
+        var lh = cs.lineHeight === 'normal' ? fs * 1.5 : parseFloat(cs.lineHeight);
+        var maxH = (lh * 2) + 2; // allow 2 lines (+fudge)
+
+        // Reduce 1px at a time until it fits, but not below 12px
+        while (list.scrollHeight > maxH && fs > 12) {
+          fs -= 1;
+          list.style.fontSize = fs + 'px';
+          cs = getComputedStyle(list);
+          lh = cs.lineHeight === 'normal' ? fs * 1.5 : parseFloat(cs.lineHeight);
+          maxH = (lh * 2) + 2;
+        }
+      }
+
+      window.addEventListener('load', twoLineFit, {passive:true});
+      window.addEventListener('resize', twoLineFit, {passive:true});
+      document.addEventListener('shopify:section:load', twoLineFit);
+      twoLineFit();
+    })();
+  </script>
+{%- endif -%}

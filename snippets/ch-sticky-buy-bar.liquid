@@ -1,0 +1,571 @@
+{%- comment -%}
+ch-stickybar.liquid – FINAL
+- desktop: thumb | info | variant (custom) | qty | ATC | wishlist
+- mobile: thumb | info | ATC only
+- variant popup opens UP
+- ATC matches PDP (spinner + "Added!")
+{%- endcomment -%}
+
+{%- assign _product = product | default: all_products[product.handle] -%}
+{%- assign _variant = current_variant | default: _product.selected_or_first_available_variant -%}
+{%- assign _thumb  = _variant.featured_image | default: _product.featured_image -%}
+{%- assign _bar_id = 'ChStickyBar-' | append: _product.id -%}
+
+{%- assign _has_discount = false -%}
+{%- if _variant.compare_at_price and _variant.compare_at_price > _variant.price -%}
+  {%- assign _has_discount = true -%}
+  {%- assign _save_amount = _variant.compare_at_price | minus: _variant.price -%}
+  {%- assign _save_pct = _save_amount | times: 100.0 | divided_by: _variant.compare_at_price | round -%}
+{%- endif -%}
+
+<div class="ch-stickybar" id="{{ _bar_id }}" data-soldout="{% unless _variant.available %}true{% else %}false{% endunless %}">
+  <form class="ch-stickybar__form" action="/cart/add" method="post" aria-label="Quick add to cart" novalidate>
+    <!-- thumb -->
+    <img class="ch-stickybar__thumb"
+         src="{{ _thumb | img_url: '120x120' }}"
+         alt="{{ _product.title | escape }}">
+
+    <!-- info -->
+    <div class="ch-stickybar__info">
+      <div class="ch-stickybar__title" title="{{ _product.title }}">{{ _product.title }}</div>
+      <div class="ch-stickybar__price">
+        <span class="price" data-sticky-price>{{ _variant.price | money }}</span>
+        {% if _has_discount %}
+          <s class="compare" data-sticky-compare>{{ _variant.compare_at_price | money }}</s>
+          <span class="save" data-sticky-save>Save {{ _save_amount | money }} ({{ _save_pct }}%)</span>
+        {% else %}
+          <s class="compare" data-sticky-compare style="display:none"></s>
+          <span class="save" data-sticky-save style="display:none"></span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if _product.has_only_default_variant == false %}
+      <!-- custom variant (desktop only – we hide it in CSS on mobile) -->
+      <div class="ch-stickyopt__wrap" data-stickyopt>
+        <button type="button" class="ch-stickyopt__btn">
+          <span class="ch-stickyopt__label">{{ _variant.title }}</span>
+          <span class="ch-stickyopt__ico">▴</span>
+        </button>
+        <div class="ch-stickyopt__pop">
+          {% for v in _product.variants %}
+            <div
+              class="ch-stickyopt__item{% if v.id == _variant.id %} is-active{% endif %}{% unless v.available %} is-soldout{% endunless %}"
+              data-value="{{ v.id }}">
+              <span class="ch-stickyopt__name">{{ v.title }}</span>
+              <span class="ch-stickyopt__price">
+                {{ v.price | money }}
+                {% unless v.available %}<span class="ch-stickyopt__sold">• Sold out</span>{% endunless %}
+              </span>
+            </div>
+          {% endfor %}
+        </div>
+        <!-- real input for form -->
+        <input type="hidden" name="id" value="{{ _variant.id }}" data-sticky-real>
+      </div>
+    {% else %}
+      <input type="hidden" name="id" value="{{ _variant.id }}" data-sticky-real>
+    {% endif %}
+
+    <!-- qty -->
+    <div class="ch-stickybar__qty ch-qty" data-for="StickyQty">
+      <button type="button" class="ch-qty__btn" aria-label="Decrease" data-act="minus">−</button>
+      <input type="number" value="1" min="1" class="ch-qty__input" id="StickyQty" name="quantity" aria-label="{{ 'products.product.quantity' | t }}">
+      <button type="button" class="ch-qty__btn" aria-label="Increase" data-act="plus">+</button>
+    </div>
+
+    <!-- ATC – same look as PDP -->
+    <button type="submit"
+            class="ch-stickybar__atc ch-atc-btn"
+            {% unless _variant.available %}disabled{% endunless %}>
+      <span class="ch-atc-label">{{ 'products.product.add_to_cart' | t }}</span>
+      <span class="ch-atc-spinner" aria-hidden="true"></span>
+    </button>
+  </form>
+
+  <!-- product data for JS -->
+  <script type="application/json" data-ch-stickybar-product>
+  {
+    "id": {{ _product.id | json }},
+    "title": {{ _product.title | json }},
+    "variants": [
+      {%- for v in _product.variants -%}
+        {
+          "id": {{ v.id | json }},
+          "price": {{ v.price | json }},
+          "compare_at_price": {{ v.compare_at_price | json }},
+          "available": {{ v.available | json }},
+          "title": {{ v.title | json }},
+          "featured_image": {{ v.featured_image | default: _product.featured_image | json }}
+        }{% unless forloop.last %},{% endunless %}
+      {%- endfor -%}
+    ],
+    "money_format": {{ shop.money_format | json }}
+  }
+  </script>
+</div>
+
+<style>
+.ch-stickybar{
+  --gap: 12px;
+  --control-h: 40px;
+  --radius: 9999px;
+  --border: #E5E7EB;
+  --fg:#111827;
+  --muted:#6B7280;
+  --accent:#d12f24;
+  --accent-hover:#b3281f;
+
+  position:fixed; left:0; right:0; bottom:0; z-index:1300;
+  background:#fff; border-top:1px solid var(--border);
+  box-shadow:0 -8px 24px rgba(0,0,0,.08);
+  transform:translateY(100%); transition:transform .28s ease;
+  padding:12px clamp(12px, 3vw, 24px) calc(12px + env(safe-area-inset-bottom));
+}
+.ch-stickybar.is-visible{ transform:translateY(0); }
+.ch-stickybar.is-hidden, .ch-stickybar.is-disabled{ display:none; }
+
+/* desktop grid – variant no longer overlaps qty */
+/* BEFORE
+grid-template-columns: 44px minmax(0, 1fr) 230px 154px 168px 48px;
+grid-template-areas: "thumb info variant qty atc wish";
+*/
+.ch-stickybar__form{
+  max-width: 1120px;
+  margin: 0 auto;
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: 44px minmax(0, 1fr) 230px 154px 168px;
+  grid-template-areas: "thumb info variant qty atc";
+  align-items: center;
+}
+
+.ch-stickybar__thumb{
+  grid-area:thumb;
+  width:44px; height:44px;
+  object-fit:cover; border-radius:10px;
+}
+.ch-stickybar__info{ grid-area:info; min-width:0; }
+.ch-stickybar__title{
+  font-weight:600; font-size:.9rem;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  max-width: 22rem;
+}
+.ch-stickybar__price{
+  display:flex; align-items:baseline; gap:.5rem; flex-wrap:wrap;
+}
+.ch-stickybar__price .price{ color:var(--accent); font-weight:700; }
+.ch-stickybar__price .compare{ color:var(--muted); text-decoration:line-through; font-size:.78rem; }
+.ch-stickybar__price .save{
+  color:#b91c1c; font-size:.7rem; font-weight:700; width:100%;
+}
+
+/* custom variant dropdown (desktop) */
+.ch-stickyopt__wrap{
+  grid-area:variant;
+  position:relative;
+  max-width:230px;
+}
+.ch-stickyopt__btn{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px;
+  height:40px;
+  width:100%;
+  background:#fff;
+  border:1px solid rgba(15, 23, 42, .08);
+  border-radius:999px;
+  padding:0 14px;
+  font-size:.78rem;
+  cursor:pointer;
+}
+.ch-stickyopt__label{
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.ch-stickyopt__ico{
+  width:16px; height:16px; display:grid; place-items:center;
+  color:#94a3b8;
+  transition:transform .12s ease;
+}
+.ch-stickyopt__wrap.is-open .ch-stickyopt__ico{ transform:rotate(180deg); }
+
+/* popover – open UP */
+.ch-stickyopt__pop{
+  position:absolute;
+  right:0;
+  bottom:calc(100% + 10px);
+  width:250px;
+  max-height:240px;
+  background:#fff;
+  border:1px solid rgba(15, 23, 42, .05);
+  border-radius:18px;
+  box-shadow:0 16px 40px rgba(15, 23, 42, .25);
+  overflow-y:auto;
+  padding:6px 0;
+  opacity:0;
+  pointer-events:none;
+  transform:translateY(4px);
+  transition:opacity .12s ease, transform .12s ease;
+  z-index:9999;
+}
+.ch-stickyopt__wrap.is-open .ch-stickyopt__pop{
+  opacity:1;
+  pointer-events:auto;
+  transform:translateY(0);
+}
+
+/* thinner rail */
+.ch-stickyopt__pop::-webkit-scrollbar{
+  width:4px;
+}
+.ch-stickyopt__pop::-webkit-scrollbar-track{
+  background:transparent;
+}
+.ch-stickyopt__pop::-webkit-scrollbar-thumb{
+  background:rgba(148,163,184,.5);
+  border-radius:999px;
+}
+.ch-stickyopt__pop{
+  scrollbar-width:thin;
+  scrollbar-color:rgba(148,163,184,.5) transparent;
+}
+
+/* items */
+.ch-stickyopt__item{
+  position:relative;
+  padding:7px 12px 7px 30px;
+  cursor:pointer;
+  transition:background .08s ease;
+}
+.ch-stickyopt__item:hover{ background:#f8fafc; }
+.ch-stickyopt__name{ display:block; font-size:.7rem; line-height:1.25; }
+.ch-stickyopt__price{ display:block; font-size:.66rem; color:#64748b; margin-top:2px; }
+.ch-stickyopt__item.is-active{
+  background:#fff1f0;
+}
+.ch-stickyopt__item.is-active .ch-stickyopt__name{ color:#d12f24; }
+.ch-stickyopt__item.is-active::before{
+  content:"";
+  position:absolute;
+  left:10px;
+  top:6px;
+  bottom:6px;
+  width:3px;
+  border-radius:999px;
+  background:#d12f24;
+}
+.ch-stickyopt__item.is-soldout{ opacity:.5; }
+.ch-stickyopt__sold{ font-size:.6rem; color:#b91c1c; }
+
+/* qty pill */
+.ch-stickybar__qty{
+  grid-area:qty;
+  display:flex; align-items:center;
+  border:1.5px solid #1f2937;
+  border-radius:999px;
+  overflow:hidden;
+  height:40px;
+  background:#fff;
+}
+.ch-stickybar__qty .ch-qty__btn{
+  width:42px; height:40px; border:0; background:transparent;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; font-weight:700;
+}
+.ch-stickybar__qty .ch-qty__input{
+  width:58px; text-align:center; border:0; background:transparent; font-weight:600;
+}
+
+/* ATC = PDP style */
+.ch-stickybar__atc.ch-atc-btn{
+  grid-area:atc;
+  height:40px;
+  background:var(--accent);
+  color:#fff;
+  border:0;
+  border-radius:999px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.02em;
+  padding:0 22px;
+  display:flex; align-items:center; justify-content:center;
+  position:relative; overflow:hidden;
+}
+.ch-stickybar__atc.ch-atc-btn:hover{ background:var(--accent-hover); }
+
+@media (max-width: 900px){
+  .ch-stickybar__form{
+    grid-template-columns:44px 1fr auto;
+    grid-template-areas:"thumb info atc";
+  }
+  .ch-stickyopt__wrap,
+  .ch-stickybar__qty{                 /* keep qty hidden on mobile as before */
+    display:none !important;
+  }
+  /* remove .ch-stickybar__wish from this list */
+}
+
+  .ch-stickybar__title{ max-width:11rem; }
+  .ch-stickybar__price .compare,
+  .ch-stickybar__price .save{ display:none; }
+  .ch-stickybar__atc.ch-atc-btn{
+    min-width:118px;
+  }
+}
+/* tighter baseline spacing (tweak as you like) */
+.ch-stickybar{ --gap: 10px; }
+
+/* make the grid its own stacking context and ensure the gap is honored */
+.ch-stickybar__form{
+  isolation: isolate;
+  column-gap: var(--gap);
+}
+
+/* qty always above ATC + create physical separation */
+.ch-stickybar__qty{
+  position: relative;
+  z-index: 2;
+  margin-right: var(--gap);
+  transform: translateZ(0); /* WebKit/Safari stacking quirk guard */
+}
+
+.ch-stickybar__atc{
+  position: relative;
+  z-index: 1;
+  margin-left: var(--gap);
+}
+
+/* mobile: remove margins (qty is hidden anyway) */
+@media (max-width: 900px){
+  .ch-stickybar__qty{ margin-right: 0; }
+  .ch-stickybar__atc{ margin-left: 0; }
+}
+
+/* nicer taps on +/- */
+.ch-stickybar__qty .ch-qty__btn{
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+</style>
+
+<script>
+(function(){
+  var bar = document.getElementById({{ _bar_id | json }});
+  if (!bar) return;
+
+  /* move to body */
+  try { if (bar.parentElement !== document.body) document.body.appendChild(bar); } catch(e) {}
+
+  if (bar.getAttribute('data-soldout') === 'true') {
+    bar.classList.add('is-hidden');
+  }
+
+  var dataEl = bar.querySelector('script[data-ch-stickybar-product]');
+  var pdata  = dataEl ? JSON.parse(dataEl.textContent || '{}') : null;
+
+/* qty */
+(function(){
+  var wrap = bar.querySelector('.ch-stickybar__qty');
+  if (!wrap) return;
+  var input = wrap.querySelector('input[name="quantity"]');
+
+  wrap.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-act]');
+    if (!btn) return;
+    e.stopImmediatePropagation(); // <-- prevent any bubbling to ATC
+    var v = parseInt(input.value || '1', 10);
+    if (btn.dataset.act === 'minus') v = Math.max(1, v - 1);
+    if (btn.dataset.act === 'plus')  v = v + 1;
+    input.value = v;
+  });
+
+  input.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') e.preventDefault(); // no accidental submit
+  });
+})();
+
+
+  /* ATC ajax (same as PDP) */
+  var form = bar.querySelector('.ch-stickybar__form');
+  if (form){
+    form.addEventListener('submit', function(e){
+      if (!window.fetch){ return; }
+      e.preventDefault();
+      var btn = bar.querySelector('.ch-stickybar__atc');
+      var label = btn ? btn.querySelector('.ch-atc-label') : null;
+      if (btn){
+        btn.classList.add('is-loading');
+        btn.disabled = true;
+      }
+      var fd = new FormData(form);
+      fetch('/cart/add.js', {
+        method:'POST',
+        headers:{'Accept':'application/json'},
+        body:fd
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        document.dispatchEvent(new CustomEvent('cart:refresh', { detail: data }));
+        if (btn && label){
+          btn.classList.remove('is-loading');
+          btn.classList.add('is-added');
+          label.textContent = 'Added!';
+          setTimeout(function(){
+            btn.classList.remove('is-added');
+            label.textContent = '{{ "products.product.add_to_cart" | t }}';
+          }, 1050);
+        }
+        if (btn) btn.disabled = false;
+      })
+      .catch(function(){
+        if (btn && label){
+          btn.classList.remove('is-loading');
+          label.textContent = '{{ "products.product.add_to_cart" | t }}';
+          btn.disabled = false;
+        }
+      });
+    });
+  }
+
+  /* visibility vs PDP ATC + footer */
+  var footer = document.querySelector('footer, .site-footer, #shopify-section-footer, #Footer');
+  var anchor =
+    document.querySelector('.product-form__item--submit') ||
+    document.querySelector('button[name="add"]') ||
+    document.querySelector('[type="submit"][name="add"]');
+
+  function isFooterVisible() {
+    if (!footer) return false;
+    var r = footer.getBoundingClientRect();
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    return r.top < vh - 40;
+  }
+  function setVisible(show){
+    if (show){ bar.classList.add('is-visible'); }
+    else { bar.classList.remove('is-visible'); }
+  }
+  function evaluate(){
+    if (!anchor){ return; }
+    var rect = anchor.getBoundingClientRect();
+    var past = rect.bottom <= 0;
+    var rect = anchor.getBoundingClientRect();
+    var past = rect.bottom <= 0;
+    
+    // Check if cart is open
+    var cartOpen = document.querySelector('.ch-panel[data-ch-panel="cart"][data-open]');
+    setVisible(past && !cartOpen);
+  }
+  if ('IntersectionObserver' in window && anchor){
+    var io = new IntersectionObserver(evaluate, {threshold:[0,0.1,1]});
+    io.observe(anchor);
+  }
+  window.addEventListener('scroll', evaluate, {passive:true});
+  window.addEventListener('resize', evaluate, {passive:true});
+
+  // Watch for cart open/close
+  var cartPanel = document.querySelector('.ch-panel[data-ch-panel="cart"]');
+  if (cartPanel) {
+    new MutationObserver(evaluate).observe(cartPanel, {attributes: true, attributeFilter: ['data-open']});
+  }
+  
+  evaluate();
+
+  /* variant popup logic */
+  var optWrap = bar.querySelector('[data-stickyopt]');
+  var realInput = bar.querySelector('[data-sticky-real]');
+  function updateUI(vid){
+    if (!pdata || !pdata.variants) return;
+    var v = pdata.variants.find(function(x){ return String(x.id) === String(vid); });
+    if (!v) return;
+    var priceEl = bar.querySelector('[data-sticky-price]');
+    var compareEl = bar.querySelector('[data-sticky-compare]');
+    var saveEl = bar.querySelector('[data-sticky-save]');
+    var atc = bar.querySelector('.ch-stickybar__atc');
+    var img = bar.querySelector('.ch-stickybar__thumb');
+
+    if (priceEl){
+      priceEl.textContent = (window.Shopify && Shopify.formatMoney)
+        ? Shopify.formatMoney(v.price, pdata.money_format)
+        : (v.price/100).toFixed(2);
+    }
+    if (v.compare_at_price && v.compare_at_price > v.price){
+      if (compareEl){
+        compareEl.style.display = '';
+        compareEl.textContent = (window.Shopify && Shopify.formatMoney)
+          ? Shopify.formatMoney(v.compare_at_price, pdata.money_format)
+          : (v.compare_at_price/100).toFixed(2);
+      }
+      if (saveEl){
+        var saveAmt = v.compare_at_price - v.price;
+        var pct = Math.round((saveAmt / v.compare_at_price) * 100);
+        saveEl.style.display = '';
+        saveEl.textContent = 'Save ' + ((window.Shopify && Shopify.formatMoney) ? Shopify.formatMoney(saveAmt, pdata.money_format) : (saveAmt/100).toFixed(2)) + ' (' + pct + '%)';
+      }
+    } else {
+      if (compareEl) compareEl.style.display = 'none';
+      if (saveEl) { saveEl.style.display = 'none'; saveEl.textContent = ''; }
+    }
+    if (img && v.featured_image && v.featured_image.src){
+      img.src = v.featured_image.src.replace(/(\.jpg|\.jpeg|\.png)(\?.*)?$/i, '_120x$1');
+    }
+    if (atc){
+      atc.disabled = !v.available;
+    }
+  }
+
+  if (optWrap){
+    var btn = optWrap.querySelector('.ch-stickyopt__btn');
+    var pop = optWrap.querySelector('.ch-stickyopt__pop');
+    var label = optWrap.querySelector('.ch-stickyopt__label');
+
+    function openOpt(){
+      optWrap.classList.add('is-open');
+    }
+    function closeOpt(){
+      optWrap.classList.remove('is-open');
+    }
+
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      if (optWrap.classList.contains('is-open')) closeOpt(); else openOpt();
+    });
+
+    pop.addEventListener('click', function(e){
+      var item = e.target.closest('.ch-stickyopt__item');
+      if (!item || item.classList.contains('is-soldout')) return;
+      var id = item.getAttribute('data-value');
+
+      pop.querySelectorAll('.ch-stickyopt__item').forEach(function(i){
+        i.classList.toggle('is-active', i === item);
+      });
+
+      if (label) label.textContent = item.querySelector('.ch-stickyopt__name').textContent.trim();
+      if (realInput) realInput.value = id;
+
+      updateUI(id);
+      closeOpt();
+    });
+
+    document.addEventListener('click', function(e){
+      if (!optWrap.contains(e.target)) closeOpt();
+    });
+  }
+
+  /* pad bottom so content doesn't sit under bar */
+  function padBody(){
+    var h = bar.getBoundingClientRect().height;
+    document.body.style.paddingBottom = 'calc(' + h + 'px + env(safe-area-inset-bottom))';
+  }
+  padBody();
+  if (window.ResizeObserver){
+    new ResizeObserver(padBody).observe(bar);
+  } else {
+    window.addEventListener('resize', padBody, {passive:true});
+  }
+
+  /* init to current variant */
+  var currentId = realInput ? realInput.value : null;
+  if (currentId) updateUI(currentId);
+})();
+</script>

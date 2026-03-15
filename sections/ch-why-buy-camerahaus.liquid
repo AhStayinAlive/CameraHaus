@@ -1,0 +1,538 @@
+{% comment %}
+CMH · Feature Grid (3 big + 4 small)
+- Same page-width container as other sections
+- Row 1: exactly 3 LARGE cards
+- Row 2: exactly 4 SMALL cards
+- Icons via {% render 'ch-icon', name: '...' %} and inherit currentColor
+{% endcomment %}
+
+<section id="cmh-fg-{{ section.id }}" class="cmh-fg is-pre" role="region" aria-labelledby="fg-heading-{{ section.id }}">
+  <div class="page-width">
+    {% if section.settings.heading != blank %}
+      <h2 id="fg-heading-{{ section.id }}" class="fg__heading">{{ section.settings.heading }}</h2>
+    {% endif %}
+
+    <!-- Row: Large (3-up fixed on desktop) -->
+    {% assign lg_count = 0 %}
+    <div class="fg__grid fg__grid--lg" role="list">
+      {% for block in section.blocks %}
+        {% assign t = block.settings %}
+        {% if t.size == 'large' and lg_count < 3 %}
+          {% assign lg_count = lg_count | plus: 1 %}
+          {% assign alt_text = t.image_alt | default: t.title %}
+          <article role="listitem" class="fg__card fg__card--lg" style="--lg-img-w: {{ t.center_img_w | default: 70 }}%;" {{ block.shopify_attributes }}>
+            {% if t.link != blank %}<a class="fg__link fg__link--lg" href="{{ t.link }}">{% else %}<div class="fg__link fg__link--lg">{% endif %}
+              <div class="fg__lg-center">
+                {% if t.title != blank %}<h3 class="fg__lg-title">{{ t.title }}</h3>{% endif %}
+                {% if t.subtitle != blank %}<p class="fg__lg-sub">{{ t.subtitle }}</p>{% endif %}
+                {% if t.image != blank %}
+                  <div class="fg__lg-media">
+                    {%- comment -%}Why Shop large cards: illustrations ~200-300px wide{%- endcomment -%}
+                    {{ t.image
+                      | image_url: width: 400
+                      | image_tag:
+                          widths: '160,240,300,400',
+                          sizes: '(max-width: 740px) 60vw, (max-width: 1100px) 40vw, 300px',
+                          loading: 'lazy',
+                          decoding: 'async',
+                          alt: alt_text }}
+                  </div>
+                {% endif %}
+              </div>
+            {% if t.link != blank %}</a>{% else %}</div>{% endif %}
+          </article>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <!-- Row: Small (4-up fixed on desktop) -->
+    {% assign sm_count = 0 %}
+    <div class="fg__grid fg__grid--sm" role="list">
+      {% for block in section.blocks %}
+        {% assign t = block.settings %}
+        {% if t.size == 'small' and sm_count < 4 %}
+          {% assign sm_count = sm_count | plus: 1 %}
+          <article role="listitem" class="fg__card fg__card--sm" {{ block.shopify_attributes }}>
+            {% if t.link != blank %}<a class="fg__link fg__link--sm" href="{{ t.link }}">{% else %}<div class="fg__link fg__link--sm">{% endif %}
+              <div class="fg__sm-main">
+                {% if t.icon_name != blank %}
+                  <div class="fg__sm-icon">{% render 'ch-icon', name: t.icon_name %}</div>
+                {% endif %}
+                <div class="fg__sm-text">
+                  {% if t.title != blank %}<h3 class="fg__sm-title">{{ t.title }}</h3>{% endif %}
+                  {% if t.subtitle != blank %}<p class="fg__sm-sub">{{ t.subtitle }}</p>{% endif %}
+                </div>
+                {% if t.big_text != blank %}
+                  <div class="fg__sm-big">{{ t.big_text }}</div>
+                {% endif %}
+              </div>
+            {% if t.link != blank %}</a>{% else %}</div>{% endif %}
+          </article>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <style>
+    /* ---------- CSS Vars & Section Spacing ---------- */
+    #cmh-fg-{{ section.id }}{
+      --brand: {{ section.settings.accent | default: '#d12f24' }};
+      --ink: #0f172a;
+      --muted: #6b7280;
+      --card-bg: #fff;
+
+      --gap-lg: 24px;
+      --gap-sm: 20px;
+
+      --pad-t: {{ section.settings.pad_t | default: 24 }}px;
+      --pad-b: {{ section.settings.pad_b | default: 24 }}px;
+
+      padding-top: var(--pad-t);
+      padding-bottom: var(--pad-b);
+    }
+
+    /* Container parity with other sections */
+    #cmh-fg-{{ section.id }} .page-width{
+      max-width:1440px;
+      margin:0 auto;
+      padding:0 28px;
+    }
+
+    @media (max-width: 740px){
+      #cmh-fg-{{ section.id }} .page-width{
+        padding:0 16px;
+      }
+      #cmh-fg-{{ section.id }} .fg__heading{
+        margin-top:0;
+        margin-bottom:12px;
+      }
+    }
+
+    /* ---------- Grids ---------- */
+    .fg__grid{ display:grid; align-items:stretch; }
+    .fg__grid--lg{
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: var(--gap-lg);
+      margin-bottom: 18px;
+    }
+    .fg__grid--sm{
+      grid-template-columns: repeat(4, minmax(0,1fr));
+      gap: var(--gap-sm);
+    }
+
+    /* Tablet landscape: keep 3 columns for large cards, 4 for small */
+    @media (min-width:900px) and (max-width:1100px){
+      .fg__grid--lg{ grid-template-columns: repeat(3, minmax(0,1fr)); gap: 18px; }
+      .fg__grid--sm{ grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+    }
+    /* Tablet portrait: 2 columns for both */
+    @media (min-width:741px) and (max-width:899px){
+      .fg__grid--lg{ grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+      .fg__grid--sm{ grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+    }
+    /* Mobile: stack everything */
+    @media (max-width:740px){
+      .fg__grid--lg{ grid-template-columns: 1fr; gap: 14px; }
+      .fg__grid--sm{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    }
+
+    /* ---------- Card Base ---------- */
+    .fg__card{
+      position:relative;
+      background:var(--card-bg);
+      border:1px solid rgba(15,23,42,.06);
+      border-radius:16px;
+      box-shadow: 0 6px 18px rgba(0,0,0,.06);
+      transition:
+        transform .22s cubic-bezier(.22,.61,.36,1),
+        box-shadow .22s cubic-bezier(.22,.61,.36,1),
+        background-color .18s ease,
+        color .18s ease;
+      will-change: transform;
+      color: var(--ink);
+    }
+    .fg__card--lg{ min-height:360px; }
+    .fg__card--sm{ min-height:180px; border-radius:14px; }
+
+    @media (max-width:1100px){
+      .fg__card--lg{ min-height:320px; }
+      .fg__card--sm{ min-height:170px; }
+    }
+    @media (max-width:740px){
+      .fg__card--lg{ min-height:220px; }
+      .fg__card--sm{ min-height:160px; border-radius:12px; }
+    }
+
+    /* Shared hover "expand" */
+    .fg__card--lg:hover,
+    .fg__card--sm:hover{
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 14px 32px rgba(0,0,0,.16);
+    }
+
+    /* Link wrapper padding */
+    .fg__link{ display:block; height:100%; text-decoration:none; color:inherit; }
+    .fg__link--lg{ padding: clamp(26px, 3vw, 40px); }
+    .fg__link--sm{ padding: clamp(18px, 2.4vw, 24px); }
+
+    @media (max-width:740px){
+      .fg__link--lg{ padding: 18px 18px 20px; }
+      .fg__link--sm{ padding: 14px 14px 16px; }
+    }
+
+    /* ---------- SMALL Cards (Affiliate/Wholesale/Rewards style) ---------- */
+    /* UNIFIED LAYOUT: Compact Grid (Icon + Title | Subtitle below) */
+    /* UNIFIED LAYOUT: Compact Grid (Icon + Title | Subtitle below) */
+    /* UNIFIED LAYOUT: Compact Grid (Icon + Title | Subtitle below) */
+    .fg__sm-main{
+      display: grid !important;
+      grid-template-columns: auto auto !important; /* Allow columns to shrink-wrap for centering */
+      grid-template-rows: auto auto !important;
+      column-gap: 16px !important; /* Increased col-gap for desktop */
+      row-gap: 24px !important;    /* Significant gap to push Title up and Subtitle down */
+      align-items: center !important;
+      justify-content: center !important;
+      width: 100%;
+      height: 100%;
+      text-align: left !important;
+    }
+
+    /* Flatten text wrapper */
+    .fg__sm-text {
+      display: contents !important;
+    }
+
+    /* Row 1, Col 1: Icon */
+    .fg__sm-icon{
+      grid-row: 1;
+      grid-column: 1;
+      color: var(--brand);
+      flex-shrink:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      width: 48px; /* Larger icon slot for desktop */
+      height: 48px;
+      margin: 0;
+    }
+    .fg__sm-icon svg{
+      width: 36px; /* Larger icon svg */
+      height: 36px;
+      display: block;
+    }
+
+    /* Row 1, Col 2: Title */
+    .fg__sm-title{
+      grid-row: 1;
+      grid-column: 2;
+      margin:0;
+      font-weight:800;
+      line-height:1.1;
+      font-size: clamp(1.25rem, 1.1rem + 0.6vw, 1.6rem); /* Significantly larger */
+      color: var(--ink);
+      align-self: center;
+      text-align: left;
+    }
+
+    /* Row 2, Full Width: Subtitle */
+    .fg__sm-sub{
+      grid-row: 2;
+      grid-column: 1 / -1;
+      margin: 0;
+      line-height:1.4;
+      color: var(--muted);
+      font-size: 1.15rem; /* Larger desktop subtitle */
+      white-space: normal;
+      overflow: visible;
+      text-align: center !important;
+    }
+
+    .fg__sm-big{
+      grid-column: 1 / -1;
+      font-weight:800;
+      line-height:1;
+      font-size: clamp(2rem, 1.8rem + 1vw, 2.8rem);
+      color: var(--brand);
+      white-space: nowrap;
+      margin-top: 4px;
+    }
+
+    /* SMALL hover colors */
+    .fg__card--sm:hover{
+      background: var(--brand);
+      color:#fff;
+    }
+    .fg__card--sm:hover .fg__sm-title,
+    .fg__card--sm:hover .fg__sm-sub,
+    .fg__card--sm:hover .fg__sm-big{ color:#fff; }
+    .fg__card--sm:hover .fg__sm-icon{ color:#fff; }
+
+
+
+    /* MOBILE (≤480px): same horizontal layout, just smaller */
+    /* MOBILE (≤480px): Compact Grid (Icon+Title row, Subtitle row) */
+    /* MOBILE (≤480px): Tweaks for smaller screens (layout is same as base) */
+    @media (max-width:480px){
+      .fg__link--sm {
+        padding: 16px 12px;
+      }
+      .fg__sm-main {
+        column-gap: 12px;
+        row-gap: 8px !important;
+      }
+      .fg__sm-icon {
+        width: 36px !important;  /* Ensure larger icon */
+        height: 36px !important;
+      }
+      .fg__sm-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+      .fg__sm-title {
+        font-size: 0.75rem !important; /* Force larger title */
+        line-height: 1.15;
+      }
+      .fg__sm-sub {
+        font-size: 0.65rem !important; /* Force larger subtitle */
+      }
+      .fg__sm-big {
+        font-size: 1.4rem;
+      }
+    }
+
+    /* ---------- LARGE Cards ---------- */
+    .fg__lg-center{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      text-align:center;
+      gap: 12px;
+      height:100%;
+      justify-content:center;
+    }
+    .fg__lg-title{
+      margin:0;
+      font-weight:600;
+      letter-spacing:-.01em;
+      color:#111827;
+      font-size: clamp(1.1rem, 1rem + 0.7vw, 1.6rem);
+      line-height:1.3;
+    }
+    .fg__lg-sub{
+      margin:0;
+      color: var(--muted);
+      font-weight:400;
+      font-size: clamp(.95rem, .9rem + 0.25vw, 1.1rem);
+    }
+    .fg__lg-media img{
+      display:block;
+      width:100%;
+      height:auto;
+      max-width: var(--lg-img-w, 70%);
+      margin-inline:auto;
+      image-rendering: -webkit-optimize-contrast;
+    }
+
+    @media (max-width:740px){
+      .fg__lg-media img{ max-width:60%; }
+      .fg__lg-title{ font-size:1rem; }
+      .fg__lg-sub{ font-size:.85rem; }
+    }
+
+    /* ---------- Appear (single run) ---------- */
+    #cmh-fg-{{ section.id }}.is-pre .fg__card{
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    #cmh-fg-{{ section.id }} .fg__card[data-reveal]{
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    #cmh-fg-{{ section.id }} .fg__card.is-in{
+      opacity: 1;
+      transform: none;
+    }
+
+    /* ---------- Reduced Motion ---------- */
+    @media (prefers-reduced-motion: reduce){
+      #cmh-fg-{{ section.id }} .fg__card,
+      #cmh-fg-{{ section.id }} .fg__card *{
+        transition: none !important;
+        animation: none !important;
+      }
+      #cmh-fg-{{ section.id }}.is-pre .fg__card{
+        opacity:1;
+        transform:none;
+      }
+    }
+
+    .fg__heading{
+      margin:0 0 16px;
+      font-weight:700;
+      letter-spacing:-.01em;
+      line-height:1.15;
+      font-size:clamp(24px, 3vw + 8px, 32px);
+      color: var(--heading-color, inherit);
+    }
+
+
+
+    /* Mobile overrides - Mostly inheriting flex, just sizing */
+    @media (max-width: 740px) {
+      .fg__card--sm {
+        min-height: auto;
+        border-radius: 12px;
+      }
+      .fg__grid--sm {
+        gap: 12px;
+      }
+      .fg__link--sm {
+        padding: 16px;
+      }
+    }
+
+    /* FINAL MOBILE OVERRIDES (≤480px) - Optimized & User Defined */
+    @media (max-width:480px){
+      .fg__link--sm {
+        padding: 16px 12px !important;
+      }
+      .fg__sm-main {
+        column-gap: 6px !important; /* Tight gap for icon proximity */
+        row-gap: 8px !important;
+      }
+      .fg__sm-icon {
+        width: 36px !important;
+        height: 36px !important;
+      }
+      .fg__sm-icon svg {
+        width: 73%;
+        height: 73%;
+      }
+      .fg__sm-title {
+        font-size: .75rem !important;
+        line-height: 1.15;
+      }
+      .fg__sm-sub {
+        font-size: 0.65rem !important;
+      }
+    }
+  </style>
+
+  <script>
+  (function(){
+    var root = document.getElementById('cmh-fg-{{ section.id }}');
+    if(!root) return;
+
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    var lg = Array.prototype.slice.call(root.querySelectorAll('.fg__grid--lg .fg__card'));
+    var sm = Array.prototype.slice.call(root.querySelectorAll('.fg__grid--sm .fg__card'));
+    var cards = lg.concat(sm);
+
+    cards.forEach(function(c){ c.setAttribute('data-reveal',''); });
+
+    function instantShow(){
+      root.classList.remove('is-pre');
+      cards.forEach(function(c){
+        c.classList.add('is-in');
+        c.removeAttribute('data-reveal');
+      });
+    }
+
+    var ran = false;
+    function revealOnce(){
+      if(ran) return; ran = true;
+      root.classList.remove('is-pre');
+
+      cards.forEach(function(card, i){
+        var delay = reduceMotion ? 0 : i * 120;
+        setTimeout(function(){
+          card.classList.add('is-in');
+          card.removeAttribute('data-reveal');
+        }, delay);
+      });
+    }
+
+    if(reduceMotion){
+      instantShow();
+      return;
+    }
+
+    if('IntersectionObserver' in window){
+      var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if(entry.isIntersecting){
+            revealOnce();
+            io.disconnect();
+          }
+        });
+      }, { threshold: 0.35 });
+      io.observe(root);
+    } else {
+      revealOnce();
+    }
+  })();
+  </script>
+
+</section>
+
+{% schema %}
+{
+  "name": "CMH · Feature Grid (3+4)",
+  "settings": [
+    { "type": "text", "id": "heading", "label": "Heading", "default": "Why shop with CameraHaus" },
+    { "type": "color", "id": "accent", "label": "Accent color", "default": "#d12f24" },
+    { "type": "range", "id": "pad_t", "label": "Padding top", "min": 0, "max": 160, "step": 4, "unit": "px", "default": 24 },
+    { "type": "range", "id": "pad_b", "label": "Padding bottom", "min": 0, "max": 160, "step": 4, "unit": "px", "default": 24 }
+  ],
+  "blocks": [
+    {
+      "type": "feature",
+      "name": "Feature",
+      "settings": [
+        {
+          "type": "select",
+          "id": "size",
+          "label": "Card size",
+          "default": "large",
+          "options": [
+            { "value": "large", "label": "Large (top row)" },
+            { "value": "small", "label": "Small (bottom row)" }
+          ]
+        },
+        { "type": "text", "id": "title", "label": "Title", "default": "Feature headline" },
+        { "type": "text", "id": "subtitle", "label": "Subtitle (optional)" },
+
+        { "type": "text", "id": "icon_name", "label": "Icon name (SMALL only)", "info": "Used by the 'ch-icon' snippet; leave blank for LARGE" },
+
+        { "type": "image_picker", "id": "image", "label": "PNG image (LARGE only)" },
+        { "type": "text", "id": "image_alt", "label": "Image alt text" },
+        {
+          "type": "range",
+          "id": "center_img_w",
+          "label": "PNG max width (LARGE)",
+          "min": 30, "max": 100, "step": 5, "unit": "%", "default": 70
+        },
+
+        { "type": "text", "id": "big_text", "label": "Big number (SMALL)", "info": "Optional; shows as large red text" },
+        { "type": "url", "id": "link", "label": "Link (optional)" }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "CMH · Feature Grid (3+4)",
+      "blocks": [
+        { "type": "feature", "settings": { "size": "large", "title": "1% DJI Credit Reward", "subtitle": "Get value back on eligible DJI purchases" } },
+        { "type": "feature", "settings": { "size": "large", "title": "Free Shipping Over ₱9,999", "subtitle": "Nationwide delivery with careful packing" } },
+        { "type": "feature", "settings": { "size": "large", "title": "Official Accessories", "subtitle": "Genuine brands and authorized partners" } },
+
+        { "type": "feature", "settings": { "size": "small", "icon_name": "store", "title": "60+ Stores Nationwide", "subtitle": "Find a branch near you" } },
+        { "type": "feature", "settings": { "size": "small", "icon_name": "badge-check", "title": "Official Brand Warranty", "subtitle": "Hassle-free claims" } },
+        { "type": "feature", "settings": { "size": "small", "icon_name": "tag", "title": "Weekly Deals", "subtitle": "Fresh promos every week", "big_text": "30" } },
+        { "type": "feature", "settings": { "size": "small", "icon_name": "headset", "title": "After-Sales Support", "subtitle": "Chat, phone, and in-store help" } }
+      ]
+    }
+  ]
+}
+{% endschema %}
